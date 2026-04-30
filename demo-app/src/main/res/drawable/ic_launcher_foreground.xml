@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- "A" lettermark for ApexAds -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,20 L30,88 L40,88 L47,68 L61,68 L68,88 L78,88 Z M54,36 L58,56 L50,56 Z" />
+</vector>
