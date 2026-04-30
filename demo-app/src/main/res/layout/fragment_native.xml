@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Native Ad (IAB OpenRTB Native 1.2)"
+            android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
+            android:paddingBottom="8dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+            android:text="Publisher controls layout. SDK binds title, image, CTA and fires impression trackers. Asset IDs match the OpenRTB bid request native request definition."
+            android:paddingBottom="16dp" />
+
+        <ProgressBar
+            android:id="@+id/progress_bar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tv_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Tap Load to fetch a native ad"
+            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+            android:paddingBottom="16dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_load_native"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Load Native Ad"
+            android:layout_marginBottom="16dp" />
+
+        <!-- NativeAdView: the SDK's container for binding — publisher designs the inner layout -->
+        <com.apexads.sdk.native.NativeAdView
+            android:id="@+id/native_ad_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/native_card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <ImageView
+                        android:id="@+id/iv_native_main"
+                        android:layout_width="match_parent"
+                        android:layout_height="180dp"
+                        android:scaleType="centerCrop"
+                        android:background="#E0E0E0"
+                        android:layout_marginBottom="8dp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="8dp">
+
+                        <ImageView
+                            android:id="@+id/iv_native_icon"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:scaleType="centerCrop"
+                            android:background="#E0E0E0"
+                            android:layout_marginEnd="8dp" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/tv_native_title"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Ad Title"
+                                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                                android:maxLines="2" />
+
+                            <TextView
+                                android:id="@+id/tv_native_sponsor"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Sponsored"
+                                android:textAppearance="@style/TextAppearance.Material3.LabelSmall" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tv_native_description"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Description"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                        android:paddingBottom="12dp"
+                        android:maxLines="3" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/tv_native_cta"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Learn More" />
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </com.apexads.sdk.native.NativeAdView>
+    </LinearLayout>
+</ScrollView>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/bannerFragment"
+        android:icon="@android:drawable/ic_menu_gallery"
+        android:title="Banner" />
+    <item
+        android:id="@+id/interstitialFragment"
+        android:icon="@android:drawable/ic_menu_slideshow"
+        android:title="Interstitial" />
+    <item
+        android:id="@+id/nativeFragment"
+        android:icon="@android:drawable/ic_menu_info_details"
+        android:title="Native" />
+    <item
+        android:id="@+id/videoFragment"
+        android:icon="@android:drawable/ic_media_play"
+        android:title="Video" />
+    <item
+        android:id="@+id/appOpenFragment"
+        android:icon="@android:drawable/ic_menu_recent_history"
+        android:title="App Open" />
+</menu>

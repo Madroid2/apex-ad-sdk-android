@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/bannerFragment">
+
+    <fragment
+        android:id="@+id/bannerFragment"
+        android:name="com.apexads.demo.ui.banner.BannerFragment"
+        android:label="Banner" />
+
+    <fragment
+        android:id="@+id/interstitialFragment"
+        android:name="com.apexads.demo.ui.interstitial.InterstitialFragment"
+        android:label="Interstitial" />
+
+    <fragment
+        android:id="@+id/nativeFragment"
+        android:name="com.apexads.demo.ui.native.NativeFragment"
+        android:label="Native" />
+
+    <fragment
+        android:id="@+id/videoFragment"
+        android:name="com.apexads.demo.ui.video.VideoFragment"
+        android:label="Video" />
+
+    <fragment
+        android:id="@+id/appOpenFragment"
+        android:name="com.apexads.demo.ui.appopen.AppOpenFragment"
+        android:label="App Open" />
+
+</navigation>

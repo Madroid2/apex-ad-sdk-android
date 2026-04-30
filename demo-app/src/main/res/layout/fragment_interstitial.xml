@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:gravity="center_horizontal">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Interstitial Ad"
+        android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
+        android:paddingBottom="8dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+        android:text="Fullscreen HTML ad with MRAID close support. Pre-load at a natural pause point; show when ready. The Activity is launched separately to avoid blocking the host UI."
+        android:paddingBottom="16dp" />
+
+    <ProgressBar
+        android:id="@+id/progress_bar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:id="@+id/tv_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Tap Load to pre-fetch the interstitial"
+        android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+        android:paddingBottom="16dp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_load_interstitial"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Load Interstitial"
+        android:layout_marginBottom="12dp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_show_interstitial"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Show Interstitial"
+        style="@style/Widget.Material3.Button.OutlinedButton" />
+
+</LinearLayout>

@@ -1,0 +1,35 @@
+# Built outputs
+build/
+*/build/
+*.aar
+*.apk
+*.aab
+
+# Gradle
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar
+!gradle-wrapper.properties
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Kotlin incremental compilation
+kotlin/
+
+# Proguard mapping files (keep if you publish)
+*.mapping
+
+# MacOS
+.DS_Store
+**/.DS_Store
+
+# Logs
+*.log

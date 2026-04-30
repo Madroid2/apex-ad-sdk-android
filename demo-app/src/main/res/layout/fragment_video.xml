@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:gravity="center_horizontal">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Rewarded Video (VAST 4.0)"
+        android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
+        android:paddingBottom="8dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+        android:text="OpenRTB bid → VAST 4.0 XML → ExoPlayer. VAST quartile trackers (start, 25%, 50%, 75%, complete) fire automatically. Reward granted on complete."
+        android:paddingBottom="16dp" />
+
+    <ProgressBar
+        android:id="@+id/progress_bar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:id="@+id/tv_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Tap Load to fetch a rewarded video"
+        android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+        android:paddingBottom="16dp" />
+
+    <TextView
+        android:id="@+id/tv_reward"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="🎉 Reward granted!"
+        android:textAppearance="@style/TextAppearance.Material3.HeadlineMedium"
+        android:gravity="center"
+        android:visibility="gone"
+        android:paddingBottom="16dp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_load_video"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Load Rewarded Video"
+        android:layout_marginBottom="12dp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_show_video"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Show Rewarded Video"
+        style="@style/Widget.Material3.Button.OutlinedButton" />
+
+</LinearLayout>
