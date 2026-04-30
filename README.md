@@ -8,6 +8,7 @@
 [![VAST](https://img.shields.io/badge/VAST-4.0-red)](https://www.iab.com/guidelines/vast/)
 [![MRAID](https://img.shields.io/badge/MRAID-3.0-purple)](https://www.iab.com/guidelines/mraid/)
 [![Zero 3P Runtime Deps](https://img.shields.io/badge/Runtime%20Deps-Zero-brightgreen)](#zero-third-party-runtime-dependencies)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue)](LICENSE)
 
 ---
 
