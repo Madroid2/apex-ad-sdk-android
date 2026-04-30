@@ -459,7 +459,7 @@ cd apex-ad-sdk-android
 
 This SDK's architecture is informed by production work across multiple large-scale ad platforms:
 
-- **Smaato NG SDK** — Modular 60+ module Android SDK. Custom DI framework, MRAID/VAST/OMID, mediation adapters (AdMob, AppLovin, Meta). 1000+ publisher apps, ~500M daily ad requests.
+- **Smaato NG SDK** — Modular multi-module Android SDK. Custom DI framework, MRAID/VAST/OMID, mediation adapters (AdMob, AppLovin, Meta). Deployed across a large-scale publisher network.
 - **HyBid SDK (PubNative/Verve)** — OpenRTB programmatic SDK, presenter/decorator rendering, OMID viewability, Topics API, multi-format (banner, interstitial, rewarded, native). App Open Ads implementation adapted for ApexAds.
 - **Atom AI SDK (Verve)** — ML analytics SDK with on-device TFLite cohort classification, SQLite event storage, privacy-first sensor data collection.
 - **Adserver (Go)** — High-throughput ad server, ~500k peak RPS, OpenRTB auction engine, 40+ DSP integrations, Redis + Kafka.
