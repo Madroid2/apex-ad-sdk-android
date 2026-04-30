@@ -447,7 +447,7 @@ The demo app uses `MockAdExchange` — an in-process OpenRTB mock that returns r
 | In-App Bidding | Price signal | Header bidding token → mock MAX/LevelPlay waterfall auction |
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/apex-ad-sdk-android.git
+git clone https://github.com/Madroid2/apex-ad-sdk-android.git
 cd apex-ad-sdk-android
 ./gradlew :demo-app:installDebug
 ```
