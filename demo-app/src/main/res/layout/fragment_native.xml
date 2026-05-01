@@ -47,7 +47,7 @@
             android:layout_marginBottom="16dp" />
 
         <!-- NativeAdView: the SDK's container for binding — publisher designs the inner layout -->
-        <com.apexads.sdk.native.NativeAdView
+        <com.apexads.sdk.nativeads.NativeAdView
             android:id="@+id/native_ad_view"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
@@ -126,6 +126,6 @@
 
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
-        </com.apexads.sdk.native.NativeAdView>
+        </com.apexads.sdk.nativeads.NativeAdView>
     </LinearLayout>
 </ScrollView>

@@ -138,7 +138,7 @@ final class AppOpenAdManager {
                         if (destroyed) return;
                         isPreloading = false;
                         currentAd = null;
-                        AdLog.w(null, "AppOpenAdManager: preload failed — %s", error.getMessage());
+                        AdLog.w("AppOpenAdManager: preload failed — %s", error.getMessage());
                         if (listener != null) listener.onAppOpenAdFailedToLoad(error);
                     }
 
