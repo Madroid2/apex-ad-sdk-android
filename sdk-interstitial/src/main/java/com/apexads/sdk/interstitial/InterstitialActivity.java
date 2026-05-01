@@ -14,7 +14,7 @@ import android.webkit.WebViewClient;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
+import android.app.Activity;
 
 import com.apexads.sdk.banner.mraid.MRAIDBridge;
 import com.apexads.sdk.core.models.AdData;
@@ -28,7 +28,7 @@ import com.apexads.sdk.core.utils.AdLog;
  * off {@link AdData} and {@link InterstitialAdListener} without Parcelable overhead —
  * safe because this Activity is always SDK-internal and short-lived.
  */
-public final class InterstitialActivity extends AppCompatActivity {
+public final class InterstitialActivity extends Activity {
 
     // Static slots — cleared immediately in onDestroy
     private static volatile AdData         pendingAdData;

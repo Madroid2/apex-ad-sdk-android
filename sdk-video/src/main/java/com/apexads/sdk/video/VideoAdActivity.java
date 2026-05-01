@@ -13,7 +13,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
+import android.app.Activity;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.Player;
 import androidx.media3.exoplayer.ExoPlayer;
@@ -35,7 +35,7 @@ import com.apexads.sdk.core.utils.AdLog;
  * Manages ExoPlayer lifecycle, VAST quartile tracking, skip-button reveal,
  * click-through handling, and reward callback on completion.
  */
-public final class VideoAdActivity extends AppCompatActivity {
+public final class VideoAdActivity extends Activity {
 
     // Static holder avoids Parcelable / Intent serialization of complex objects
     private static volatile VastAd           pendingAd;
