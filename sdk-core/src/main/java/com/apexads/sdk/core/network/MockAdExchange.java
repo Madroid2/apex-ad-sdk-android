@@ -37,13 +37,13 @@ public class MockAdExchange implements AdNetworkClient {
         BidResponse.Bid bid;
 
         if (imp.video != null) {
-            bid = buildVastBid(imp.impid, imp.bidfloor);
+            bid = buildVastBid(imp.id, imp.bidfloor);
         } else if (imp.nativeObject != null) {
-            bid = buildNativeBid(imp.impid, imp.bidfloor);
+            bid = buildNativeBid(imp.id, imp.bidfloor);
         } else if (imp.instl == 1) {
-            bid = buildInterstitialBid(imp.impid, imp.bidfloor);
+            bid = buildInterstitialBid(imp.id, imp.bidfloor);
         } else {
-            bid = buildBannerBid(imp.impid, imp.bidfloor);
+            bid = buildBannerBid(imp.id, imp.bidfloor);
         }
 
         BidResponse.SeatBid seatBid = new BidResponse.SeatBid();
