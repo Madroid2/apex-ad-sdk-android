@@ -18,6 +18,7 @@ android {
 
 dependencies {
     api(project(":sdk-interstitial"))
+    compileOnly(libs.annotation)
     testImplementation(libs.junit)
     testImplementation(libs.truth)
 }
