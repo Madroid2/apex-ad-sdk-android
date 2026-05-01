@@ -39,7 +39,7 @@ final class CrashDelivery {
                 return;
             }
             if (code == 429) {
-                AdLog.w(null, "CrashReporter: rate-limited by Sentry, skipping retries");
+                AdLog.w("CrashReporter: rate-limited by Sentry, skipping retries");
                 return;
             }
             if (attempt < MAX_ATTEMPTS) {
@@ -47,7 +47,7 @@ final class CrashDelivery {
                 delayMs *= 2;
             }
         }
-        AdLog.w(null, "CrashReporter: failed to deliver crash event after %d attempts", MAX_ATTEMPTS);
+        AdLog.w("CrashReporter: failed to deliver crash event after %d attempts", MAX_ATTEMPTS);
     }
 
     private int postEnvelope(@NonNull byte[] body) {
