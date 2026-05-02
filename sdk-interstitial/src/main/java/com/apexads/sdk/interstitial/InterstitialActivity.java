@@ -4,7 +4,13 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -14,6 +20,8 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
+import android.widget.ImageButton;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -27,14 +35,15 @@ import com.apexads.sdk.core.utils.AdLog;
 /**
  * Fullscreen Activity that hosts the interstitial WebView.
  *
- * Launched by {@link InterstitialAd#show(Context)}. Uses a static slot to hand
- * off {@link AdData} and {@link InterstitialAdListener} without Parcelable overhead —
- * safe because this Activity is always SDK-internal and short-lived.
- *
- * When sdk-wallet is installed and the ad carries {@code ext.wallet} data,
- * {@link WalletDelegate#attachToInterstitial} is called to overlay the wallet CTA panel.
+ * A countdown badge appears in the top-right corner for the first
+ * {@link #CLOSE_DELAY_SECONDS} seconds, after which it is replaced by an
+ * X close button — matching the behaviour of production interstitial SDKs.
+ * Back-press is swallowed while the countdown is running.
  */
 public final class InterstitialActivity extends Activity {
+
+    /** Seconds before the close button becomes tappable. */
+    private static final int CLOSE_DELAY_SECONDS = 5;
 
     // Static slots — cleared in onDestroy
     private static volatile AdData pendingAdData;
@@ -42,7 +51,24 @@ public final class InterstitialActivity extends Activity {
 
     private WebView webView;
     private MRAIDBridge mraidBridge;
+    private TextView tvCountdown;
+    private ImageButton btnClose;
     private AdData adData;
+
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private int closeCountdown = CLOSE_DELAY_SECONDS;
+
+    private final Runnable closeTickRunnable = new Runnable() {
+        @Override public void run() {
+            if (closeCountdown <= 0) {
+                showCloseButton();
+                return;
+            }
+            tvCountdown.setText(String.valueOf(closeCountdown));
+            closeCountdown--;
+            mainHandler.postDelayed(this, 1000);
+        }
+    };
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -54,26 +80,26 @@ public final class InterstitialActivity extends Activity {
 
         window();
 
-        // Root FrameLayout — wallet panel is overlaid as a child above the WebView
         FrameLayout root = new FrameLayout(this);
 
+        // WebView — full screen
         webView = new WebView(this);
         webView.getSettings().setJavaScriptEnabled(true);
         webView.getSettings().setDomStorageEnabled(true);
         webView.getSettings().setMediaPlaybackRequiresUserGesture(false);
         webView.getSettings().setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
-
         root.addView(webView, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
         setContentView(root);
 
         mraidBridge = new MRAIDBridge(new MRAIDBridge.MRAIDListener() {
-            @Override public void onClose()                                           { finish(); }
-            @Override public void onExpand(String url)                               {}
-            @Override public void onResize(int w, int h, int x, int y, boolean ao)  {}
-            @Override public void onOpen(String url)                                 {}
-            @Override public void onLog(String m, String l)                          {}
-            @Override public void onStateChange(MRAIDBridge.MRAIDState s)            {}
+            @Override public void onClose()                                          { finish(); }
+            @Override public void onExpand(String url)                              {}
+            @Override public void onResize(int w, int h, int x, int y, boolean ao) {}
+            @Override public void onOpen(String url)                                {}
+            @Override public void onLog(String m, String l)                         {}
+            @Override public void onStateChange(MRAIDBridge.MRAIDState s)           {}
         });
 
         webView.addJavascriptInterface(mraidBridge, "ApexMRAID");
@@ -95,10 +121,38 @@ public final class InterstitialActivity extends Activity {
             "<style>html,body{margin:0;padding:0;overflow:hidden;}</style>" +
             "<script>" + MRAIDBridge.getMRAIDScript() + "</script>" +
             "</head><body>" + adData.adMarkup + "</body></html>";
-
         webView.loadDataWithBaseURL("https://apexads.sdk", html, "text/html", "UTF-8", null);
 
-        // Attach wallet CTA panel if sdk-wallet is installed and bid carries ext.wallet
+        // Countdown badge — top-right, circular
+        tvCountdown = new TextView(this);
+        tvCountdown.setTextColor(Color.WHITE);
+        tvCountdown.setTextSize(16f);
+        tvCountdown.setTypeface(tvCountdown.getTypeface(), Typeface.BOLD);
+        tvCountdown.setGravity(Gravity.CENTER);
+        tvCountdown.setText(String.valueOf(CLOSE_DELAY_SECONDS));
+        GradientDrawable circle = new GradientDrawable();
+        circle.setShape(GradientDrawable.OVAL);
+        circle.setColor(0xCC000000);
+        tvCountdown.setBackground(circle);
+        FrameLayout.LayoutParams cdParams = new FrameLayout.LayoutParams(dp(40), dp(40));
+        cdParams.gravity = Gravity.TOP | Gravity.END;
+        cdParams.setMargins(0, dp(12), dp(12), 0);
+        root.addView(tvCountdown, cdParams);
+
+        // Close button — same corner, hidden until countdown ends
+        btnClose = new ImageButton(this);
+        btnClose.setImageResource(android.R.drawable.ic_menu_close_clear_cancel);
+        btnClose.setBackgroundColor(0xCC000000);
+        btnClose.setContentDescription("Close ad");
+        btnClose.setPadding(dp(8), dp(8), dp(8), dp(8));
+        btnClose.setVisibility(View.GONE);
+        btnClose.setOnClickListener(v -> finish());
+        FrameLayout.LayoutParams closeParams = new FrameLayout.LayoutParams(dp(44), dp(44));
+        closeParams.gravity = Gravity.TOP | Gravity.END;
+        closeParams.setMargins(0, dp(10), dp(10), 0);
+        root.addView(btnClose, closeParams);
+
+        // Wallet CTA panel — attached when sdk-wallet is installed and ext.wallet present
         if (adData.walletExtJson != null && ServiceLocator.isRegistered(WalletDelegate.class)) {
             WalletDelegate delegate = ServiceLocator.get(WalletDelegate.class);
             delegate.attachToInterstitial(this, root, adData.walletExtJson,
@@ -115,9 +169,11 @@ public final class InterstitialActivity extends Activity {
                     });
         }
 
+        mainHandler.post(closeTickRunnable);
+
         if (activeListener != null) activeListener.onInterstitialShown();
-        AdLog.d("InterstitialActivity: showing ad cpm=$%.2f wallet=%s",
-                adData.cpm, adData.walletExtJson != null ? "yes" : "no");
+        AdLog.d("InterstitialActivity: showing ad cpm=$%.2f closeDelay=%ds wallet=%s",
+                adData.cpm, CLOSE_DELAY_SECONDS, adData.walletExtJson != null ? "yes" : "no");
     }
 
     @Override
@@ -130,6 +186,7 @@ public final class InterstitialActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        mainHandler.removeCallbacks(closeTickRunnable);
         if (webView != null) webView.destroy();
         if (activeListener != null) activeListener.onInterstitialClosed();
         activeListener = null;
@@ -139,7 +196,17 @@ public final class InterstitialActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        finish();
+        if (btnClose != null && btnClose.getVisibility() == View.VISIBLE) {
+            finish();
+        }
+        // Swallow back-press while countdown is running
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private void showCloseButton() {
+        tvCountdown.setVisibility(View.GONE);
+        btnClose.setVisibility(View.VISIBLE);
     }
 
     private void window() {
@@ -149,6 +216,12 @@ public final class InterstitialActivity extends Activity {
                 View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
                 View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
     }
+
+    private int dp(int dp) {
+        return Math.round(dp * getResources().getDisplayMetrics().density);
+    }
+
+    // ── Static launch ─────────────────────────────────────────────────────────
 
     static void launch(@NonNull Context context,
                        @NonNull AdData adData,
