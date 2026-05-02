@@ -24,15 +24,19 @@
       <img src="assets/demo_interstitial.gif" width="240" alt="Interstitial Ad"/><br/>
       <b>Interstitial</b>
     </td>
-  </tr>
-  <tr>
     <td align="center">
       <img src="assets/demo_native.gif" width="240" alt="Native Ad"/><br/>
       <b>IAB Native 1.2</b>
     </td>
+  </tr>
+  <tr>
     <td align="center">
       <img src="assets/demo_appopen.gif" width="240" alt="App Open Ad"/><br/>
       <b>App Open Ads</b>
+    </td>
+    <td align="center" colspan="2">
+      <img src="assets/demo_video.gif" width="240" alt="VAST 4.0 Rewarded Video"/><br/>
+      <b>VAST 4.0 Rewarded Video</b>
     </td>
   </tr>
 </table>

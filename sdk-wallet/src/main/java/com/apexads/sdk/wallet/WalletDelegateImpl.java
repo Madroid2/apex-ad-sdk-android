@@ -14,6 +14,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.apexads.sdk.ApexAds;
 import com.apexads.sdk.core.di.WalletDelegate;
 import com.apexads.sdk.core.models.AdData;
 import com.apexads.sdk.core.network.SdkExecutors;
@@ -99,6 +100,19 @@ final class WalletDelegateImpl implements WalletDelegate {
             if (session.saveAttempted) return;
             session.saveAttempted = true;
             tvBtn.setEnabled(false);
+
+            // In test mode, the mock JWT is a placeholder — calling the real Google Wallet
+            // API would show a "Something went wrong" error screen. Simulate the full success
+            // flow instead so the CTA UX can be demoed without a live issuer account.
+            if (ApexAds.isInitialized() && ApexAds.getConfig().isTestMode()) {
+                AdLog.d("WalletDelegateImpl: test mode — simulating wallet save for offer=%s",
+                        passData.offerId);
+                showStatus(tvStatus, "✓ Saved to Google Wallet (test mode)", 0xFF1B5E20);
+                fireTracking(passData.saveTrackingUrl);
+                SdkExecutors.MAIN.post(callback::onPassSaved);
+                return;
+            }
+
             try {
                 WalletPassManager.savePass(activity, passData.passJwt);
             } catch (RuntimeException e) {
@@ -189,6 +203,15 @@ final class WalletDelegateImpl implements WalletDelegate {
 
         tvBtn.setOnClickListener(v -> {
             tvBtn.setEnabled(false);
+            // Test mode: simulate success without calling Google Wallet (placeholder JWT would error)
+            if (ApexAds.isInitialized() && ApexAds.getConfig().isTestMode()) {
+                AdLog.d("WalletDelegateImpl: test mode — simulating banner wallet save offer=%s",
+                        passData.offerId);
+                tvBtn.setText("✓ Saved (test mode)");
+                fireTracking(passData.saveTrackingUrl);
+                SdkExecutors.MAIN.post(callback::onPassSaved);
+                return;
+            }
             WalletResultActivity.launch(context, passData.passJwt,
                     passData.saveTrackingUrl, callback);
         });
