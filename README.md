@@ -34,9 +34,13 @@
       <img src="assets/demo_appopen.gif" width="240" alt="App Open Ad"/><br/>
       <b>App Open Ads</b>
     </td>
-    <td align="center" colspan="2">
+    <td align="center">
       <img src="assets/demo_video.gif" width="240" alt="VAST 4.0 Rewarded Video"/><br/>
       <b>VAST 4.0 Rewarded Video</b>
+    </td>
+    <td align="center">
+      <img src="assets/demo_wallet.gif" width="240" alt="Google Wallet Pass Ad"/><br/>
+      <b>Google Wallet Pass Ad</b>
     </td>
   </tr>
 </table>
