@@ -33,7 +33,3 @@ kotlin/
 
 # Logs
 *.log
-
-# Oversized demo assets (>100 MB — cannot be pushed to GitHub without LFS)
-# Re-record at a lower resolution/fps and keep under 50 MB before committing.
-assets/demo_video.gif
