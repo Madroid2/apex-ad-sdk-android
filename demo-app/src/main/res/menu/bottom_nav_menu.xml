@@ -20,8 +20,4 @@
         android:id="@+id/appOpenFragment"
         android:icon="@android:drawable/ic_menu_recent_history"
         android:title="App Open" />
-    <item
-        android:id="@+id/walletAdFragment"
-        android:icon="@android:drawable/ic_menu_add"
-        android:title="Wallet" />
 </menu>
