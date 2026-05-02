@@ -50,7 +50,8 @@ class DemoApplication : Application() {
                 AdLog.d("DemoApp: App Open Ad dismissed")
             }
         })
-        AppOpenAd.setFrequencyCapHours(1)
+        // No frequency cap — show every foreground for demo purposes.
+        // In production: AppOpenAd.setFrequencyCapHours(1)
         AppOpenAd.setAdExpiryMinutes(30)
     }
 

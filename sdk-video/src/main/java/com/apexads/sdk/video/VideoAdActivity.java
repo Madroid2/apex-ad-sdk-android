@@ -2,9 +2,6 @@ package com.apexads.sdk.video;
 
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Color;
-import android.graphics.Typeface;
-import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -37,15 +34,12 @@ import com.apexads.sdk.core.utils.AdLog;
 /**
  * Fullscreen rewarded-video Activity driven by a parsed {@link VastAd}.
  *
- * Two independent timers run in parallel:
  * <ul>
- *   <li><b>Close timer</b> (top-right) — counts down {@link #CLOSE_DELAY_SECONDS} seconds,
- *       then reveals an X button. Back-press is swallowed until it appears.</li>
+ *   <li><b>Close button</b> (top-right) — hidden until the video finishes. Reward is granted
+ *       on completion; the user then taps X to dismiss. Back-press is swallowed until it appears.</li>
  *   <li><b>Skip timer</b> (bottom-right) — counts down {@link VastAd#skipOffset} seconds
  *       per the VAST spec, then reveals a Skip button. Only shown for skippable ads.</li>
  * </ul>
- *
- * Reward is granted only on video completion, not on close or skip.
  */
 public final class VideoAdActivity extends Activity {
     // Static holder — avoids Parcelable / Intent serialization of complex objects
@@ -70,8 +64,7 @@ public final class VideoAdActivity extends Activity {
     private ExoPlayer    player;
     private PlayerView   playerView;
 
-    // Close controls — top-right
-    private TextView     tvCloseCountdown;
+    // Close button — top-right, revealed only after video completes
     private ImageButton  btnClose;
 
     // Skip controls — bottom-right (VAST skipOffset driven)
@@ -93,7 +86,6 @@ public final class VideoAdActivity extends Activity {
     private boolean rewardGranted  = false;
 
     // Timer state
-    private int closeCountdown;
     private int skipCountdown;
 
     private final Runnable skipTickRunnable = new Runnable() {
@@ -206,22 +198,7 @@ public final class VideoAdActivity extends Activity {
         adLabelParams.setMargins(dp(12), dp(12), 0, 0);
         root.addView(tvAdLabel, adLabelParams);
 
-        // Close countdown badge — top-right, circular
-        tvCloseCountdown = new TextView(this);
-        tvCloseCountdown.setTextColor(Color.WHITE);
-        tvCloseCountdown.setTextSize(14f);
-        tvCloseCountdown.setTypeface(tvCloseCountdown.getTypeface(), Typeface.BOLD);
-        tvCloseCountdown.setGravity(Gravity.CENTER);
-        GradientDrawable circle = new GradientDrawable();
-        circle.setShape(GradientDrawable.OVAL);
-        circle.setColor(0xCC000000);
-        tvCloseCountdown.setBackground(circle);
-        FrameLayout.LayoutParams cdParams = new FrameLayout.LayoutParams(dp(40), dp(40));
-        cdParams.gravity = Gravity.TOP | Gravity.END;
-        cdParams.setMargins(0, dp(12), dp(12), 0);
-        root.addView(tvCloseCountdown, cdParams);
-
-        // Close button — top-right, hidden until countdown ends
+        // Close button — top-right, hidden until video ends
         btnClose = new ImageButton(this);
         btnClose.setImageResource(android.R.drawable.ic_menu_close_clear_cancel);
         btnClose.setBackgroundColor(0xCC000000);
@@ -343,15 +320,15 @@ public final class VideoAdActivity extends Activity {
         if (completeFired) return;
         completeFired = true;
         fireTracking(TrackingEvent.COMPLETE);
+        // Reveal close button — user dismisses manually after receiving their reward
+        showCloseButton();
         if (!rewardGranted) {
             rewardGranted = true;
             if (listener != null) SdkExecutors.MAIN.post(() -> {
                 listener.onVideoAdCompleted();
                 listener.onRewardEarned();
-                showCloseButton();
             });
         }
-        mainHandler.postDelayed(this::finish, 300);
     }
 
     private void releasePlayer() {
@@ -365,7 +342,6 @@ public final class VideoAdActivity extends Activity {
     // ── Close / Skip logic ────────────────────────────────────────────────────
 
     private void showCloseButton() {
-        tvCloseCountdown.setVisibility(View.GONE);
         btnClose.setVisibility(View.VISIBLE);
     }
 

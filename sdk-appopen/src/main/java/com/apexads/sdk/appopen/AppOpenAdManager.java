@@ -53,7 +53,9 @@ final class AppOpenAdManager {
 
     private WeakReference<Activity> currentActivityRef;
     private int startedActivityCount = 0;
-    private boolean appInBackground = true;
+    // Start as false: the first onActivityResumed (cold start) is NOT a background→foreground
+    // event. appInBackground only becomes true once the user actually presses Home.
+    private boolean appInBackground = false;
 
     static AppOpenAdManager getInstance() {
         if (sInstance == null) sInstance = new AppOpenAdManager();
@@ -76,7 +78,7 @@ final class AppOpenAdManager {
             application.unregisterActivityLifecycleCallbacks(lifecycleCallbacks);
         }
         destroyed = false;
-        appInBackground = true;
+        appInBackground = false;
         startedActivityCount = 0;
         adLoadedAtMs = 0L;
         currentAd = null;
