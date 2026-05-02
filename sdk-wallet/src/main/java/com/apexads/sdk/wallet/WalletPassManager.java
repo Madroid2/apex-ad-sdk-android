@@ -5,13 +5,11 @@ import android.content.Context;
 
 import androidx.annotation.NonNull;
 
-import com.apexads.sdk.ApexAds;
 import com.apexads.sdk.core.utils.AdLog;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
-import com.google.android.gms.wallet.PayClient;
-import com.google.android.gms.wallet.Wallet;
-import com.google.android.gms.wallet.WalletConstants;
+import com.google.android.gms.pay.Pay;
+import com.google.android.gms.pay.PayClient;
 
 /**
  * Thin wrapper around the Google Wallet {@link PayClient}.
@@ -55,20 +53,13 @@ final class WalletPassManager {
      */
     static void savePass(@NonNull Activity activity, @NonNull String passJwt) {
         try {
-            int environment = ApexAds.getConfig().isTestMode()
-                    ? WalletConstants.ENVIRONMENT_TEST
-                    : WalletConstants.ENVIRONMENT_PRODUCTION;
-            Wallet.WalletOptions options = new Wallet.WalletOptions.Builder()
-                    .setEnvironment(environment)
-                    .build();
-            PayClient payClient = Wallet.getPayClient(activity, options);
+            PayClient payClient = Pay.getClient(activity);
             payClient.savePassesJwt(passJwt, activity, REQUEST_CODE_SAVE_PASS);
-            AdLog.d("WalletPassManager: savePassesJwt dispatched (env=%s)",
-                    environment == WalletConstants.ENVIRONMENT_TEST ? "TEST" : "PRODUCTION");
+            AdLog.d("WalletPassManager: savePassesJwt dispatched");
         } catch (Exception e) {
             // savePassesJwt throws if the intent cannot be started.
             // The caller will not receive onActivityResult in this case, so we
-            // Re-throw as RuntimeException so callers (WalletDelegateImpl, WalletResultActivity) can handle it.
+            // re-throw as RuntimeException so callers (WalletDelegateImpl, WalletResultActivity) can handle it.
             throw new RuntimeException("WalletPassManager: savePass failed — " + e.getMessage(), e);
         }
     }
