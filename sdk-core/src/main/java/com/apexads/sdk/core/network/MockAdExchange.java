@@ -173,6 +173,8 @@ public class MockAdExchange implements AdNetworkClient {
         "<button class=\"cta\" onclick=\"ApexMRAID.close()\">Get Started →</button>" +
         "</body></html>";
 
+    // 10-second Big Buck Bunny clip — 720p H.264, ~1 MB, stable CDN purpose-built for media testing.
+    // Previous URL (storage.googleapis.com/gvabox) now returns 403.
     private static final String VAST_XML =
         "<VAST version=\"4.0\">" +
         "<Ad id=\"mock-preroll-001\"><InLine>" +
@@ -180,7 +182,7 @@ public class MockAdExchange implements AdNetworkClient {
         "<AdTitle>ApexAd Video Demo</AdTitle>" +
         "<Impression id=\"imp-1\"><![CDATA[https://track.apexads.mock/impression?t=video]]></Impression>" +
         "<Creatives><Creative id=\"1\" sequence=\"1\"><Linear>" +
-        "<Duration>00:00:15</Duration>" +
+        "<Duration>00:00:10</Duration>" +
         "<TrackingEvents>" +
         "<Tracking event=\"start\"><![CDATA[https://track.apexads.mock/video?event=start]]></Tracking>" +
         "<Tracking event=\"firstQuartile\"><![CDATA[https://track.apexads.mock/video?event=q1]]></Tracking>" +
@@ -193,8 +195,8 @@ public class MockAdExchange implements AdNetworkClient {
         "<ClickTracking id=\"ct1\"><![CDATA[https://track.apexads.mock/click?type=video]]></ClickTracking>" +
         "</VideoClicks>" +
         "<MediaFiles>" +
-        "<MediaFile delivery=\"progressive\" type=\"video/mp4\" width=\"640\" height=\"360\" bitrate=\"500\">" +
-        "<![CDATA[https://storage.googleapis.com/gvabox/media/samples/stock.mp4]]>" +
+        "<MediaFile delivery=\"progressive\" type=\"video/mp4\" width=\"1280\" height=\"720\" bitrate=\"1024\">" +
+        "<![CDATA[https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_1MB.mp4]]>" +
         "</MediaFile>" +
         "</MediaFiles>" +
         "</Linear></Creative></Creatives>" +
