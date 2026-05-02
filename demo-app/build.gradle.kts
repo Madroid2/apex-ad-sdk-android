@@ -47,6 +47,7 @@ dependencies {
     implementation(project(":sdk-video"))
     implementation(project(":sdk-inappbidding"))
     implementation(project(":sdk-appopen"))
+    implementation(project(":sdk-wallet"))
 
     implementation(libs.core.ktx)
     implementation(libs.appcompat)

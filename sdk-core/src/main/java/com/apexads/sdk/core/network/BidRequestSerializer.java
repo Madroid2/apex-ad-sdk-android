@@ -7,6 +7,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Serializes a {@link BidRequest} to an OpenRTB 2.6 JSON string.
@@ -57,6 +58,7 @@ final class BidRequestSerializer {
         if (imp.banner       != null) o.put("banner", serBanner(imp.banner));
         if (imp.video        != null) o.put("video",  serVideo(imp.video));
         if (imp.nativeObject != null) o.put("native", serNative(imp.nativeObject)); // "native" JSON key
+        if (imp.ext != null && !imp.ext.isEmpty()) o.put("ext", serFlatMap(imp.ext));
         return o;
     }
 
@@ -229,5 +231,24 @@ final class BidRequestSerializer {
         JSONArray a = new JSONArray();
         for (int v : list) a.put(v);
         obj.put(key, a);
+    }
+
+    /**
+     * Serializes a flat {@code Map<String, Object>} to a {@link JSONObject}.
+     * Supports {@link Boolean}, {@link Number}, and {@link String} values.
+     * Silently skips null values and unsupported types.
+     */
+    private static JSONObject serFlatMap(Map<String, Object> map) throws JSONException {
+        JSONObject o = new JSONObject();
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            if (entry.getValue() == null) continue;
+            Object v = entry.getValue();
+            if (v instanceof Boolean)      o.put(entry.getKey(), (boolean) (Boolean) v);
+            else if (v instanceof Integer) o.put(entry.getKey(), (int) (Integer) v);
+            else if (v instanceof Long)    o.put(entry.getKey(), (long) (Long) v);
+            else if (v instanceof Double)  o.put(entry.getKey(), (double) (Double) v);
+            else if (v instanceof String)  o.put(entry.getKey(), (String) v);
+        }
+        return o;
     }
 }

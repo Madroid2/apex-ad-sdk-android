@@ -70,5 +70,7 @@ public class BidResponse {
 
     public static class BidExt {
         public Map<String, Object> prebid;
+        /** Raw JSON string of {@code ext.wallet} — parsed by sdk-wallet only. */
+        @Nullable public String walletExtJson;
     }
 }

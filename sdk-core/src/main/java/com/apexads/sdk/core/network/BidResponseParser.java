@@ -69,11 +69,20 @@ final class BidResponseParser {
         bid.protocol = o.has("protocol") ? o.getInt("protocol") : null;
 
         // Strip empty strings that optString returns for missing keys
-        if (bid.adm    != null && bid.adm.isEmpty())    bid.adm    = null;
-        if (bid.nurl   != null && bid.nurl.isEmpty())   bid.nurl   = null;
-        if (bid.crid   != null && bid.crid.isEmpty())   bid.crid   = null;
-        if (bid.id     != null && bid.id.isEmpty())     bid.id     = null;
-        if (bid.impid  != null && bid.impid.isEmpty())  bid.impid  = null;
+        if (bid.adm   != null && bid.adm.isEmpty())   bid.adm   = null;
+        if (bid.nurl  != null && bid.nurl.isEmpty())  bid.nurl  = null;
+        if (bid.crid  != null && bid.crid.isEmpty())  bid.crid  = null;
+        if (bid.id    != null && bid.id.isEmpty())    bid.id    = null;
+        if (bid.impid != null && bid.impid.isEmpty()) bid.impid = null;
+
+        JSONObject extObj = o.optJSONObject("ext");
+        if (extObj != null) {
+            bid.ext = new BidResponse.BidExt();
+            JSONObject walletObj = extObj.optJSONObject("wallet");
+            if (walletObj != null) {
+                bid.ext.walletExtJson = walletObj.toString();
+            }
+        }
 
         return bid;
     }

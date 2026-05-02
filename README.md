@@ -1,7 +1,7 @@
 # ApexAd SDK — Android
 
 > A production-grade programmatic advertising SDK demonstrating full-stack ad-tech engineering:
-> OpenRTB 2.6 · VAST 4.0 · MRAID 3.0 · IAB Native 1.2 · IAB TCF 2.0 · App Open Ads · In-App Bidding · AdMob Mediation · In-House Crash Reporting · Custom DI · MRC Viewability
+> OpenRTB 2.6 · VAST 4.0 · MRAID 3.0 · IAB Native 1.2 · IAB TCF 2.0 · App Open Ads · In-App Bidding · AdMob Mediation · Google Wallet Pass Ads · In-House Crash Reporting · Custom DI · MRC Viewability
 
 [![API](https://img.shields.io/badge/API-21%2B-brightgreen)](https://android-arsenal.com/api?level=21)
 [![OpenRTB](https://img.shields.io/badge/OpenRTB-2.6-orange)](https://www.iab.com/guidelines/openrtb/)
@@ -18,6 +18,7 @@ Most ad SDKs (including major ones from Google, Meta, Unity) share a common set 
 
 | Feature | ApexAds | AdMob | MAX | IronSource / LevelPlay |
 |---|:---:|:---:|:---:|:---:|
+| **Google Wallet Pass Ads** | ✅ | ❌ | ❌ | ❌ |
 | App Open Ads (native SDK feature) | ✅ | ✅ | ❌ | ❌ |
 | In-App / Header Bidding | ✅ | ❌ | ✅ (MAX) | ✅ (LevelPlay) |
 | In-House Crash Reporting (no 3P SDK) | ✅ | ❌ | ❌ | ❌ |
@@ -29,24 +30,87 @@ Most ad SDKs (including major ones from Google, Meta, Unity) share a common set 
 | VAST 4.0 Rewarded Video | ✅ | ✅ | ✅ | ✅ |
 | IAB TCF 2.0 Consent | ✅ | ✅ | ❌ | ❌ |
 | IAB Native 1.2 | ✅ | ❌ | ❌ | ❌ |
+| Optional feature modules (no transitive deps) | ✅ | ❌ | ❌ | ❌ |
 
 ### Differentiator Deep-Dives
 
-#### 1. App Open Ads — Only the second SDK to offer this natively
+#### 1. Google Wallet Pass Ads — Industry first
+
+No other Android ad SDK supports Google Wallet pass delivery as an ad outcome. ApexAds embeds a native "Save to Google Wallet" CTA directly inside **existing** Interstitial and MRECT Banner formats — no separate ad format, no dedicated placement type, no DSP demand problem.
+
+**The architecture insight:** A standalone `WalletAd` format would suffer near-zero fill rate because no DSP has demand for an opaque "wallet" placement. Instead, wallet is implemented as an optional *feature layer* on top of high-demand formats. Any interstitial or MRECT bid response can include an `ext.wallet` block; the SDK renders the CTA automatically when `sdk-wallet` is installed.
+
+```kotlin
+// Application.onCreate() — one line activates wallet CTAs across all eligible ads
+ApexAds.init(this, config)
+WalletAdExtension.install()  // registers WalletDelegate via ServiceLocator
+
+// Interstitial — wallet CTA panel appears automatically if ext.wallet is in the bid
+val interstitial = InterstitialAd.Builder("placement-interstitial")
+    .listener(object : InterstitialAdListener {
+        override fun onInterstitialLoaded()              { interstitial.show(activity) }
+        override fun onInterstitialFailed(e: AdError)    { /* handle */ }
+        override fun onWalletPassSaved()                 { grantLoyaltyPoints() }
+        override fun onWalletPassCancelled()             { /* user dismissed */ }
+        override fun onWalletPassFailed()                { /* Google Wallet unavailable */ }
+    }).build()
+interstitial.load()
+
+// MRECT Banner — wallet CTA strip appears automatically at bottom of banner
+val banner = BannerAd.Builder("placement-mrect")
+    .adSize(AdSize.MRECT_300x250)
+    .listener(object : BannerAdListener {
+        override fun onAdLoaded()                        { banner.show(bannerAdView) }
+        override fun onAdFailed(e: AdError)              { /* handle */ }
+        override fun onWalletPassSaved()                 { showSuccessMessage() }
+    }).build()
+banner.load()
+```
+
+**How it works end-to-end:**
+
+```
+Publisher App                  SDK Core                      SDK Wallet (optional)
+─────────────                  ────────                      ─────────────────────
+WalletAdExtension.install() ──→ ServiceLocator.register
+                                  (WalletDelegate)
+
+InterstitialAd.load()       ──→ OpenRTBRequestBuilder
+                                  detects WalletDelegate
+                                  → imp.ext.wallet_supported=true
+                               ──→ POST /openrtb2/auction
+                               ←── BidResponse: ext.wallet { pass_jwt, cta_text, … }
+
+InterstitialAd.show()       ──→ InterstitialActivity.onCreate
+                                  adData.walletExtJson != null?
+                                  → WalletDelegate.attachToInterstitial()
+                                      builds bottom panel overlay
+                                      "Save Coupon to Google Wallet" button
+
+User taps CTA               ──→ WalletPassManager.savePassesJwt()
+                               ←── Google Wallet result (onActivityResult)
+                               ──→ WalletDelegate.handleActivityResult()
+                               ──→ listener.onWalletPassSaved()
+                               ──→ fire save_tracking_url (pixel)
+```
+
+**Zero dependency leakage:** `play-services-wallet` is scoped to `sdk-wallet` only. Publishers who don't call `WalletAdExtension.install()` never pull in Google Pay APIs and are unaffected.
+
+#### 2. App Open Ads — Only the second SDK to offer this natively
 Google AdMob introduced App Open as a dedicated ad format in 2021. No other Android ad SDK has followed. ApexAds implements the full lifecycle — background detection, frequency capping, automatic preload and re-preload after dismiss — backed by the same OpenRTB pipeline as every other format.
 
 ```kotlin
 // Application.onCreate()
 AppOpenAd.initialize(this, "placement-appopen", object : AppOpenAd.Listener {
-    override fun onAppOpenAdLoaded()  { /* ad is warm */ }
-    override fun onAppOpenAdDismissed() { /* user dismissed */ }
-    override fun onAppOpenAdFailedToLoad(error: AdError) { /* handle */ }
+    override fun onAppOpenAdLoaded()                    { /* ad is warm */ }
+    override fun onAppOpenAdDismissed()                 { /* user dismissed */ }
+    override fun onAppOpenAdFailedToLoad(error: AdError){ /* handle */ }
 })
 AppOpenAd.setFrequencyCapHours(1)   // show at most once per hour
 AppOpenAd.setAdExpiryMinutes(30)    // discard stale cached ad after 30 min
 ```
 
-#### 2. In-House Crash Reporting — Zero Sentry SDK dependency
+#### 3. In-House Crash Reporting — Zero Sentry SDK dependency
 Crash events are serialized to the Sentry envelope protocol and delivered via raw `HttpURLConnection` — no Sentry Android SDK on the classpath. The reporter installs a `Thread.UncaughtExceptionHandler`, retries delivery up to 3× with exponential back-off, and respects 429 rate limits.
 
 ```kotlin
@@ -56,7 +120,7 @@ ApexAdsConfig.Builder("APP_TOKEN")
 // ↑ crash reporting is fully automatic after this. No other wiring needed.
 ```
 
-#### 3. Custom DI — No Hilt, No Dagger, No Koin
+#### 4. Custom DI — No Hilt, No Dagger, No Koin
 Annotation processors from DI frameworks conflict with host app DI graphs and slow incremental builds. `ServiceLocator` is a `ConcurrentHashMap<Class, Any>` — 40 lines of code, zero reflection at runtime, zero transitive deps.
 
 ```kotlin
@@ -66,9 +130,11 @@ ServiceLocator.register(AdNetworkClient::class.java, HttpAdNetworkClient(config)
 val client = ServiceLocator.get(AdNetworkClient::class.java)
 // Test code swaps in a mock with one line:
 ServiceLocator.register(AdNetworkClient::class.java, MockAdExchange())
+// Optional feature modules register their implementations via the same mechanism:
+WalletAdExtension.install() // → ServiceLocator.register(WalletDelegate::class.java, …)
 ```
 
-#### 4. Zero 3P Runtime Dependencies
+#### 5. Zero 3P Runtime Dependencies
 Every SDK imported into a publisher app risks version conflicts with the publisher's own dependencies. ApexAds runtime uses only Android platform APIs:
 
 | Replaced | With |
@@ -78,6 +144,8 @@ Every SDK imported into a publisher app risks version conflicts with the publish
 | Timber | Custom `AdLog` over `android.util.Log` |
 | Sentry SDK | Raw HTTP envelope protocol over `HttpURLConnection` |
 | Hilt / Dagger | `ServiceLocator` (40-line `ConcurrentHashMap` wrapper) |
+
+Optional feature modules (`sdk-wallet`) bring their own scoped dependencies without leaking them into `sdk-core` or the publisher's compile classpath.
 
 ---
 
@@ -89,6 +157,7 @@ flowchart TD
     classDef sdk fill:#2E7D32,color:#fff,stroke:#1B5E20
     classDef core fill:#4527A0,color:#fff,stroke:#311B92
     classDef ext fill:#E65100,color:#fff,stroke:#BF360C
+    classDef wallet fill:#0277BD,color:#fff,stroke:#01579B
 
     subgraph DEMO["Demo App (MVVM)"]
         direction LR
@@ -98,6 +167,7 @@ flowchart TD
         VF["VideoFragment"]:::app
         AOF["AppOpenFragment"]:::app
         IAB["InAppBiddingFragment"]:::app
+        WF["WalletFragment"]:::app
         VM["AdViewModel"]:::app
     end
 
@@ -108,11 +178,12 @@ flowchart TD
         VID["sdk-video\n(VAST 4.0)"]:::sdk
         AOP["sdk-appopen\n(App Open)"]:::sdk
         IAB2["sdk-inappbidding\n(Header Bidding)"]:::sdk
+        WAL["sdk-wallet\n(Google Wallet Pass)"]:::wallet
     end
 
     subgraph CORE["sdk-core"]
         ENTRY["ApexAds (init)"]:::core
-        DI["ServiceLocator (DI)"]:::core
+        DI["ServiceLocator (DI)\n+ WalletDelegate interface"]:::core
         NET["HttpAdNetworkClient\n(HttpURLConnection)"]:::core
         PARSE["BidRequestSerializer\nBidResponseParser\n(org.json)"]:::core
         CACHE["AdCache (TTL)"]:::core
@@ -127,10 +198,12 @@ flowchart TD
         ADMOB["adapters-admob\n(AdMob Mediation)"]:::ext
         SENTRY["Sentry DSN endpoint"]:::ext
         EXCHANGE["Ad Exchange\n(OpenRTB 2.6)"]:::ext
+        GWALLET["Google Wallet API"]:::wallet
     end
 
     DEMO --> MODULES
     MODULES --> CORE
+    WAL --> GWALLET
     ADMOB --> MODULES
     NET --> EXCHANGE
     CRASH --> SENTRY
@@ -144,16 +217,18 @@ flowchart TD
 graph LR
     classDef core fill:#4527A0,color:#fff,stroke:#311B92
     classDef module fill:#2E7D32,color:#fff,stroke:#1B5E20
+    classDef wallet fill:#0277BD,color:#fff,stroke:#01579B
     classDef adapter fill:#E65100,color:#fff,stroke:#BF360C
     classDef app fill:#1565C0,color:#fff,stroke:#0D47A1
 
-    CORE["sdk-core"]:::core
+    CORE["sdk-core\n(WalletDelegate interface)"]:::core
     BAN["sdk-banner"]:::module
     INT["sdk-interstitial"]:::module
     NAT["sdk-native"]:::module
     VID["sdk-video"]:::module
     AOP["sdk-appopen"]:::module
     IAB["sdk-inappbidding"]:::module
+    WAL["sdk-wallet\n(play-services-wallet)"]:::wallet
     ADM["adapters-admob"]:::adapter
     DEMO["demo-app"]:::app
 
@@ -163,6 +238,7 @@ graph LR
     VID --> CORE
     AOP --> INT
     IAB --> CORE
+    WAL --> CORE
     ADM --> BAN
     ADM --> INT
     ADM --> VID
@@ -172,17 +248,19 @@ graph LR
     DEMO --> VID
     DEMO --> AOP
     DEMO --> IAB
+    DEMO --> WAL
 ```
 
 | Module | Depends On | Responsibility |
 |---|---|---|
-| `sdk-core` | — (Android platform only) | SDK init, OpenRTB models, HTTP networking, ad cache, consent, DI, crash reporting, logging |
-| `sdk-banner` | `sdk-core` | Banner ad + MRAID 3.0 WebView container |
-| `sdk-interstitial` | `sdk-core` | Fullscreen HTML interstitial, separate Activity |
+| `sdk-core` | — (Android platform only) | SDK init, OpenRTB models, HTTP networking, ad cache, consent, DI, crash reporting, logging, `WalletDelegate` interface |
+| `sdk-banner` | `sdk-core` | Banner ad + MRAID 3.0 WebView container; auto-attaches wallet CTA on MRECT when `WalletDelegate` is registered |
+| `sdk-interstitial` | `sdk-core` | Fullscreen HTML interstitial; auto-attaches wallet bottom panel when `WalletDelegate` is registered |
 | `sdk-native` | `sdk-core` | IAB Native 1.2 JSON parsing, publisher-controlled view binding |
 | `sdk-video` | `sdk-core` | VAST 4.0 parsing, ExoPlayer rewarded video, quartile tracking |
 | `sdk-appopen` | `sdk-interstitial` | App Open Ads — foreground detection, frequency cap, auto-preload |
 | `sdk-inappbidding` | `sdk-core` | Header bidding price signals, MAX/LevelPlay mock simulation |
+| `sdk-wallet` | `sdk-core` | Google Wallet pass delivery; `play-services-wallet` scoped here only — zero leakage |
 | `adapters-admob` | `sdk-banner`, `sdk-interstitial`, `sdk-video` | AdMob mediation adapter (Banner, Interstitial, Rewarded) |
 | `demo-app` | all modules | MVVM showcase app, MockAdExchange integration |
 
@@ -205,14 +283,23 @@ sequenceDiagram
         SDK-->>App: onAdLoaded()
     else Cache miss
         SDK->>Net: requestBid(BidRequest)
+        Note over Net,Exch: imp.ext.wallet_supported=true\n(if WalletAdExtension installed + MRECT/Interstitial)
         Net->>Exch: POST /openrtb2/auction
         Exch-->>Net: BidResponse (JSON)
+        Note over Net,SDK: ext.wallet parsed → AdData.walletExtJson
         Net-->>SDK: BidResponse
         SDK->>Cache: put(format, placementId, AdData)
         SDK-->>App: onAdLoaded()
     end
     App->>SDK: ad.show(activity)
     SDK->>App: Render ad (Activity / WebView / ExoPlayer)
+    opt AdData carries ext.wallet and WalletDelegate registered
+        SDK->>App: Overlay "Save to Google Wallet" CTA
+        App->>SDK: User taps CTA
+        SDK->>SDK: WalletPassManager.savePassesJwt()
+        SDK-->>App: onWalletPassSaved / Cancelled / Failed
+        SDK->>Net: fireTrackingUrl(save_tracking_url)
+    end
     SDK->>Net: fireTrackingUrl(winNoticeUrl)
     Net->>Exch: GET win notice (fire-and-forget)
 ```
@@ -239,16 +326,17 @@ stateDiagram-v2
 ## Ad Tech Standards Implemented
 
 ### OpenRTB 2.6 (IAB)
-Full bid request/response object graph — `BidRequest`, `Impression`, `Banner`, `Video`, `Native`, `App`, `Device`, `User`, `Regs`, `Geo`, and all extension objects. Serialized to JSON with hand-written `org.json` serializer (no Gson/Moshi).
+Full bid request/response object graph — `BidRequest`, `Impression`, `Banner`, `Video`, `Native`, `App`, `Device`, `User`, `Regs`, `Geo`, and all extension objects. Serialized to JSON with hand-written `org.json` serializer (no Gson/Moshi). Supports `imp.ext` for capability signalling (e.g. `wallet_supported: true`).
 
 ```kotlin
 val request = OpenRTBRequestBuilder(deviceInfoProvider, consentManager)
     .adFormat(AdFormat.BANNER)
-    .adSize(AdSize.BANNER_320x50)
-    .placementId("placement-001")
+    .adSize(AdSize.MRECT_300x250)
+    .placementId("placement-mrect")
     .bidFloor(0.50)
     .build()
 // → POSTs JSON to ad exchange endpoint, parses BidResponse
+// → automatically includes imp.ext.wallet_supported=true when sdk-wallet is installed
 ```
 
 ### MRAID 3.0 (IAB)
@@ -266,6 +354,9 @@ Reads `IABTCF_TCString`, `IABTCF_gdprApplies`, and `IABUSPrivacy_String` from Sh
 ### In-App Bidding / Header Bidding
 `ApexInAppBidder` fetches a real-time bid from the exchange and packages it as a `BidToken` price signal — compatible with MAX and LevelPlay's `setLocalExtraParameter` / `setSignal` patterns.
 
+### Google Wallet Pass Ads (ext.wallet)
+Non-standard OpenRTB extension (`ext.wallet`) carries a signed Google Wallet pass JWT alongside the creative. The SDK parses this, presents a native "Save to Google Wallet" CTA, and invokes `PayClient.savePassesJwt()` — with result handling, tracking pixel, and publisher callbacks.
+
 ---
 
 ## Project Structure
@@ -278,15 +369,17 @@ apex-ad-sdk-android/
 │       ├── ApexAds.java               # SDK singleton entry point
 │       ├── ApexAdsConfig.java         # Immutable builder-pattern configuration
 │       └── core/
-│           ├── di/ServiceLocator      # Lightweight ConcurrentHashMap DI (40 lines)
+│           ├── di/
+│           │   ├── ServiceLocator     # Lightweight ConcurrentHashMap DI (40 lines)
+│           │   └── WalletDelegate     # Interface — decouples sdk-core from sdk-wallet
 │           ├── network/
 │           │   ├── AdNetworkClient    # Interface (2 methods)
 │           │   ├── HttpAdNetworkClient# HttpURLConnection impl (no OkHttp)
 │           │   ├── SdkHttpClient      # Raw HTTP helper
 │           │   ├── BidRequestSerializer  # org.json serializer (no Gson)
-│           │   └── BidResponseParser     # org.json parser
+│           │   └── BidResponseParser     # org.json parser + ext.wallet extraction
 │           ├── models/openrtb/        # Full OpenRTB 2.6 POJO graph
-│           ├── request/OpenRTBRequestBuilder
+│           ├── request/OpenRTBRequestBuilder  # Auto-signals wallet_supported
 │           ├── cache/AdCache          # Thread-safe TTL-based ad cache
 │           ├── consent/ConsentManager # IAB TCF 2.0 SharedPreferences reader
 │           ├── device/DeviceInfoProvider
@@ -300,10 +393,11 @@ apex-ad-sdk-android/
 │           └── utils/AdLog            # android.util.Log wrapper (no Timber)
 │
 ├── sdk-banner/                        # Banner + MRAID 3.0
-│   └── BannerAd / BannerAdView / mraid/MRAIDBridge
+│   └── BannerAd / BannerAdView        # Auto-attaches wallet CTA strip on MRECT
+│   └── mraid/MRAIDBridge
 │
 ├── sdk-interstitial/                  # Fullscreen interstitial
-│   └── InterstitialAd / InterstitialActivity
+│   └── InterstitialAd / InterstitialActivity  # Auto-attaches wallet bottom panel
 │
 ├── sdk-native/                        # IAB Native 1.2
 │   └── NativeAd / NativeAdParser (org.json) / NativeAdView
@@ -311,10 +405,17 @@ apex-ad-sdk-android/
 ├── sdk-video/                         # VAST 4.0 rewarded video
 │   └── VideoAd / VideoAdActivity / vast/VastParser
 │
-├── sdk-appopen/                       # App Open Ads  ◀ unique to ApexAds
+├── sdk-appopen/                       # App Open Ads  ◀ unique to ApexAds + AdMob
 │   └── AppOpenAd              # Public static facade
 │   └── AppOpenAdManager       # Singleton lifecycle manager
 │   └── AppOpenAdFrequencyCap  # SharedPreferences frequency cap
+│
+├── sdk-wallet/                        # Google Wallet Pass Ads  ◀ unique to ApexAds
+│   └── WalletAdExtension      # install() — one call enables wallet across all formats
+│   └── WalletDelegateImpl     # Implements WalletDelegate; builds CTA panels
+│   └── WalletResultActivity   # Transparent Activity for banner wallet flow
+│   └── WalletPassData         # Parsed ext.wallet value object
+│   └── WalletPassManager      # Thin PayClient wrapper (stateless)
 │
 ├── sdk-inappbidding/                  # Header bidding / in-app bidding
 │   └── ApexInAppBidder / BidToken / InAppBidListener
@@ -325,8 +426,8 @@ apex-ad-sdk-android/
 │   └── ApexAdsBannerAdapter / ApexAdsInterstitialAdapter / ApexAdsRewardedAdapter
 │
 └── demo-app/                          # MVVM showcase (no live server needed)
-    └── DemoApplication        # SDK init + MockAdExchange + AppOpenAd
-    └── ui/banner / interstitial / native / video / appopen / inappbidding
+    └── DemoApplication        # SDK init + MockAdExchange + AppOpenAd + WalletAdExtension
+    └── ui/banner / interstitial / native / video / appopen / inappbidding / wallet
 ```
 
 ---
@@ -345,7 +446,44 @@ ApexAds.init(this, ApexAdsConfig.Builder("YOUR_APP_TOKEN")
     .build())
 ```
 
-### 2. App Open Ads
+### 2. Google Wallet Pass Ads
+
+Add the `sdk-wallet` module to activate wallet CTAs inside Interstitial and MRECT Banner ads:
+
+```kotlin
+// Application.onCreate() — after ApexAds.init()
+WalletAdExtension.install()
+// That's it. No changes to existing InterstitialAd or BannerAd code required.
+// The SDK signals wallet_supported=true to the exchange and renders the CTA automatically.
+```
+
+```kotlin
+// Existing interstitial — wallet CTA panel appears automatically when ext.wallet is present
+val interstitial = InterstitialAd.Builder("placement-interstitial")
+    .listener(object : InterstitialAdListener {
+        override fun onInterstitialLoaded()            { interstitial.show(activity) }
+        override fun onInterstitialFailed(e: AdError)  { /* handle */ }
+        // New wallet callbacks — default no-op if not overridden
+        override fun onWalletPassSaved()               { grantLoyaltyPoints() }
+        override fun onWalletPassCancelled()           { /* user dismissed */ }
+        override fun onWalletPassFailed()              { /* Google Wallet unavailable */ }
+    }).build()
+interstitial.load()
+
+// Existing MRECT banner — wallet CTA strip appears automatically when ext.wallet is present
+val banner = BannerAd.Builder("placement-mrect")
+    .adSize(AdSize.MRECT_300x250)
+    .listener(object : BannerAdListener {
+        override fun onAdLoaded()                      { banner.show(bannerAdView) }
+        override fun onAdFailed(e: AdError)            { /* handle */ }
+        override fun onWalletPassSaved()               { showSuccessMessage() }
+    }).build()
+banner.load()
+```
+
+> **Note:** `play-services-wallet` is a dependency of `sdk-wallet` only. Publishers who omit `sdk-wallet` from their Gradle build — or who never call `WalletAdExtension.install()` — are completely unaffected. Ads load and display normally; the wallet CTA is simply absent.
+
+### 3. App Open Ads
 
 ```kotlin
 // Application.onCreate() — fires automatically on every background→foreground
@@ -354,7 +492,7 @@ AppOpenAd.setFrequencyCapHours(1)
 AppOpenAd.setAdExpiryMinutes(30)
 ```
 
-### 3. Banner
+### 4. Banner
 
 ```xml
 <com.apexads.sdk.banner.BannerAdView
@@ -373,7 +511,7 @@ val banner = BannerAd.Builder("placement-banner")
 banner.load()
 ```
 
-### 4. Interstitial
+### 5. Interstitial
 
 ```kotlin
 val interstitial = InterstitialAd.Builder("placement-interstitial")
@@ -386,7 +524,7 @@ interstitial.load()
 if (interstitial.isReady()) interstitial.show(activity)
 ```
 
-### 5. Rewarded Video
+### 6. Rewarded Video
 
 ```kotlin
 val video = VideoAd.Builder("placement-video")
@@ -398,7 +536,7 @@ val video = VideoAd.Builder("placement-video")
 video.load()
 ```
 
-### 6. Native
+### 7. Native
 
 ```kotlin
 val native = NativeAd.Builder("placement-native")
@@ -409,7 +547,7 @@ val native = NativeAd.Builder("placement-native")
 native.load()
 ```
 
-### 7. In-App Bidding (Header Bidding)
+### 8. In-App Bidding (Header Bidding)
 
 ```kotlin
 // Call before loading your mediation ad:
@@ -424,7 +562,7 @@ ApexInAppBidder.fetchBidToken("placement-001", AdFormat.INTERSTITIAL, object : I
 })
 ```
 
-### 8. AdMob Mediation
+### 9. AdMob Mediation
 
 Configure in the AdMob dashboard:
 - **Class name:** `com.apexads.sdk.adapters.admob.ApexAdsAdMobAdapter`
@@ -446,13 +584,13 @@ The demo app uses `MockAdExchange` — an in-process OpenRTB mock that returns r
 | Video | VAST 4.0 Rewarded | VAST parsing, ExoPlayer, quartile tracking, skip button, reward |
 | App Open | Fullscreen Interstitial | Background→foreground detection, frequency cap, auto-preload |
 | In-App Bidding | Price signal | Header bidding token → mock MAX/LevelPlay waterfall auction |
+| **Wallet** | **Interstitial + MRECT** | **Google Wallet CTA in existing formats; ext.wallet from MockAdExchange** |
 
 ```bash
 git clone https://github.com/Madroid2/apex-ad-sdk-android.git
 cd apex-ad-sdk-android
 ./gradlew :demo-app:installDebug
 ```
-
 
 ---
 
@@ -467,3 +605,4 @@ cd apex-ad-sdk-android
 | TCF | 2.0 | [IAB TCF 2.0](https://github.com/InteractiveAdvertisingBureau/GDPR-Transparency-and-Consent-Framework) |
 | MRC Viewability | — | [MRC Display Measurement Guidelines](https://www.mediaratingcouncil.org) |
 | Sentry Envelope | — | [Sentry Envelope Protocol](https://develop.sentry.dev/sdk/data-model/envelopes/) |
+| Google Wallet | — | [Google Wallet Passes API](https://developers.google.com/wallet/generic/android) |

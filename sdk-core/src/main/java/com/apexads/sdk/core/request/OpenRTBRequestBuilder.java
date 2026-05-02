@@ -8,13 +8,17 @@ import com.apexads.sdk.ApexAdsConfig;
 import com.apexads.sdk.BuildConfig;
 import com.apexads.sdk.core.consent.ConsentManager;
 import com.apexads.sdk.core.device.DeviceInfoProvider;
+import com.apexads.sdk.core.di.ServiceLocator;
+import com.apexads.sdk.core.di.WalletDelegate;
 import com.apexads.sdk.core.models.AdFormat;
 import com.apexads.sdk.core.models.AdSize;
 import com.apexads.sdk.core.models.openrtb.BidRequest;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -79,13 +83,22 @@ public class OpenRTBRequestBuilder {
         imp.tagid = placementId;
         imp.api = Arrays.asList(3, 5, 6); // MRAID 1, 2, 3
 
+        boolean walletRegistered = ServiceLocator.isRegistered(WalletDelegate.class);
+
         switch (adFormat) {
             case BANNER:
                 imp.banner = buildBanner();
+                // Signal wallet support for MRECT and larger sizes
+                if (walletRegistered && adSize.height >= 250) {
+                    imp.ext = walletSupportedExt();
+                }
                 break;
             case INTERSTITIAL:
                 imp.banner = buildBanner();
                 imp.instl = 1;
+                if (walletRegistered) {
+                    imp.ext = walletSupportedExt();
+                }
                 break;
             case REWARDED_VIDEO:
                 imp.video = buildVideo();
@@ -123,6 +136,12 @@ public class OpenRTBRequestBuilder {
         video.linearity = 1;
         video.playbackmethod = Collections.singletonList(1);
         return video;
+    }
+
+    private static Map<String, Object> walletSupportedExt() {
+        Map<String, Object> ext = new HashMap<>();
+        ext.put("wallet_supported", true);
+        return ext;
     }
 
     private BidRequest.NativeObject buildNativeObject() {

@@ -30,4 +30,9 @@
         android:name="com.apexads.demo.ui.appopen.AppOpenFragment"
         android:label="App Open" />
 
+    <fragment
+        android:id="@+id/walletAdFragment"
+        android:name="com.apexads.demo.ui.wallet.WalletAdFragment"
+        android:label="Wallet" />
+
 </navigation>

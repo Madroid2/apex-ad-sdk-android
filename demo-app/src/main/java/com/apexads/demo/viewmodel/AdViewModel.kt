@@ -37,6 +37,9 @@ class AdViewModel : ViewModel() {
     private val _videoState = MutableLiveData<AdState>(AdState.Idle)
     val videoState: LiveData<AdState> = _videoState
 
+    private val _walletState = MutableLiveData<AdState>(AdState.Idle)
+    val walletState: LiveData<AdState> = _walletState
+
     private val _logEntries = MutableLiveData<List<LogEntry>>(emptyList())
     val logEntries: LiveData<List<LogEntry>> = _logEntries
 
@@ -62,6 +65,12 @@ class AdViewModel : ViewModel() {
     fun onVideoLoaded() = _videoState.postValue(AdState.Loaded)
     fun onVideoError(error: AdError) = _videoState.postValue(AdState.Error(error))
     fun onVideoShown() = _videoState.postValue(AdState.Shown)
+
+    // --- Wallet ---
+    fun onWalletLoading() = _walletState.postValue(AdState.Loading)
+    fun onWalletLoaded() = _walletState.postValue(AdState.Loaded)
+    fun onWalletError(error: AdError) = _walletState.postValue(AdState.Error(error))
+    fun onWalletShown() = _walletState.postValue(AdState.Shown)
 
     // --- Event log ---
     fun log(tag: String, message: String) {

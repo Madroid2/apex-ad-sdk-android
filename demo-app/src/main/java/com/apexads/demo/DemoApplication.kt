@@ -8,6 +8,7 @@ import com.apexads.sdk.core.di.ServiceLocator
 import com.apexads.sdk.core.error.AdError
 import com.apexads.sdk.core.network.MockAdExchange
 import com.apexads.sdk.core.utils.AdLog
+import com.apexads.sdk.wallet.WalletAdExtension
 
 class DemoApplication : Application() {
 
@@ -28,6 +29,10 @@ class DemoApplication : Application() {
             com.apexads.sdk.core.network.AdNetworkClient::class.java,
             MockAdExchange()
         )
+
+        // Activate the wallet CTA feature for Interstitial and MRECT Banner ads.
+        // Without this line, ads load normally — the wallet panel is simply absent.
+        WalletAdExtension.install()
 
         // App Open Ads — loads a fullscreen interstitial that shows automatically
         // whenever the user returns the app from background. Frequency-capped to once/hour.

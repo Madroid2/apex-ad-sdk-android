@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- ── Page header ─────────────────────────────────────────────────── -->
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Wallet Ads"
+            android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
+            android:paddingBottom="4dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+            android:text="The wallet CTA is embedded inside existing Interstitial and MRECT Banner formats — no separate WalletAd API needed. The SDK auto-detects sdk-wallet and signals wallet_supported=true to the exchange. Replace the placeholder JWT in MockAdExchange.buildWalletExt() with a real signed JWT to exercise the full save flow."
+            android:paddingBottom="20dp" />
+
+        <!-- ── Section 1: Interstitial ────────────────────────────────────── -->
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Interstitial + Wallet CTA"
+            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+            android:paddingBottom="8dp" />
+
+        <ProgressBar
+            android:id="@+id/progress_wallet_interstitial"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:id="@+id/tv_wallet_interstitial_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Tap Load to fetch a wallet-enabled interstitial"
+            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+            android:paddingBottom="12dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_load_wallet_interstitial"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Load Wallet Interstitial"
+            android:layout_marginBottom="8dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_show_wallet_interstitial"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Show Wallet Interstitial"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/tv_wallet_interstitial_result"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+            android:gravity="center"
+            android:padding="12dp"
+            android:visibility="gone"
+            android:layout_marginBottom="24dp" />
+
+        <!-- ── Section 2: MRECT Banner ────────────────────────────────────── -->
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="?attr/colorOutlineVariant"
+            android:layout_marginBottom="20dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="MRECT Banner + Wallet CTA"
+            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+            android:paddingBottom="8dp" />
+
+        <ProgressBar
+            android:id="@+id/progress_wallet_mrect"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:id="@+id/tv_wallet_mrect_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Tap Load to fetch a wallet-enabled MRECT banner"
+            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+            android:paddingBottom="12dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_load_wallet_mrect"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Load Wallet MRECT"
+            android:layout_marginBottom="12dp" />
+
+        <!-- MRECT ad container — 300×250dp -->
+        <FrameLayout
+            android:id="@+id/wallet_mrect_container"
+            android:layout_width="300dp"
+            android:layout_height="250dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/tv_wallet_mrect_result"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+            android:gravity="center"
+            android:padding="12dp"
+            android:visibility="gone"
+            android:layout_marginBottom="16dp" />
+
+    </LinearLayout>
+
+</ScrollView>

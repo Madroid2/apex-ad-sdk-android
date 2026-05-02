@@ -20,6 +20,7 @@ truth = "1.4.4"
 timber = "5.0.1"
 exoplayer = "1.4.0"
 play-services-ads = "23.4.0"
+play-services-wallet = "19.4.0"
 annotation = "1.8.1"
 coreKtx = "1.13.1"
 appcompat = "1.7.0"
@@ -69,6 +70,7 @@ exoplayer-hls = { group = "androidx.media3", name = "media3-exoplayer-hls", vers
 
 # AdMob
 play-services-ads = { group = "com.google.android.gms", name = "play-services-ads", version.ref = "play-services-ads" }
+play-services-wallet = { group = "com.google.android.gms", name = "play-services-wallet", version.ref = "play-services-wallet" }
 
 # Logging
 timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }

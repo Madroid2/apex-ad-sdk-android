@@ -17,9 +17,10 @@ import androidx.annotation.Nullable;
 
 import com.apexads.sdk.ApexAds;
 import com.apexads.sdk.banner.mraid.MRAIDBridge;
+import com.apexads.sdk.core.di.ServiceLocator;
+import com.apexads.sdk.core.di.WalletDelegate;
 import com.apexads.sdk.core.models.AdData;
 import com.apexads.sdk.core.tracking.ImpressionTracker;
-
 import com.apexads.sdk.core.utils.AdLog;
 
 /**
@@ -108,7 +109,28 @@ public final class BannerAdView extends FrameLayout {
 
         webView.loadDataWithBaseURL("https://apexads.sdk", html, "text/html", "UTF-8", null);
         impressionTracker.attach(this, adData);
-        AdLog.d("BannerAdView: rendering ad cpm=$%.2f", adData.cpm);
+
+        // Attach wallet CTA for MRECT and larger banners when sdk-wallet is installed
+        if (adData.walletExtJson != null
+                && adData.width >= 300 && adData.height >= 250
+                && ServiceLocator.isRegistered(WalletDelegate.class)) {
+            WalletDelegate delegate = ServiceLocator.get(WalletDelegate.class);
+            delegate.attachToBanner(getContext(), this, adData,
+                    new WalletDelegate.WalletEventCallback() {
+                        @Override public void onPassSaved() {
+                            notifyListener(BannerAdListener::onWalletPassSaved);
+                        }
+                        @Override public void onPassCancelled() {
+                            notifyListener(BannerAdListener::onWalletPassCancelled);
+                        }
+                        @Override public void onPassFailed() {
+                            notifyListener(BannerAdListener::onWalletPassFailed);
+                        }
+                    });
+        }
+
+        AdLog.d("BannerAdView: rendering ad cpm=$%.2f wallet=%s",
+                adData.cpm, adData.walletExtJson != null ? "yes" : "no");
     }
 
     @Override

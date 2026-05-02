@@ -28,6 +28,8 @@ public final class AdData {
     public final long expiresAt;          // epoch ms
     @Nullable public final NativeAdPayload nativePayload;
     @Nullable public final String vastXml;
+    /** Raw {@code ext.wallet} JSON string from the bid — {@code null} if absent. */
+    @Nullable public final String walletExtJson;
 
     private AdData(Builder b) {
         requestId = b.requestId;
@@ -44,6 +46,7 @@ public final class AdData {
         expiresAt = b.expiresAt;
         nativePayload = b.nativePayload;
         vastXml = b.vastXml;
+        walletExtJson = b.walletExtJson;
     }
 
     public boolean isExpired() {
@@ -71,6 +74,7 @@ public final class AdData {
                 .currency(currency)
                 .expiresAt(System.currentTimeMillis() + ttlSeconds * 1000L)
                 .vastXml(isVideo ? bid.adm : null)
+                .walletExtJson(bid.ext != null ? bid.ext.walletExtJson : null)
                 .build();
     }
 
@@ -80,13 +84,14 @@ public final class AdData {
                 .adMarkup(adMarkup).winNoticeUrl(winNoticeUrl).creativeId(creativeId)
                 .adFormat(adFormat).width(width).height(height).cpm(cpm)
                 .currency(currency).expiresAt(expiresAt).vastXml(vastXml)
+                .walletExtJson(walletExtJson)
                 .nativePayload(payload)
                 .build();
     }
 
     public static final class Builder {
         String requestId, impressionId, bidId, adMarkup = "", currency = "USD";
-        String winNoticeUrl, creativeId, vastXml;
+        String winNoticeUrl, creativeId, vastXml, walletExtJson;
         AdFormat adFormat;
         int width, height;
         double cpm;
@@ -106,6 +111,7 @@ public final class AdData {
         public Builder currency(String v) { currency = v; return this; }
         public Builder expiresAt(long v) { expiresAt = v; return this; }
         public Builder vastXml(String v) { vastXml = v; return this; }
+        public Builder walletExtJson(String v) { walletExtJson = v; return this; }
         public Builder nativePayload(NativeAdPayload v) { nativePayload = v; return this; }
 
         public AdData build() { return new AdData(this); }

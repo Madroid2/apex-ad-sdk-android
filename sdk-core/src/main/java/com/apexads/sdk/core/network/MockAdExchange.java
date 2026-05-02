@@ -36,14 +36,19 @@ public class MockAdExchange implements AdNetworkClient {
         BidRequest.Impression imp = request.imp.get(0);
         BidResponse.Bid bid;
 
+        boolean walletSupported = imp.ext != null
+                && Boolean.TRUE.equals(imp.ext.get("wallet_supported"));
+        boolean isMrect = imp.banner != null
+                && imp.banner.h != null && imp.banner.h >= 250;
+
         if (imp.video != null) {
             bid = buildVastBid(imp.id, imp.bidfloor);
         } else if (imp.nativeObject != null) {
             bid = buildNativeBid(imp.id, imp.bidfloor);
         } else if (imp.instl == 1) {
-            bid = buildInterstitialBid(imp.id, imp.bidfloor);
+            bid = buildInterstitialBid(imp.id, imp.bidfloor, walletSupported);
         } else {
-            bid = buildBannerBid(imp.id, imp.bidfloor);
+            bid = buildBannerBid(imp.id, imp.bidfloor, walletSupported && isMrect);
         }
 
         BidResponse.SeatBid seatBid = new BidResponse.SeatBid();
@@ -70,24 +75,37 @@ public class MockAdExchange implements AdNetworkClient {
         return r;
     }
 
-    private BidResponse.Bid buildBannerBid(String impId, double floor) {
+    private BidResponse.Bid buildBannerBid(String impId, double floor, boolean withWallet) {
         BidResponse.Bid bid = newBid(impId, Math.max(floor + 0.05, 1.50));
         bid.crid = "banner-001";
-        bid.adm = BANNER_HTML;
+        bid.adm = withWallet ? MRECT_WALLET_HTML : BANNER_HTML;
         bid.nurl = "https://track.apexads.mock/win?type=banner";
-        bid.w = 320;
-        bid.h = 50;
+        bid.w = withWallet ? 300 : 320;
+        bid.h = withWallet ? 250 : 50;
+        if (withWallet) bid.ext = buildWalletExt();
         return bid;
     }
 
-    private BidResponse.Bid buildInterstitialBid(String impId, double floor) {
+    private BidResponse.Bid buildInterstitialBid(String impId, double floor, boolean withWallet) {
         BidResponse.Bid bid = newBid(impId, Math.max(floor + 0.10, 4.50));
         bid.crid = "interstitial-001";
-        bid.adm = INTERSTITIAL_HTML;
+        bid.adm = withWallet ? WALLET_HTML : INTERSTITIAL_HTML;
         bid.nurl = "https://track.apexads.mock/win?type=interstitial";
         bid.w = 320;
         bid.h = 480;
+        if (withWallet) bid.ext = buildWalletExt();
         return bid;
+    }
+
+    private BidResponse.BidExt buildWalletExt() {
+        BidResponse.BidExt ext = new BidResponse.BidExt();
+        ext.walletExtJson =
+            "{\"pass_jwt\":\"REPLACE_WITH_SIGNED_JWT\"," +
+            "\"pass_type\":\"coupon\"," +
+            "\"offer_id\":\"APEX-DEMO-20OFF-2025\"," +
+            "\"save_tracking_url\":\"https://track.apexads.mock/wallet_save?oid=APEX-DEMO-20OFF-2025\"," +
+            "\"cta_text\":\"Save Coupon to Google Wallet\"}";
+        return ext;
     }
 
     private BidResponse.Bid buildVastBid(String impId, double floor) {
@@ -181,6 +199,67 @@ public class MockAdExchange implements AdNetworkClient {
         "</MediaFiles>" +
         "</Linear></Creative></Creatives>" +
         "</InLine></Ad></VAST>";
+
+    private static final String WALLET_HTML =
+        "<!DOCTYPE html><html><head>" +
+        "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">" +
+        "<style>" +
+        "*{margin:0;padding:0;box-sizing:border-box;}" +
+        "body{width:100vw;height:100vh;" +
+        "background:linear-gradient(160deg,#1565c0 0%,#0d47a1 60%,#01579b 100%);" +
+        "display:flex;flex-direction:column;align-items:center;justify-content:center;" +
+        "font-family:Arial,sans-serif;padding:24px 24px 120px;}" +
+        ".store{color:rgba(255,255,255,0.75);font-size:13px;letter-spacing:1px;" +
+        "text-transform:uppercase;margin-bottom:12px;}" +
+        ".pct{color:#fff;font-size:72px;font-weight:900;line-height:1;}" +
+        ".off{color:#ffca28;font-size:18px;font-weight:700;letter-spacing:2px;margin-bottom:20px;}" +
+        ".divider{width:48px;height:2px;background:rgba(255,255,255,0.3);margin-bottom:20px;}" +
+        ".title{color:#fff;font-size:20px;font-weight:700;text-align:center;margin-bottom:10px;}" +
+        ".desc{color:rgba(255,255,255,0.8);font-size:13px;text-align:center;" +
+        "line-height:1.6;margin-bottom:20px;}" +
+        ".terms{color:rgba(255,255,255,0.45);font-size:10px;text-align:center;}" +
+        ".badge{position:absolute;top:14px;right:14px;" +
+        "background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.6);" +
+        "font-size:9px;padding:3px 8px;border-radius:10px;letter-spacing:0.5px;}" +
+        "</style></head>" +
+        "<body>" +
+        "<span class=\"badge\">ADVERTISEMENT</span>" +
+        "<div class=\"store\">ApexAd Demo Store</div>" +
+        "<div class=\"pct\">20%</div>" +
+        "<div class=\"off\">OFF YOUR NEXT ORDER</div>" +
+        "<div class=\"divider\"></div>" +
+        "<div class=\"title\">Exclusive Member Coupon</div>" +
+        "<div class=\"desc\">Save this coupon to your Google Wallet and show it at checkout — in-store or online.</div>" +
+        "<div class=\"terms\">Min. spend $50 · Valid until 31 Dec 2025 · Single use per customer</div>" +
+        "</body></html>";
+
+    private static final String MRECT_WALLET_HTML =
+        "<!DOCTYPE html><html><head>" +
+        "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">" +
+        "<style>" +
+        "*{margin:0;padding:0;box-sizing:border-box;}" +
+        "body{width:300px;height:250px;" +
+        "background:linear-gradient(160deg,#1565c0 0%,#0d47a1 60%,#01579b 100%);" +
+        "display:flex;flex-direction:column;align-items:center;justify-content:center;" +
+        "font-family:Arial,sans-serif;padding:12px 16px 56px;}" +
+        ".store{color:rgba(255,255,255,0.75);font-size:10px;letter-spacing:1px;" +
+        "text-transform:uppercase;margin-bottom:8px;}" +
+        ".pct{color:#fff;font-size:52px;font-weight:900;line-height:1;}" +
+        ".off{color:#ffca28;font-size:13px;font-weight:700;letter-spacing:2px;margin-bottom:10px;}" +
+        ".title{color:#fff;font-size:14px;font-weight:700;text-align:center;margin-bottom:6px;}" +
+        ".desc{color:rgba(255,255,255,0.8);font-size:10px;text-align:center;line-height:1.5;}" +
+        ".badge{position:absolute;top:8px;right:8px;" +
+        "background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.6);" +
+        "font-size:8px;padding:2px 6px;border-radius:8px;}" +
+        "</style></head>" +
+        "<body>" +
+        "<span class=\"badge\">AD</span>" +
+        "<div class=\"store\">ApexAd Demo Store</div>" +
+        "<div class=\"pct\">20%</div>" +
+        "<div class=\"off\">OFF YOUR NEXT ORDER</div>" +
+        "<div class=\"title\">Exclusive Member Coupon</div>" +
+        "<div class=\"desc\">Show at checkout · Valid until 31 Dec 2025</div>" +
+        "</body></html>";
 
     private static final String NATIVE_JSON =
         "{\"native\":{\"ver\":\"1.2\"," +
