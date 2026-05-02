@@ -14,12 +14,28 @@
 
 ## Demo App
 
-| | | |
-|:---:|:---:|:---:|
-| ![Banner](assets/demo_banner.gif) | ![Interstitial](assets/demo_interstitial.gif) | ![Wallet](assets/demo_wallet.gif) |
-| **Banner + MRAID** | **Interstitial** | **Wallet Pass CTA** ⭐ |
-| ![Native](assets/demo_native.gif) | ![Video](assets/demo_video.gif) | ![App Open](assets/demo_appopen.gif) |
-| **IAB Native 1.2** | **VAST 4.0 Rewarded** | **App Open** |
+<table>
+  <tr>
+    <td align="center">
+      <img src="assets/demo_banner.gif" width="240" alt="Banner Ad"/><br/>
+      <b>Banner + MRAID 3.0</b>
+    </td>
+    <td align="center">
+      <img src="assets/demo_interstitial.gif" width="240" alt="Interstitial Ad"/><br/>
+      <b>Interstitial</b>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="assets/demo_native.gif" width="240" alt="Native Ad"/><br/>
+      <b>IAB Native 1.2</b>
+    </td>
+    <td align="center">
+      <img src="assets/demo_appopen.gif" width="240" alt="App Open Ad"/><br/>
+      <b>App Open Ads</b>
+    </td>
+  </tr>
+</table>
 
 ## What Sets This SDK Apart
 
