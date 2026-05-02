@@ -48,10 +48,6 @@ import com.apexads.sdk.core.utils.AdLog;
  * Reward is granted only on video completion, not on close or skip.
  */
 public final class VideoAdActivity extends Activity {
-
-    /** Seconds before the close button becomes tappable (rewarded video standard). */
-    private static final int CLOSE_DELAY_SECONDS = 15;
-
     // Static holder — avoids Parcelable / Intent serialization of complex objects
     private static volatile VastAd           pendingAd;
     private static volatile AdNetworkClient  pendingNetworkClient;
@@ -100,18 +96,6 @@ public final class VideoAdActivity extends Activity {
     private int closeCountdown;
     private int skipCountdown;
 
-    private final Runnable closeTickRunnable = new Runnable() {
-        @Override public void run() {
-            if (closeCountdown <= 0) {
-                showCloseButton();
-                return;
-            }
-            tvCloseCountdown.setText(String.valueOf(closeCountdown));
-            closeCountdown--;
-            mainHandler.postDelayed(this, 1000);
-        }
-    };
-
     private final Runnable skipTickRunnable = new Runnable() {
         @Override public void run() {
             if (skipCountdown <= 0) {
@@ -155,7 +139,6 @@ public final class VideoAdActivity extends Activity {
         makeFullscreen();
         setContentView(buildLayout());
         initPlayer();
-        startCloseCountdown();
         startSkipCountdown();
     }
 
@@ -173,7 +156,6 @@ public final class VideoAdActivity extends Activity {
 
     @Override
     protected void onDestroy() {
-        mainHandler.removeCallbacks(closeTickRunnable);
         mainHandler.removeCallbacks(skipTickRunnable);
         mainHandler.removeCallbacks(quartileRunnable);
         releasePlayer();
@@ -230,7 +212,6 @@ public final class VideoAdActivity extends Activity {
         tvCloseCountdown.setTextSize(14f);
         tvCloseCountdown.setTypeface(tvCloseCountdown.getTypeface(), Typeface.BOLD);
         tvCloseCountdown.setGravity(Gravity.CENTER);
-        tvCloseCountdown.setText(String.valueOf(CLOSE_DELAY_SECONDS));
         GradientDrawable circle = new GradientDrawable();
         circle.setShape(GradientDrawable.OVAL);
         circle.setColor(0xCC000000);
@@ -367,6 +348,7 @@ public final class VideoAdActivity extends Activity {
             if (listener != null) SdkExecutors.MAIN.post(() -> {
                 listener.onVideoAdCompleted();
                 listener.onRewardEarned();
+                showCloseButton();
             });
         }
         mainHandler.postDelayed(this::finish, 300);
@@ -381,11 +363,6 @@ public final class VideoAdActivity extends Activity {
     }
 
     // ── Close / Skip logic ────────────────────────────────────────────────────
-
-    private void startCloseCountdown() {
-        closeCountdown = CLOSE_DELAY_SECONDS;
-        mainHandler.post(closeTickRunnable);
-    }
 
     private void showCloseButton() {
         tvCloseCountdown.setVisibility(View.GONE);
