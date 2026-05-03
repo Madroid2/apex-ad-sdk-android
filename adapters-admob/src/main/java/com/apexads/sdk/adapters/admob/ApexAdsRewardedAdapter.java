@@ -81,7 +81,7 @@ public final class ApexAdsRewardedAdapter implements MediationRewardedAd {
         if (videoAd != null && videoAd.isReady()) {
             videoAd.show(context);
         } else {
-            AdLog.w(null, "ApexAdsRewardedAdapter: showAd called but ad not ready");
+            AdLog.w("ApexAdsRewardedAdapter: showAd called but ad not ready");
         }
     }
 }

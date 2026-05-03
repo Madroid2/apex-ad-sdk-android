@@ -70,7 +70,7 @@ public final class ApexAdsInterstitialAdapter implements MediationInterstitialAd
         if (interstitialAd != null && interstitialAd.isReady()) {
             interstitialAd.show(context);
         } else {
-            AdLog.w(null, "ApexAdsInterstitialAdapter: showAd called but ad not ready");
+            AdLog.w("ApexAdsInterstitialAdapter: showAd called but ad not ready");
         }
     }
 }

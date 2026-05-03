@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- V letter mark for Velora -->
+    <path
+        android:fillColor="#7986CB"
+        android:pathData="M30,28 L44,28 L54,62 L64,28 L78,28 L58,80 L50,80 Z"/>
+</vector>
