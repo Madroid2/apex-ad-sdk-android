@@ -9,120 +9,113 @@ import com.apexads.sdk.ApexAds;
 import com.apexads.sdk.core.cache.AdCache;
 import com.apexads.sdk.core.error.AdError;
 import com.apexads.sdk.core.models.AdData;
-import com.apexads.sdk.core.models.AdFormat;
-import com.apexads.sdk.core.models.AdSize;
-import com.apexads.sdk.core.models.openrtb.BidRequest;
-import com.apexads.sdk.core.models.openrtb.BidResponse;
-import com.apexads.sdk.core.network.AdNetworkClient;
-import com.apexads.sdk.core.network.SdkExecutors;
+import com.apexads.sdk.core.mvvm.AdRepository;
+import com.apexads.sdk.core.mvvm.AdState;
+import com.apexads.sdk.core.mvvm.AdStateObserver;
+import com.apexads.sdk.core.mvvm.AdViewModelListener;
+import com.apexads.sdk.core.mvvm.OpenRTBAdRepository;
 import com.apexads.sdk.core.request.OpenRTBRequestBuilder;
 
-import com.apexads.sdk.core.utils.AdLog;
-
 /**
- * Fullscreen interstitial ad.
+ * Fullscreen interstitial ad facade.
  *
- * Pre-load at a natural pause point; call {@link #show(Context)} when ready.
+ * <p>Thin wrapper over {@link InterstitialAdViewModel}. Pre-load at a natural
+ * pause point; call {@link #show(Context)} when ready.
  *
  * <pre>{@code
  * InterstitialAd ad = new InterstitialAd.Builder("placement-002")
  *     .listener(myListener)
  *     .build();
  * ad.load();
- * // ... later, at a content transition:
+ * // ... at a content transition:
  * if (ad.isReady()) ad.show(activity);
  * }</pre>
  */
 public final class InterstitialAd {
 
-    private final String placementId;
-    private final InterstitialAdListener listener;
-    private final AdNetworkClient networkClient;
-    private final AdCache cache;
-    private final OpenRTBRequestBuilder requestBuilder;
-
-    private volatile AdData adData;
+    private final InterstitialAdViewModel viewModel;
+    @Nullable private final InterstitialAdListener listener;
 
     private InterstitialAd(Builder builder) {
-        this.placementId    = builder.placementId;
-        this.listener       = builder.listener;
-        this.networkClient  = ApexAds.getNetworkClient();
-        this.cache          = new AdCache();
-        this.requestBuilder = new OpenRTBRequestBuilder(
-                ApexAds.getDeviceInfoProvider(), ApexAds.getConsentManager());
-    }
+        AdRepository repository = new OpenRTBAdRepository(
+                ApexAds.getNetworkClient(),
+                new OpenRTBRequestBuilder(
+                        ApexAds.getDeviceInfoProvider(),
+                        ApexAds.getConsentManager()));
 
-    public void load() {
-        AdData cached = cache.get(AdFormat.INTERSTITIAL, placementId);
-        if (cached != null) {
-            adData = cached;
-            postToMain(() -> { if (listener != null) listener.onInterstitialLoaded(); });
-            return;
-        }
+        viewModel = new InterstitialAdViewModel(
+                repository,
+                new AdCache(),
+                builder.placementId != null ? builder.placementId : "");
 
-        SdkExecutors.IO.execute(() -> {
-            try {
-                BidRequest request = requestBuilder
-                        .adFormat(AdFormat.INTERSTITIAL)
-                        .adSize(AdSize.INTERSTITIAL_FULL)
-                        .placementId(placementId)
-                        .build();
+        this.listener = builder.listener;
 
-                BidResponse response = networkClient.requestBid(request);
-                BidResponse.Bid bid = response.getWinningBid();
+        // Bridge generic AdViewModelListener → InterstitialAdListener
+        viewModel.setViewListener(new AdViewModelListener() {
+            @Override
+            public void onAdLoaded(@NonNull AdData adData) {
+                if (listener != null) listener.onInterstitialLoaded();
+            }
 
-                if (bid == null || bid.adm == null || bid.adm.isEmpty()) {
-                    postToMain(() -> { if (listener != null) listener.onInterstitialFailed(new AdError.NoFill()); });
-                    return;
-                }
+            @Override
+            public void onAdFailed(@NonNull AdError error) {
+                if (listener != null) listener.onInterstitialFailed(error);
+            }
 
-                AdData data = AdData.fromBid(request.id, bid, AdFormat.INTERSTITIAL,
-                        response.cur != null ? response.cur : "USD",
-                        ApexAds.getConfig().getCacheTtlSeconds());
-
-                cache.put(AdFormat.INTERSTITIAL, placementId, data);
-                adData = data;
-                AdLog.i("InterstitialAd: loaded cpm=$%.2f", bid.price);
-                postToMain(() -> { if (listener != null) listener.onInterstitialLoaded(); });
-
-            } catch (Exception e) {
-                AdLog.e(e, "InterstitialAd: load failed");
-                postToMain(() -> {
-                    if (listener != null) listener.onInterstitialFailed(new AdError.Network(e.getMessage(), e));
-                });
+            @Override
+            public void onAdExpired() {
+                if (listener != null)
+                    listener.onInterstitialFailed(new AdError.NoFill("Cached ad expired"));
             }
         });
     }
 
-    /** Launches the fullscreen ad. Must be called from the main thread. */
+    // ── Publisher API ─────────────────────────────────────────────────────────
+
+    /** Fetches the ad. Calls listener on the main thread when done. */
+    public void load() {
+        viewModel.load();
+    }
+
+    /**
+     * Launches the fullscreen ad.
+     * Guard with {@link #isReady()} before calling.
+     */
     public void show(@NonNull Context context) {
-        if (adData == null) {
-            AdLog.w("InterstitialAd: show() called before ad was loaded");
-            return;
-        }
-        if (adData.isExpired()) {
-            cache.remove(AdFormat.INTERSTITIAL, placementId);
-            if (listener != null) listener.onInterstitialFailed(new AdError.NoFill("Cached ad expired"));
-            return;
-        }
-        InterstitialActivity.launch(context, adData, listener);
-        adData = null;
-        cache.remove(AdFormat.INTERSTITIAL, placementId);
+        viewModel.show(context, listener != null ? listener : NO_OP_LISTENER);
     }
 
+    /** {@code true} when a non-expired creative is ready to display. */
     public boolean isReady() {
-        return adData != null && !adData.isExpired();
+        return viewModel.isReady();
     }
 
-    private static void postToMain(Runnable r) {
-        SdkExecutors.MAIN.post(r);
+    /** Returns the current {@link AdState}. */
+    @NonNull
+    public AdState getState() {
+        return viewModel.getState();
     }
 
-    // ── Builder ──────────────────────────────────────────────────────────────
+    /** Subscribes a raw {@link AdStateObserver}; receives immediate state delivery. */
+    public void addStateObserver(@NonNull AdStateObserver observer) {
+        viewModel.getStateObservable().addObserver(observer);
+    }
+
+    /** Removes a previously added {@link AdStateObserver}. */
+    public void removeStateObserver(@NonNull AdStateObserver observer) {
+        viewModel.getStateObservable().removeObserver(observer);
+    }
+
+    /** Releases the ViewModel and cache entry. */
+    public void destroy() {
+        viewModel.destroy();
+    }
+
+    // ── Builder ───────────────────────────────────────────────────────────────
 
     public static final class Builder {
         private final String placementId;
-        private InterstitialAdListener listener;
+        @Nullable private InterstitialAdListener listener;
 
         public Builder(@Nullable String placementId) {
             this.placementId = placementId;
@@ -133,9 +126,17 @@ public final class InterstitialAd {
         @NonNull
         public InterstitialAd build() {
             if (!ApexAds.isInitialized()) {
-                throw new IllegalStateException("Call ApexAds.init() before creating ad instances.");
+                throw new IllegalStateException(
+                        "Call ApexAds.init() before creating ad instances.");
             }
             return new InterstitialAd(this);
         }
     }
+
+    // ── Internal helpers ──────────────────────────────────────────────────────
+
+    private static final InterstitialAdListener NO_OP_LISTENER = new InterstitialAdListener() {
+        @Override public void onInterstitialLoaded() {}
+        @Override public void onInterstitialFailed(@NonNull AdError error) {}
+    };
 }

@@ -9,16 +9,27 @@ import com.apexads.sdk.core.error.AdError;
 import com.apexads.sdk.core.models.AdData;
 import com.apexads.sdk.core.models.AdFormat;
 import com.apexads.sdk.core.models.AdSize;
-import com.apexads.sdk.core.network.AdNetworkClient;
-import com.apexads.sdk.core.network.SdkExecutors;
+import com.apexads.sdk.core.mvvm.AdRepository;
+import com.apexads.sdk.core.mvvm.AdState;
+import com.apexads.sdk.core.mvvm.AdStateObserver;
+import com.apexads.sdk.core.mvvm.AdViewModelListener;
+import com.apexads.sdk.core.mvvm.OpenRTBAdRepository;
 import com.apexads.sdk.core.request.OpenRTBRequestBuilder;
-import com.apexads.sdk.core.models.openrtb.BidRequest;
-import com.apexads.sdk.core.models.openrtb.BidResponse;
-
 import com.apexads.sdk.core.utils.AdLog;
 
 /**
- * Publisher-facing banner ad controller.
+ * Publisher-facing banner ad facade.
+ *
+ * <p>This class is a <em>thin facade</em> over {@link BannerAdViewModel}. All
+ * business logic — auction dispatch, caching, state management, TTL enforcement —
+ * lives in the ViewModel. The facade's only responsibilities are:
+ * <ul>
+ *   <li>Providing the familiar {@code load()} / {@code show(view)} / {@code destroy()}
+ *       publisher API (backward-compatible).</li>
+ *   <li>Bridging the generic {@link AdViewModelListener} contract to the
+ *       banner-specific {@link BannerAdListener}.</li>
+ *   <li>Binding the {@link BannerAdView} to the ViewModel after a successful load.</li>
+ * </ul>
  *
  * <pre>{@code
  * BannerAd banner = new BannerAd.Builder("placement-001")
@@ -32,116 +43,131 @@ import com.apexads.sdk.core.utils.AdLog;
  */
 public final class BannerAd {
 
-    private final String placementId;
-    private final AdSize adSize;
-    private final double bidFloor;
-    private final BannerAdListener listener;
-    private final AdNetworkClient networkClient;
-    private final AdCache cache;
-    private final OpenRTBRequestBuilder requestBuilder;
-
-    private volatile AdData adData;
+    private final BannerAdViewModel viewModel;
+    @Nullable private final BannerAdListener listener;
 
     private BannerAd(Builder builder) {
-        this.placementId   = builder.placementId;
-        this.adSize        = builder.adSize;
-        this.bidFloor      = builder.bidFloor;
-        this.listener      = builder.listener;
-        this.networkClient = ApexAds.getNetworkClient();
-        this.cache         = new AdCache();
-        this.requestBuilder = new OpenRTBRequestBuilder(
-                ApexAds.getDeviceInfoProvider(), ApexAds.getConsentManager());
-    }
+        AdRepository repository = new OpenRTBAdRepository(
+                ApexAds.getNetworkClient(),
+                new OpenRTBRequestBuilder(
+                        ApexAds.getDeviceInfoProvider(),
+                        ApexAds.getConsentManager()));
 
-    /** Fetches an ad from the exchange (or serves from cache). Non-blocking. */
-    public void load() {
-        AdData cached = cache.get(AdFormat.BANNER, placementId);
-        if (cached != null) {
-            AdLog.d("BannerAd: serving from cache");
-            adData = cached;
-            postToMain(() -> { if (listener != null) listener.onAdLoaded(); });
-            return;
-        }
+        viewModel = new BannerAdViewModel(
+                repository,
+                new AdCache(),
+                builder.placementId != null ? builder.placementId : "",
+                builder.adSize,
+                builder.bidFloor);
 
-        SdkExecutors.IO.execute(() -> {
-            try {
-                BidRequest request = requestBuilder
-                        .adFormat(AdFormat.BANNER)
-                        .adSize(adSize)
-                        .placementId(placementId)
-                        .bidFloor(bidFloor)
-                        .build();
+        this.listener = builder.listener;
 
-                BidResponse response = networkClient.requestBid(request);
-                BidResponse.Bid bid = response.getWinningBid();
+        // Bridge AdViewModelListener → BannerAdListener
+        viewModel.setViewListener(new AdViewModelListener() {
+            @Override
+            public void onAdLoaded(@NonNull AdData adData) {
+                if (listener != null) listener.onAdLoaded();
+            }
 
-                if (bid == null || bid.adm == null || bid.adm.isEmpty()) {
-                    postToMain(() -> { if (listener != null) listener.onAdFailed(new AdError.NoFill()); });
-                    return;
-                }
+            @Override
+            public void onAdFailed(@NonNull AdError error) {
+                if (listener != null) listener.onAdFailed(error);
+            }
 
-                AdData data = AdData.fromBid(request.id, bid, AdFormat.BANNER,
-                        response.cur != null ? response.cur : "USD",
-                        ApexAds.getConfig().getCacheTtlSeconds());
-
-                cache.put(AdFormat.BANNER, placementId, data);
-                adData = data;
-                AdLog.i("BannerAd: loaded cpm=$%.2f creative=%s", bid.price, bid.crid);
-                postToMain(() -> { if (listener != null) listener.onAdLoaded(); });
-
-            } catch (Exception e) {
-                AdLog.e(e, "BannerAd: load failed");
-                postToMain(() -> {
-                    if (listener != null) listener.onAdFailed(new AdError.Network(e.getMessage(), e));
-                });
+            @Override
+            public void onAdExpired() {
+                AdLog.d("BannerAd: ad expired — call load() to refresh");
+                if (listener != null)
+                    listener.onAdFailed(new com.apexads.sdk.core.error.AdError.NoFill("Cached ad expired"));
             }
         });
     }
 
-    /** Renders the loaded ad into {@code view}. Call after {@link BannerAdListener#onAdLoaded()}. */
+    // ── Publisher API ─────────────────────────────────────────────────────────
+
+    /**
+     * Fetches an ad from the exchange (or serves from cache). Non-blocking.
+     * Calls {@link BannerAdListener#onAdLoaded()} or {@link BannerAdListener#onAdFailed}
+     * on the main thread when complete.
+     */
+    public void load() {
+        viewModel.load();
+    }
+
+    /**
+     * Renders the loaded ad into {@code view}.
+     *
+     * <p>Must be called after {@link BannerAdListener#onAdLoaded()}.
+     * The view subscribes to the ViewModel's {@link com.apexads.sdk.core.mvvm.AdStateObservable}
+     * so it will automatically reflect future state changes (e.g. EXPIRED).
+     */
     public void show(@NonNull BannerAdView view) {
-        if (adData == null) {
+        if (viewModel.checkAndMarkExpired()) {
+            return;
+        }
+        AdData data = viewModel.getAdData();
+        if (data == null) {
             AdLog.w("BannerAd: show() called before ad was loaded");
             return;
         }
-        if (adData.isExpired()) {
-            cache.remove(AdFormat.BANNER, placementId);
-            if (listener != null) listener.onAdFailed(new AdError.NoFill("Cached ad expired"));
-            return;
-        }
-        view.setListener(listener);
-        view.render(adData);
+        // Bind the view to the ViewModel for reactive state updates
+        view.bind(viewModel, listener);
+        // Render the creative immediately
+        view.render(data);
+        viewModel.onDisplayed();
     }
 
+    /**
+     * Returns the current {@link AdState} — useful for conditional show logic
+     * without keeping a separate boolean flag.
+     */
+    @NonNull
+    public AdState getState() {
+        return viewModel.getState();
+    }
+
+    /**
+     * Subscribes a raw {@link AdStateObserver} to the underlying observable.
+     * Receives immediate delivery of the current state on subscribe.
+     */
+    public void addStateObserver(@NonNull AdStateObserver observer) {
+        viewModel.getStateObservable().addObserver(observer);
+    }
+
+    /** Removes a previously added {@link AdStateObserver}. */
+    public void removeStateObserver(@NonNull AdStateObserver observer) {
+        viewModel.getStateObservable().removeObserver(observer);
+    }
+
+    /**
+     * Releases the ViewModel and cache entry. Call when the host component
+     * (Activity / Fragment) is permanently destroyed.
+     */
     public void destroy() {
-        cache.remove(AdFormat.BANNER, placementId);
-        adData = null;
+        viewModel.destroy();
     }
 
-    private static void postToMain(Runnable r) {
-        SdkExecutors.MAIN.post(r);
-    }
-
-    // ── Builder ──────────────────────────────────────────────────────────────
+    // ── Builder ───────────────────────────────────────────────────────────────
 
     public static final class Builder {
         private final String placementId;
         private AdSize adSize = AdSize.BANNER_320x50;
         private double bidFloor = 0.0;
-        private BannerAdListener listener;
+        @Nullable private BannerAdListener listener;
 
         public Builder(@Nullable String placementId) {
             this.placementId = placementId;
         }
 
-        public Builder adSize(@NonNull AdSize size) { adSize = size; return this; }
-        public Builder bidFloor(double floor) { bidFloor = floor; return this; }
-        public Builder listener(@NonNull BannerAdListener l) { listener = l; return this; }
+        public Builder adSize(@NonNull AdSize size)         { adSize = size;       return this; }
+        public Builder bidFloor(double floor)               { bidFloor = floor;    return this; }
+        public Builder listener(@NonNull BannerAdListener l){ listener = l;        return this; }
 
         @NonNull
         public BannerAd build() {
             if (!ApexAds.isInitialized()) {
-                throw new IllegalStateException("Call ApexAds.init() before creating ad instances.");
+                throw new IllegalStateException(
+                        "Call ApexAds.init() before creating ad instances.");
             }
             return new BannerAd(this);
         }
