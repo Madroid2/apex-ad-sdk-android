@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.ApexAdDemo" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/purple_500</item>
-        <item name="colorPrimaryVariant">@color/purple_700</item>
-        <item name="colorOnPrimary">@color/white</item>
-    </style>
+    <!-- Minimal XML theme — only sets up the Activity window chrome.
+         All visual design is handled by ApexTheme (Compose MaterialTheme). -->
+    <style name="Theme.ApexAdDemo" parent="Theme.Material3.DayNight.NoActionBar" />
 </resources>

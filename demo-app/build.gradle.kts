@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
 }
 
 android {
@@ -28,7 +29,7 @@ android {
     }
 
     buildFeatures {
-        viewBinding = true
+        compose = true
     }
 
     compileOptions {
@@ -50,18 +51,22 @@ dependencies {
     implementation(project(":sdk-wallet"))
 
     implementation(libs.core.ktx)
-    implementation(libs.appcompat)
-    implementation(libs.material)
-    implementation(libs.constraintlayout)
-    implementation(libs.recyclerview)
-    implementation(libs.swiperefresh)
-    implementation(libs.activity.ktx)
-    implementation(libs.fragment.ktx)
+    implementation(libs.material)          // provides Theme.Material3 for the Activity window
     implementation(libs.lifecycle.viewmodel)
-    implementation(libs.lifecycle.livedata)
     implementation(libs.lifecycle.runtime)
-    implementation(libs.navigation.fragment)
-    implementation(libs.navigation.ui)
-    implementation(libs.timber)
+    implementation(libs.lifecycle.runtime.compose)
     implementation(libs.coroutines.android)
+    implementation(libs.timber)
+
+    // Jetpack Compose
+    implementation(platform(libs.compose.bom))
+    implementation(libs.compose.ui)
+    implementation(libs.compose.ui.tooling.preview)
+    implementation(libs.compose.material3)
+    implementation(libs.compose.material.icons.extended)
+    implementation(libs.compose.activity)
+    implementation(libs.navigation.compose)
+    implementation(libs.compose.viewmodel)
+
+    debugImplementation(libs.compose.ui.tooling)
 }
