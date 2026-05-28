@@ -43,7 +43,7 @@ public final class VideoAdViewModel extends AdViewModel {
             @NonNull VastParser vastParser,
             @NonNull AdNetworkClient networkClient) {
         super(repository, cache, AdFormat.REWARDED_VIDEO, AdSize.INTERSTITIAL_FULL, placementId, 0.0);
-        this.vastParser    = vastParser;
+        this.vastParser = vastParser;
         this.networkClient = networkClient;
     }
 

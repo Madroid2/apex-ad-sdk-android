@@ -10,6 +10,7 @@ import com.apexads.sdk.core.crashreporter.CrashReporter;
 import com.apexads.sdk.core.device.DeviceInfoProvider;
 import com.apexads.sdk.core.di.ServiceLocator;
 import com.apexads.sdk.core.network.AdNetworkClient;
+import com.apexads.sdk.core.network.FallbackAdNetworkClient;
 import com.apexads.sdk.core.network.HttpAdNetworkClient;
 import com.apexads.sdk.core.utils.AdLog;
 
@@ -90,7 +91,12 @@ public final class ApexAds {
     }
 
     private static void bootstrapServiceLocator(Application application) {
-        HttpAdNetworkClient networkClient = new HttpAdNetworkClient(config);
+        // FallbackAdNetworkClient tries the live Apex Ad Server first; if the
+        // server is unreachable or returns no-fill it transparently serves mock
+        // ads via MockAdExchange so the app remains functional at all times.
+        HttpAdNetworkClient httpClient = new HttpAdNetworkClient(config);
+        FallbackAdNetworkClient networkClient = new FallbackAdNetworkClient(httpClient);
+
         DeviceInfoProvider deviceInfoProvider = new DeviceInfoProvider(application);
         ConsentManager consentManager = new ConsentManager(application);
 

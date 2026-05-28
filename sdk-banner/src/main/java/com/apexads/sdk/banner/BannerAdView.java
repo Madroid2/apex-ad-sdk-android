@@ -100,7 +100,7 @@ public final class BannerAdView extends FrameLayout {
             boundViewModel.getStateObservable().removeObserver(stateObserver);
         }
         boundViewModel = viewModel;
-        listener       = adListener;
+        listener = adListener;
         viewModel.getStateObservable().addObserver(stateObserver);
     }
 
@@ -124,9 +124,9 @@ public final class BannerAdView extends FrameLayout {
             WalletDelegate delegate = ServiceLocator.get(WalletDelegate.class);
             delegate.attachToBanner(getContext(), this, adData,
                     new WalletDelegate.WalletEventCallback() {
-                        @Override public void onPassSaved()     { notifyListener(BannerAdListener::onWalletPassSaved); }
+                        @Override public void onPassSaved() { notifyListener(BannerAdListener::onWalletPassSaved); }
                         @Override public void onPassCancelled() { notifyListener(BannerAdListener::onWalletPassCancelled); }
-                        @Override public void onPassFailed()    { notifyListener(BannerAdListener::onWalletPassFailed); }
+                        @Override public void onPassFailed() { notifyListener(BannerAdListener::onWalletPassFailed); }
                     });
         }
 
@@ -166,11 +166,11 @@ public final class BannerAdView extends FrameLayout {
         settings.setLoadWithOverviewMode(true);
 
         mraidBridge = new MRAIDBridge(new MRAIDBridge.MRAIDListener() {
-            @Override public void onClose()                            { notifyListener(BannerAdListener::onAdClosed); }
-            @Override public void onExpand(String url)                 { notifyListener(BannerAdListener::onAdExpanded); }
+            @Override public void onClose() { notifyListener(BannerAdListener::onAdClosed); }
+            @Override public void onExpand(String url) { notifyListener(BannerAdListener::onAdExpanded); }
             @Override public void onResize(int w, int h, int ox, int oy, boolean ao) {}
-            @Override public void onOpen(String url)                   { openUrl(url); }
-            @Override public void onLog(String m, String lvl)          {}
+            @Override public void onOpen(String url) { openUrl(url); }
+            @Override public void onLog(String m, String lvl) {}
             @Override public void onStateChange(MRAIDBridge.MRAIDState state) {}
         });
 

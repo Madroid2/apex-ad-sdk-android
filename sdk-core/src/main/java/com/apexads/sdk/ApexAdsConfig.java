@@ -4,14 +4,33 @@ import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+// BuildConfig is generated from sdk-core/build.gradle.kts and carries the
+// environment-specific URLs injected at compile time via buildConfigField.
+
 /**
  * Immutable SDK configuration. Create via {@link Builder}.
  */
 public final class ApexAdsConfig {
 
-    public static final String DEFAULT_AD_SERVER_URL =
-            "https://prebid-server.rubiconproject.com/openrtb2/auction";
-    public static final String DEFAULT_TRACKING_URL = "https://track.apexads.com";
+    /**
+     * OpenRTB 2.6 auction endpoint injected at compile time.
+     *
+     * Values come from buildConfigField in sdk-core/build.gradle.kts:
+     *   debug   → http://10.0.2.2:8080/openrtb/v1/auction  (Android emulator → host localhost)
+     *   release → https://api.apexads.net/openrtb/v1/auction (production)
+     *
+     * Override at runtime via {@link Builder#adServerUrl(String)}.
+     */
+    public static final String DEFAULT_AD_SERVER_URL = BuildConfig.AD_SERVER_URL;
+
+    /**
+     * Base tracking URL injected at compile time (same host as the ad server).
+     * Embedded in bid-response win/event/click URLs by the server.
+     *
+     *   debug   → http://10.0.2.2:8080
+     *   release → https://api.apexads.net
+     */
+    public static final String DEFAULT_TRACKING_URL = BuildConfig.TRACKING_URL;
     public static final long DEFAULT_TIMEOUT_MS = 5_000L;
     public static final long DEFAULT_CACHE_TTL_SECONDS = 300L;
 

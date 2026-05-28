@@ -17,20 +17,28 @@ import com.apexads.sdk.core.utils.AdLog;
  */
 public final class ConsentManager {
 
-    private static final String PREFS_NAME = "IABConsent_Settings";
+    // IAB TCF 2.0 standard SharedPreferences keys.
+    // Per IAB TCF 2.0 spec, CMPs write to the DEFAULT shared preferences
+    // (PreferenceManager.getDefaultSharedPreferences), not a named file.
+    // Ref: https://github.com/InteractiveAdvertisingBureau/GDPR-Transparency-and-Consent-Framework
+    //      /blob/master/TCFv2/IAB%20Tech%20Lab%20-%20CMP%20API%20v2.md#in-app-details
+    public static final String KEY_TCF_STRING = "IABTCF_TCString";
+    public static final String KEY_GDPR_APPLIES = "IABTCF_gdprApplies";
+    public static final String KEY_PURPOSE_CONSENTS = "IABTCF_PurposeConsents";
+    public static final String KEY_VENDOR_CONSENTS = "IABTCF_VendorConsents";
+    public static final String KEY_CMP_SDK_ID = "IABTCF_CmpSdkID";
+    public static final String KEY_CMP_SDK_VERSION = "IABTCF_CmpSdkVersion";
 
-    // IAB TCF 2.0 standard SharedPreferences keys
-    private static final String KEY_TCF_STRING      = "IABTCF_TCString";
-    private static final String KEY_GDPR_APPLIES    = "IABTCF_gdprApplies";
-    private static final String KEY_PURPOSE_CONSENTS = "IABTCF_PurposeConsents";
-
-    // IAB US Privacy (CCPA)
-    private static final String KEY_US_PRIVACY      = "IABUSPrivacy_String";
+    // IAB US Privacy (CCPA) — IAB CCPA Compliance Framework.
+    // Ref: https://github.com/InteractiveAdvertisingBureau/USPrivacy/blob/master/CCPA/USP%20API.md#in-app-support
+    public static final String KEY_US_PRIVACY = "IABUSPrivacy_String";
 
     private final SharedPreferences prefs;
 
     public ConsentManager(@NonNull Context context) {
-        prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        // IAB spec mandates the default shared preferences file so any CMP SDK
+        // writing to getDefaultSharedPreferences() is automatically visible here.
+        prefs = android.preference.PreferenceManager.getDefaultSharedPreferences(context);
     }
 
     /** TCF 2.0 consent string set by the publisher's CMP, or null if absent. */

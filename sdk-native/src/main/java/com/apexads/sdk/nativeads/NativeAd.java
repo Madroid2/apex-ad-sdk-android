@@ -120,11 +120,11 @@ public final class NativeAd {
 
     // ── Convenience payload accessors (unchanged public API) ──────────────────
 
-    @Nullable public String getTitle()          { NativeAdPayload p = viewModel.getNativePayload(); return p != null ? p.title : null; }
-    @Nullable public String getDescription()    { NativeAdPayload p = viewModel.getNativePayload(); return p != null ? p.description : null; }
-    @Nullable public String getCtaText()        { NativeAdPayload p = viewModel.getNativePayload(); return p != null ? p.ctaText : null; }
-    @Nullable public String getIconUrl()        { NativeAdPayload p = viewModel.getNativePayload(); return p != null ? p.iconUrl : null; }
-    @Nullable public String getImageUrl()       { NativeAdPayload p = viewModel.getNativePayload(); return p != null ? p.imageUrl : null; }
+    @Nullable public String getTitle() { NativeAdPayload p = viewModel.getNativePayload(); return p != null ? p.title : null; }
+    @Nullable public String getDescription() { NativeAdPayload p = viewModel.getNativePayload(); return p != null ? p.description : null; }
+    @Nullable public String getCtaText() { NativeAdPayload p = viewModel.getNativePayload(); return p != null ? p.ctaText : null; }
+    @Nullable public String getIconUrl() { NativeAdPayload p = viewModel.getNativePayload(); return p != null ? p.iconUrl : null; }
+    @Nullable public String getImageUrl() { NativeAdPayload p = viewModel.getNativePayload(); return p != null ? p.imageUrl : null; }
     @Nullable public String getAdvertiserName() { NativeAdPayload p = viewModel.getNativePayload(); return p != null ? p.advertiserName : null; }
 
     // ── Builder ───────────────────────────────────────────────────────────────

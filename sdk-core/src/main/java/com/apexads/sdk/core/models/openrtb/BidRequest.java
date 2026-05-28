@@ -11,7 +11,7 @@ import java.util.Map;
  */
 public class BidRequest {
 
-    public static final int AUCTION_FIRST_PRICE  = 1;
+    public static final int AUCTION_FIRST_PRICE = 1;
     public static final int AUCTION_SECOND_PRICE = 2;
 
     public String id;
@@ -28,6 +28,31 @@ public class BidRequest {
     public List<String> badv;
     public int test = 0;
     public Map<String, Object> ext;
+    /** Apex-specific extension block, serialized under {@code req.ext.apex}. */
+    public ApexExt apexExt;
+
+    /**
+     * Apex-proprietary extension carried in {@code req.ext.apex}.
+     * Allows the server to apply special handling (e.g. bypass consent checks
+     * in test environments) without changing standard OpenRTB fields.
+     */
+    public static class ApexExt {
+        /**
+         * Mirror of {@link BidRequest#test}: 1 = test/dev mode.
+         * When 1, the server skips GDPR/CCPA enforcement so integration
+         * testing works without a real CMP.
+         */
+        public int testmode;
+
+        /** Explicit GDPR applicability signal. 1 = applies, 0 = does not apply. */
+        public Integer gdpr;
+
+        /** IAB TCF 2.0 TC String — full consent string as set by the publisher's CMP. */
+        public String tcf;
+
+        /** IAB US Privacy (CCPA) string, e.g. "1YNN". */
+        public String ccpa;
+    }
 
     // ── Impression ───────────────────────────────────────────────────────────
 

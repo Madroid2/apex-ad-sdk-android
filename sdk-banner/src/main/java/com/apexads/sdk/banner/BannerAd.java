@@ -159,9 +159,9 @@ public final class BannerAd {
             this.placementId = placementId;
         }
 
-        public Builder adSize(@NonNull AdSize size)         { adSize = size;       return this; }
-        public Builder bidFloor(double floor)               { bidFloor = floor;    return this; }
-        public Builder listener(@NonNull BannerAdListener l){ listener = l;        return this; }
+        public Builder adSize(@NonNull AdSize size) { adSize = size; return this; }
+        public Builder bidFloor(double floor) { bidFloor = floor; return this; }
+        public Builder listener(@NonNull BannerAdListener l) { listener = l; return this; }
 
         @NonNull
         public BannerAd build() {

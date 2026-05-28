@@ -66,12 +66,12 @@ public abstract class AdViewModel {
             @NonNull AdSize defaultSize,
             @NonNull String placementId,
             double bidFloor) {
-        this.repository  = repository;
-        this.cache       = cache;
-        this.format      = format;
+        this.repository = repository;
+        this.cache = cache;
+        this.format = format;
         this.defaultSize = defaultSize;
         this.placementId = placementId;
-        this.bidFloor    = bidFloor;
+        this.bidFloor = bidFloor;
     }
 
     // ── View contract ─────────────────────────────────────────────────────────
@@ -189,8 +189,8 @@ public abstract class AdViewModel {
     /** Releases all held state. Call when the ad unit is permanently discarded. */
     public void destroy() {
         cache.remove(format, placementId);
-        adData       = null;
-        lastError    = null;
+        adData = null;
+        lastError = null;
         viewListener = null;
         transitionTo(AdState.IDLE);
     }

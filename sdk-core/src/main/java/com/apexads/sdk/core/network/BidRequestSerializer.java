@@ -28,17 +28,29 @@ final class BidRequestSerializer {
         putStrings(o, "cur", req.cur);
         putStrings(o, "bcat", req.bcat);
         putStrings(o, "badv", req.badv);
+        // req.ext — wrap custom map + apex extension under the same "ext" key.
+        JSONObject extObj = new JSONObject();
+        if (req.ext != null && !req.ext.isEmpty()) {
+            // Merge any caller-supplied flat ext fields.
+            JSONObject flat = serFlatMap(req.ext);
+            for (java.util.Iterator<String> it = flat.keys(); it.hasNext(); ) {
+                String k = it.next();
+                extObj.put(k, flat.get(k));
+            }
+        }
+        if (req.apexExt != null) extObj.put("apex", serApexExt(req.apexExt));
+        if (extObj.length() > 0) o.put("ext", extObj);
 
         if (req.imp != null && !req.imp.isEmpty()) {
             JSONArray imps = new JSONArray();
             for (BidRequest.Impression imp : req.imp) imps.put(serImp(imp));
             o.put("imp", imps);
         }
-        if (req.app    != null) o.put("app",    serApp(req.app));
-        if (req.site   != null) o.put("site",   serSite(req.site));
+        if (req.app != null) o.put("app", serApp(req.app));
+        if (req.site != null) o.put("site", serSite(req.site));
         if (req.device != null) o.put("device", serDevice(req.device));
-        if (req.user   != null) o.put("user",   serUser(req.user));
-        if (req.regs   != null) o.put("regs",   serRegs(req.regs));
+        if (req.user != null) o.put("user", serUser(req.user));
+        if (req.regs != null) o.put("regs", serRegs(req.regs));
         return o.toString();
     }
 
@@ -55,8 +67,8 @@ final class BidRequestSerializer {
         o.putOpt("displaymanager", imp.displaymanager);
         o.putOpt("displaymanagerver", imp.displaymanagerver);
         putInts(o, "api", imp.api);
-        if (imp.banner       != null) o.put("banner", serBanner(imp.banner));
-        if (imp.video        != null) o.put("video",  serVideo(imp.video));
+        if (imp.banner != null) o.put("banner", serBanner(imp.banner));
+        if (imp.video != null) o.put("video", serVideo(imp.video));
         if (imp.nativeObject != null) o.put("native", serNative(imp.nativeObject)); // "native" JSON key
         if (imp.ext != null && !imp.ext.isEmpty()) o.put("ext", serFlatMap(imp.ext));
         return o;
@@ -233,6 +245,17 @@ final class BidRequestSerializer {
         obj.put(key, a);
     }
 
+    // ── Apex extension ────────────────────────────────────────────────────────
+
+    private static JSONObject serApexExt(BidRequest.ApexExt ext) throws JSONException {
+        JSONObject o = new JSONObject();
+        o.put("testmode", ext.testmode);
+        o.putOpt("gdpr", ext.gdpr);
+        o.putOpt("tcf", ext.tcf);
+        o.putOpt("ccpa", ext.ccpa);
+        return o;
+    }
+
     /**
      * Serializes a flat {@code Map<String, Object>} to a {@link JSONObject}.
      * Supports {@link Boolean}, {@link Number}, and {@link String} values.
@@ -243,11 +266,11 @@ final class BidRequestSerializer {
         for (Map.Entry<String, Object> entry : map.entrySet()) {
             if (entry.getValue() == null) continue;
             Object v = entry.getValue();
-            if (v instanceof Boolean)      o.put(entry.getKey(), (boolean) (Boolean) v);
+            if (v instanceof Boolean) o.put(entry.getKey(), (boolean) (Boolean) v);
             else if (v instanceof Integer) o.put(entry.getKey(), (int) (Integer) v);
-            else if (v instanceof Long)    o.put(entry.getKey(), (long) (Long) v);
-            else if (v instanceof Double)  o.put(entry.getKey(), (double) (Double) v);
-            else if (v instanceof String)  o.put(entry.getKey(), (String) v);
+            else if (v instanceof Long) o.put(entry.getKey(), (long) (Long) v);
+            else if (v instanceof Double) o.put(entry.getKey(), (double) (Double) v);
+            else if (v instanceof String) o.put(entry.getKey(), (String) v);
         }
         return o;
     }

@@ -69,6 +69,7 @@ public class OpenRTBRequestBuilder {
         request.cur = Collections.singletonList("USD");
         request.bcat = blockedCategories;
         request.badv = blockedDomains;
+        request.apexExt = buildApexExt();
         return request;
     }
 
@@ -206,7 +207,35 @@ public class OpenRTBRequestBuilder {
         regs.coppa = config.getCoppa() > 0 ? 1 : null;
         regs.ext = new BidRequest.RegsExt();
         regs.ext.gdpr = consentManager.isGdprApplicable() ? 1 : 0;
-        regs.ext.us_privacy = config.getUsPrivacyString();
+        // us_privacy: prefer runtime override from config, fall back to IAB SharedPrefs
+        String usPrivacy = config.getUsPrivacyString();
+        regs.ext.us_privacy = usPrivacy != null ? usPrivacy : consentManager.getUsPrivacyString();
         return regs;
+    }
+
+    /**
+     * Builds the Apex-proprietary {@code req.ext.apex} block.
+     *
+     * <p>This block carries consent + test-mode signals in a way that is
+     * forward-compatible with standard OpenRTB. The server reads these fields
+     * explicitly so it does not have to re-parse them from the standard locations.
+     *
+     * <ul>
+     *   <li>{@code testmode=1} — server skips GDPR/CCPA enforcement (QA/emulator use)</li>
+     *   <li>{@code gdpr}  — mirrors {@code regs.ext.gdpr}</li>
+     *   <li>{@code tcf}   — IAB TCF 2.0 TC String from {@link ConsentManager#getTcfConsentString()}</li>
+     *   <li>{@code ccpa}  — IAB US Privacy string from {@link ConsentManager#getUsPrivacyString()}</li>
+     * </ul>
+     */
+    private BidRequest.ApexExt buildApexExt() {
+        ApexAdsConfig config = ApexAds.getConfig();
+        BidRequest.ApexExt ext = new BidRequest.ApexExt();
+        ext.testmode = config.isTestMode() ? 1 : 0;
+        ext.gdpr = consentManager.isGdprApplicable() ? 1 : 0;
+        ext.tcf = consentManager.getTcfConsentString();
+        // us_privacy: prefer config override, fall back to IAB SharedPrefs
+        String usPrivacy = config.getUsPrivacyString();
+        ext.ccpa = usPrivacy != null ? usPrivacy : consentManager.getUsPrivacyString();
+        return ext;
     }
 }
