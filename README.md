@@ -188,11 +188,12 @@ Optional feature modules (`sdk-wallet`) bring their own scoped dependencies with
 flowchart TD
     classDef app fill:#1565C0,color:#fff,stroke:#0D47A1
     classDef sdk fill:#2E7D32,color:#fff,stroke:#1B5E20
+    classDef mvvm fill:#558B2F,color:#fff,stroke:#33691E
     classDef core fill:#4527A0,color:#fff,stroke:#311B92
     classDef ext fill:#E65100,color:#fff,stroke:#BF360C
     classDef wallet fill:#0277BD,color:#fff,stroke:#01579B
 
-    subgraph DEMO["Demo App (MVVM)"]
+    subgraph DEMO["Demo App"]
         direction LR
         BF["BannerFragment"]:::app
         IF["InterstitialFragment"]:::app
@@ -201,20 +202,38 @@ flowchart TD
         AOF["AppOpenFragment"]:::app
         IAB["InAppBiddingFragment"]:::app
         WF["WalletFragment"]:::app
-        VM["AdViewModel"]:::app
     end
 
-    subgraph MODULES["SDK Modules"]
-        BAN["sdk-banner\n(MRAID 3.0)"]:::sdk
-        INT["sdk-interstitial\n(Fullscreen)"]:::sdk
-        NAT["sdk-native\n(IAB Native 1.2)"]:::sdk
-        VID["sdk-video\n(VAST 4.0)"]:::sdk
+    subgraph MODULES["SDK Format Modules"]
+        subgraph BAN["sdk-banner (MRAID 3.0)"]
+            BA["BannerAd\n(facade)"]:::sdk
+            BAV["BannerAdView\n(observes state)"]:::sdk
+            BVM["BannerAdViewModel"]:::mvvm
+        end
+        subgraph INT["sdk-interstitial (Fullscreen)"]
+            IA["InterstitialAd\n(facade)"]:::sdk
+            IVM["InterstitialAdViewModel"]:::mvvm
+        end
+        subgraph VID["sdk-video (VAST 4.0)"]
+            VA["VideoAd\n(facade)"]:::sdk
+            VVM["VideoAdViewModel\n(VAST parsing)"]:::mvvm
+        end
+        subgraph NAT["sdk-native (IAB Native 1.2)"]
+            NA["NativeAd\n(facade)"]:::sdk
+            NVM["NativeAdViewModel\n(JSON parsing)"]:::mvvm
+        end
         AOP["sdk-appopen\n(App Open)"]:::sdk
         IAB2["sdk-inappbidding\n(Header Bidding)"]:::sdk
         WAL["sdk-wallet\n(Google Wallet Pass)"]:::wallet
     end
 
     subgraph CORE["sdk-core"]
+        subgraph MVVM["mvvm/"]
+            AVM["AdViewModel (abstract)\nonAdLoaded() hook"]:::mvvm
+            OBS["AdStateObservable\n(weak-ref observer)"]:::mvvm
+            REPO["AdRepository interface\n+ OpenRTBAdRepository"]:::mvvm
+            STATE["AdState\nIDLE·LOADING·LOADED\nDISPLAYED·EXPIRED·FAILED"]:::mvvm
+        end
         ENTRY["ApexAds (init)"]:::core
         DI["ServiceLocator (DI)\n+ WalletDelegate interface"]:::core
         NET["HttpAdNetworkClient\n(HttpURLConnection)"]:::core
@@ -224,7 +243,6 @@ flowchart TD
         DEVICE["DeviceInfoProvider"]:::core
         IMPTRACK["ImpressionTracker\n(MRC)"]:::core
         CRASH["CrashReporter\n(Sentry envelope)"]:::core
-        LOG["AdLog"]:::core
     end
 
     subgraph EXT["Ecosystem"]
@@ -235,12 +253,113 @@ flowchart TD
     end
 
     DEMO --> MODULES
-    MODULES --> CORE
+    BVM & IVM & VVM & NVM -->|extends| AVM
+    AVM --> OBS
+    AVM --> REPO
+    REPO --> NET
+    BAV -->|observes| OBS
+    BA --> BVM
+    IA --> IVM
+    VA --> VVM
+    NA --> NVM
+    MVVM --> CACHE
+    CORE --> ENTRY
     WAL --> GWALLET
     ADMOB --> MODULES
     NET --> EXCHANGE
     CRASH --> SENTRY
 ```
+
+---
+
+## SDK MVVM Architecture
+
+The SDK is layered into four concerns separated by stable interfaces — the same pattern as Smaato's ng-sdk-android, adapted for a third-party SDK that cannot rely on `androidx.lifecycle.ViewModel` or `ViewModelStoreOwner`.
+
+```mermaid
+flowchart TD
+    classDef pub fill:#1565C0,color:#fff,stroke:#0D47A1
+    classDef facade fill:#2E7D32,color:#fff,stroke:#1B5E20
+    classDef vm fill:#558B2F,color:#fff,stroke:#33691E
+    classDef repo fill:#6A1B9A,color:#fff,stroke:#4A148C
+    classDef infra fill:#4527A0,color:#fff,stroke:#311B92
+
+    subgraph PUB["Publisher Layer"]
+        direction LR
+        APP["Publisher App\n(Activity / Fragment)"]:::pub
+        BAV["BannerAdView\nsubscribes AdStateObservable\non bind() / detach()"]:::pub
+    end
+
+    subgraph FAC["Facade Layer — public API (one class per format)"]
+        direction LR
+        BA["BannerAd"]:::facade
+        IA["InterstitialAd"]:::facade
+        VA["VideoAd"]:::facade
+        NA["NativeAd"]:::facade
+    end
+
+    subgraph VML["ViewModel Layer — sdk-core/mvvm/"]
+        AVM["AdViewModel  ❰abstract❱\n──────────────────\nload()  show()  destroy()\ncheckAndMarkExpired()\nonDisplayed()  isReady()\n──────────────────\nonAdLoaded() hook — throws AdError\n  ↳ subclass parses VAST / Native JSON\n  ↳ base catches → FAILED state"]:::vm
+        BVM["BannerAdViewModel\nextends AdViewModel\n(pass-through hook)"]:::vm
+        IVM["InterstitialAdViewModel\nextends AdViewModel"]:::vm
+        VVM["VideoAdViewModel\nextends AdViewModel\nVAST XML parsing hook"]:::vm
+        NVM["NativeAdViewModel\nextends AdViewModel\nNative JSON parsing hook"]:::vm
+        OBS["AdStateObservable\nweak-ref ChangeNotifier\n─────────────────\nIDLE → LOADING → LOADED\n      ↓           ↓\n  FAILED      DISPLAYED\n                ↓\n             EXPIRED"]:::vm
+    end
+
+    subgraph REPL["Repository Layer"]
+        AR["AdRepository  ❰interface❱\nloadAd(format, size, placementId,\n  bidFloor, onSuccess, onFailure)"]:::repo
+        OR["OpenRTBAdRepository\nimplements AdRepository\n• dispatches on SdkExecutors.IO\n• posts result on SdkExecutors.MAIN"]:::repo
+    end
+
+    subgraph INFRA["Infrastructure — sdk-core"]
+        NET["HttpAdNetworkClient\n(HttpURLConnection — no OkHttp)"]:::infra
+        CACHE["AdCache (TTL)"]:::infra
+        BUILD["OpenRTBRequestBuilder\n+ BidRequestSerializer\n+ BidResponseParser"]:::infra
+    end
+
+    APP -->|"ad.load() / ad.show()"| BA & IA & VA & NA
+    BAV -->|"bind(viewModel)\naddObserver(stateObserver)"| OBS
+    BA --> BVM
+    IA --> IVM
+    VA --> VVM
+    NA --> NVM
+    BVM & IVM & VVM & NVM -->|extends| AVM
+    AVM --> OBS
+    AVM --> AR
+    AR -.->|implements| OR
+    OR --> NET
+    OR --> CACHE
+    NET --> BUILD
+```
+
+### State machine
+
+`AdStateObservable` is the single source of truth for ad lifecycle state. Every state transition is published to all registered observers (e.g. `BannerAdView` clears its `WebView` when `EXPIRED` is received).
+
+```mermaid
+stateDiagram-v2
+    [*] --> IDLE : AdViewModel created
+    IDLE --> LOADING : load() called
+    LOADING --> LOADED : AdData received &\nonAdLoaded() hook succeeds
+    LOADING --> FAILED : network error\nor onAdLoaded() throws AdError
+    LOADED --> DISPLAYED : show() / onDisplayed()
+    LOADED --> EXPIRED : checkAndMarkExpired()\n(TTL elapsed)
+    DISPLAYED --> EXPIRED : checkAndMarkExpired()\n(TTL elapsed after show)
+    EXPIRED --> LOADING : load() — re-fetches live auction
+    FAILED --> LOADING : load() — retry
+    DISPLAYED --> [*] : destroy()
+```
+
+### Key design decisions
+
+| Decision | Rationale |
+|---|---|
+| Custom `AdViewModel` (not AndroidX) | Third-party SDKs have no `ViewModelStoreOwner`. Mirrors Smaato ng-sdk-android's `SmaatoSdkViewModel` pattern. |
+| `onAdLoaded() throws AdError` | Lets VAST/Native subclasses signal parse failure without re-entrant callback chains. Base class `applyLoaded()` catches and transitions to `FAILED`. |
+| `AdStateObservable` weak references | Views are held by the publisher's layout. Weak refs prevent the ViewModel from leaking the Activity/Fragment via observer registration. |
+| `AdRepository` interface | Decouples `AdViewModel` from HTTP; `OpenRTBAdRepository` is the production impl, swappable with `MockAdRepository` in tests. |
+| Thin facades | `BannerAd`, `InterstitialAd`, etc. own a ViewModel and bridge format-specific listeners to the generic `AdViewModelListener` contract. Zero business logic lives in facades. |
 
 ---
 
@@ -286,13 +405,13 @@ graph LR
 
 | Module | Depends On | Responsibility |
 |---|---|---|
-| `sdk-core` | — (Android platform only) | SDK init, OpenRTB models, HTTP networking, ad cache, consent, DI, crash reporting, logging, `WalletDelegate` interface |
-| `sdk-banner` | `sdk-core` | Banner ad + MRAID 3.0 WebView container; auto-attaches wallet CTA on MRECT when `WalletDelegate` is registered |
-| `sdk-interstitial` | `sdk-core` | Fullscreen HTML interstitial; auto-attaches wallet bottom panel when `WalletDelegate` is registered |
-| `sdk-native` | `sdk-core` | IAB Native 1.2 JSON parsing, publisher-controlled view binding |
-| `sdk-video` | `sdk-core` | VAST 4.0 parsing, ExoPlayer rewarded video, quartile tracking |
-| `sdk-appopen` | `sdk-interstitial` | App Open Ads — foreground detection, frequency cap, auto-preload |
-| `sdk-inappbidding` | `sdk-core` | Header bidding price signals, MAX/LevelPlay mock simulation |
+| `sdk-core` | — (Android platform only) | SDK init, OpenRTB models, HTTP networking, ad cache, consent, DI, crash reporting, logging, `WalletDelegate` interface; **MVVM base layer** — `AdViewModel`, `AdStateObservable`, `AdRepository`, `AdState` |
+| `sdk-banner` | `sdk-core` | `BannerAd` facade + `BannerAdViewModel` (extends `AdViewModel`); `BannerAdView` (observes `AdStateObservable`); MRAID 3.0 WebView; auto-attaches wallet CTA on MRECT |
+| `sdk-interstitial` | `sdk-core` | `InterstitialAd` facade + `InterstitialAdViewModel`; fullscreen HTML activity; auto-attaches wallet bottom panel |
+| `sdk-native` | `sdk-core` | `NativeAd` facade + `NativeAdViewModel` (IAB Native 1.2 JSON parsing hook); publisher-controlled view binding |
+| `sdk-video` | `sdk-core` | `VideoAd` facade + `VideoAdViewModel` (VAST 4.0 XML parsing hook); ExoPlayer rewarded video; quartile tracking |
+| `sdk-appopen` | `sdk-interstitial` | App Open Ads — foreground detection, frequency cap, auto-preload; delegates lifecycle to `InterstitialAdViewModel` |
+| `sdk-inappbidding` | `sdk-core` | Header bidding price signals via `ApexInAppBidder`; MAX/LevelPlay mock simulation |
 | `sdk-wallet` | `sdk-core` | Google Wallet pass delivery; `play-services-wallet` scoped here only — zero leakage |
 | `adapters-admob` | `sdk-banner`, `sdk-interstitial`, `sdk-video` | AdMob mediation adapter (Banner, Interstitial, Rewarded) |
 | `demo-app` | all modules | MVVM showcase app, MockAdExchange integration |
@@ -304,37 +423,47 @@ graph LR
 ```mermaid
 sequenceDiagram
     participant App as Publisher App
-    participant SDK as ApexAds SDK
+    participant Fac as Ad Facade<br/>(BannerAd / VideoAd / …)
+    participant VM as AdViewModel<br/>(BannerAdViewModel / …)
     participant Cache as AdCache (TTL)
-    participant Net as HttpAdNetworkClient
-    participant Exch as Ad Exchange (OpenRTB)
+    participant Repo as OpenRTBAdRepository<br/>→ HttpAdNetworkClient
+    participant Exch as Ad Exchange (OpenRTB 2.6)
 
-    App->>SDK: ad.load()
-    SDK->>Cache: get(format, placementId)
+    App->>Fac: ad.load()
+    Fac->>VM: load()
+    VM->>Cache: get(format, placementId)
     alt Cache hit (not expired)
-        Cache-->>SDK: AdData
-        SDK-->>App: onAdLoaded()
+        Cache-->>VM: AdData
+        VM->>VM: state → LOADED
+        VM-->>Fac: onAdLoaded(AdData)
+        Fac-->>App: listener.onAdLoaded()
     else Cache miss
-        SDK->>Net: requestBid(BidRequest)
-        Note over Net,Exch: imp.ext.wallet_supported=true\n(if WalletAdExtension installed + MRECT/Interstitial)
-        Net->>Exch: POST /openrtb2/auction
-        Exch-->>Net: BidResponse (JSON)
-        Note over Net,SDK: ext.wallet parsed → AdData.walletExtJson
-        Net-->>SDK: BidResponse
-        SDK->>Cache: put(format, placementId, AdData)
-        SDK-->>App: onAdLoaded()
+        VM->>VM: state → LOADING
+        VM->>Repo: loadAd(format, size, placementId, bidFloor)
+        Note over Repo,Exch: imp.ext.wallet_supported=true<br/>(if WalletAdExtension installed)
+        Repo->>Exch: POST /openrtb2/auction
+        Exch-->>Repo: BidResponse (JSON)
+        Note over Repo,VM: ext.wallet parsed → AdData.walletExtJson
+        Repo-->>VM: AdData (onSuccess callback, main thread)
+        VM->>Cache: put(format, placementId, AdData)
+        VM->>VM: state → LOADED
+        VM-->>Fac: onAdLoaded(AdData)
+        Fac-->>App: listener.onAdLoaded()
     end
-    App->>SDK: ad.show(activity)
-    SDK->>App: Render ad (Activity / WebView / ExoPlayer)
+    App->>Fac: ad.show(activity)
+    Fac->>VM: checkAndMarkExpired() / onDisplayed()
+    VM->>VM: state → DISPLAYED
+    Note over VM: AdStateObservable notifies<br/>BannerAdView on every state change
+    Fac->>App: Render ad (Activity / WebView / ExoPlayer)
     opt AdData carries ext.wallet and WalletDelegate registered
-        SDK->>App: Overlay "Save to Google Wallet" CTA
-        App->>SDK: User taps CTA
-        SDK->>SDK: WalletPassManager.savePassesJwt()
-        SDK-->>App: onWalletPassSaved / Cancelled / Failed
-        SDK->>Net: fireTrackingUrl(save_tracking_url)
+        Fac->>App: Overlay "Save to Google Wallet" CTA
+        App->>Fac: User taps CTA
+        Fac->>Fac: WalletPassManager.savePassesJwt()
+        Fac-->>App: onWalletPassSaved / Cancelled / Failed
+        Fac->>Repo: fireTrackingUrl(save_tracking_url)
     end
-    SDK->>Net: fireTrackingUrl(winNoticeUrl)
-    Net->>Exch: GET win notice (fire-and-forget)
+    Fac->>Repo: fireTrackingUrl(winNoticeUrl)
+    Repo->>Exch: GET win notice (fire-and-forget)
 ```
 
 ---
@@ -402,6 +531,14 @@ apex-ad-sdk-android/
 │       ├── ApexAds.java               # SDK singleton entry point
 │       ├── ApexAdsConfig.java         # Immutable builder-pattern configuration
 │       └── core/
+│           ├── mvvm/                  # ◀ MVVM base layer (custom — no AndroidX dependency)
+│           │   ├── AdState            # 6-phase enum: IDLE·LOADING·LOADED·DISPLAYED·EXPIRED·FAILED
+│           │   ├── AdStateObserver    # Callback interface for state transitions
+│           │   ├── AdStateObservable  # Weak-ref ChangeNotifier; delivers current state on subscribe
+│           │   ├── AdViewModelListener# Internal view contract: onAdLoaded / onAdFailed / onAdExpired
+│           │   ├── AdRepository       # Interface: loadAd(format, size, placementId, bidFloor, …)
+│           │   ├── OpenRTBAdRepository# Impl: IO-thread dispatch, main-thread callbacks
+│           │   └── AdViewModel        # Abstract base ViewModel (not AndroidX); load/show/destroy lifecycle
 │           ├── di/
 │           │   ├── ServiceLocator     # Lightweight ConcurrentHashMap DI (40 lines)
 │           │   └── WalletDelegate     # Interface — decouples sdk-core from sdk-wallet
@@ -426,17 +563,25 @@ apex-ad-sdk-android/
 │           └── utils/AdLog            # android.util.Log wrapper (no Timber)
 │
 ├── sdk-banner/                        # Banner + MRAID 3.0
-│   └── BannerAd / BannerAdView        # Auto-attaches wallet CTA strip on MRECT
+│   └── BannerAd               # Thin facade; owns BannerAdViewModel; auto-attaches wallet CTA on MRECT
+│   └── BannerAdViewModel      # extends AdViewModel; pass-through onAdLoaded() hook
+│   └── BannerAdView           # Subscribes AdStateObservable; clears WebView on EXPIRED
 │   └── mraid/MRAIDBridge
 │
 ├── sdk-interstitial/                  # Fullscreen interstitial
-│   └── InterstitialAd / InterstitialActivity  # Auto-attaches wallet bottom panel
+│   └── InterstitialAd         # Thin facade; owns InterstitialAdViewModel; auto-attaches wallet panel
+│   └── InterstitialAdViewModel# extends AdViewModel; launches InterstitialActivity on show()
+│   └── InterstitialActivity
 │
 ├── sdk-native/                        # IAB Native 1.2
-│   └── NativeAd / NativeAdParser (org.json) / NativeAdView
+│   └── NativeAd               # Thin facade; owns NativeAdViewModel
+│   └── NativeAdViewModel      # extends AdViewModel; onAdLoaded() parses IAB Native 1.2 JSON
+│   └── NativeAdParser (org.json) / NativeAdView
 │
 ├── sdk-video/                         # VAST 4.0 rewarded video
-│   └── VideoAd / VideoAdActivity / vast/VastParser
+│   └── VideoAd                # Thin facade; owns VideoAdViewModel
+│   └── VideoAdViewModel       # extends AdViewModel; onAdLoaded() parses VAST 4.0 XML
+│   └── VideoAdActivity / vast/VastParser
 │
 ├── sdk-appopen/                       # App Open Ads  ◀ unique to ApexAds + AdMob
 │   └── AppOpenAd              # Public static facade
