@@ -51,13 +51,15 @@ public final class BannerAdView extends FrameLayout {
     @Nullable private BannerAdListener listener;
     @Nullable private BannerAdViewModel boundViewModel;
 
-    /** Observes the ViewModel state; removed when the view detaches from window. */
-    private final AdStateObserver stateObserver = state -> {
-        if (state == AdState.EXPIRED) {
-            AdLog.d("BannerAdView: ad expired — clearing WebView");
-            webView.loadUrl("about:blank");
-        }
-    };
+    /**
+     * Observes the ViewModel state; removed when the view detaches from window.
+     *
+     * Assigned in the constructor (not as a field initializer) so that the
+     * {@code final} field {@code webView} is guaranteed to be initialized before
+     * the lambda captures it — avoids "variable webView might not have been
+     * initialized" compile errors from Java's blank-final analysis.
+     */
+    private final AdStateObserver stateObserver;
 
     // ── Constructors ──────────────────────────────────────────────────────────
 
@@ -72,6 +74,13 @@ public final class BannerAdView extends FrameLayout {
     public BannerAdView(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         webView = new WebView(context);
+        // stateObserver assigned here — webView is already initialised above
+        stateObserver = state -> {
+            if (state == AdState.EXPIRED) {
+                AdLog.d("BannerAdView: ad expired — clearing WebView");
+                webView.loadUrl("about:blank");
+            }
+        };
         setupWebView();
         addView(webView, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
     }
