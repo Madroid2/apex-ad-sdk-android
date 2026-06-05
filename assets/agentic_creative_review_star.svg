@@ -111,8 +111,8 @@
   <path d="M 701 670 C 701 724 961 724 961 651" stroke="#0F9F95" stroke-width="3" fill="none" stroke-dasharray="8 8" marker-end="url(#arrow-teal)"/>
   <text x="752" y="744" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="700" fill="#08766E">safe creative becomes eligible</text>
 
-  <rect x="109" y="684" width="352" height="40" rx="20" fill="#EAF3FF" stroke="#AFC9E9"/>
-  <text x="285" y="710" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="800" fill="#103B63">Cost guardrail: deterministic mode costs $0 locally</text>
+  <rect x="96" y="684" width="448" height="40" rx="20" fill="#EAF3FF" stroke="#AFC9E9"/>
+  <text x="320" y="710" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="800" fill="#103B63">Cost guardrail: deterministic mode costs $0 locally</text>
 
   <rect x="1037" y="684" width="290" height="40" rx="20" fill="#FFF8E8" stroke="#E6B64A"/>
   <text x="1182" y="710" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="800" fill="#6C4A00">No LLM calls during ad serving</text>
