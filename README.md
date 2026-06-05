@@ -45,6 +45,85 @@
   </tr>
 </table>
 
+## Portfolio Demo: Agentic Creative Review Loop
+
+Apex is not only an Android SDK. The portfolio demo shows a full ad-tech loop:
+
+`Apex Android SDK -> Apex Ad Server -> Apex Demand Platform -> Creative Review Agent -> approved creative back to the SDK`
+
+The agent runs in the demand platform during campaign setup and review. It never runs on-device and never runs inside the auction hot path.
+
+```mermaid
+sequenceDiagram
+    participant Adv as Advertiser
+    participant DSP as Apex Demand Platform
+    participant Agent as Creative Review Agent
+    participant Cache as Approved Creative Cache
+    participant Server as Apex Ad Server
+    participant SDK as Apex Android SDK
+
+    Adv->>DSP: Generate campaign creatives
+    DSP->>DSP: Store variants as DRAFT
+    Adv->>DSP: Submit creative for review
+    DSP->>Agent: Review copy, URL, format, markup signals
+
+    alt Clearly safe
+        Agent-->>DSP: AUTO_APPROVE + confidence + rationale
+        DSP->>Cache: Make creative eligible for bidding
+    else Clear policy violation
+        Agent-->>DSP: AUTO_REJECT + findings
+        DSP->>DSP: Keep creative out of bidder cache
+    else Uncertain or regulated
+        Agent-->>DSP: NEEDS_MANUAL_REVIEW + findings
+        DSP->>DSP: Human review required
+    end
+
+    SDK->>Server: OpenRTB ad request
+    Server->>DSP: POST /api/dsp/bid
+    DSP-->>Server: Approved creative only
+    Server-->>SDK: BidResponse
+    SDK->>SDK: Render ad + MRC impression tracking
+```
+
+```mermaid
+flowchart LR
+    subgraph ControlPlane["Control plane - async, agentic, low cost"]
+        Draft["DRAFT creative"] --> Review["Review agent"]
+        Review -->|"AUTO_APPROVE"| Approved["APPROVED"]
+        Review -->|"AUTO_REJECT"| Rejected["REJECTED"]
+        Review -->|"NEEDS_MANUAL_REVIEW"| Human["Human review queue"]
+        Approved --> Cache["Bidder cache"]
+    end
+
+    subgraph HotPath["Auction hot path - deterministic, low latency"]
+        SDK["Apex SDK"] --> AdServer["Apex Ad Server"]
+        AdServer --> Bidder["DSP bid endpoint"]
+        Bidder --> Cache
+        Cache --> Bid["OpenRTB bid response"]
+        Bid --> SDK
+    end
+```
+
+**What this demo proves**
+
+| Capability | Implementation |
+|---|---|
+| Agentic AI where it belongs | Runs in `apex-demand-platform` after creative submission, not in the SDK or Go auction engine |
+| Zero-cost local mode | `AI_REVIEW_MODE=deterministic` applies local guardrails without model calls |
+| Optional model-backed review | `AI_REVIEW_MODE=openai` uses `gpt-5-nano` for non-obvious review cases |
+| Approved-only serving | The DSP bidder cache only indexes `ACTIVE` campaigns with `APPROVED` creatives |
+| Auditability | Every review writes outcome, confidence, rationale, and findings to `creative_review_runs` |
+| Latency safety | `POST /api/dsp/bid` reads precomputed state and never calls an LLM |
+
+**Emulated demo flow**
+
+1. Run `apex-demand-platform` and open `http://localhost:3000/advertiser`.
+2. Generate a wallet-save campaign.
+3. Click `Submit all for review`.
+4. The review agent classifies each creative as `APPROVED`, `REJECTED`, or still `PENDING_REVIEW`.
+5. The approved creative becomes eligible for bidding through Apex Ad Server.
+6. The SDK receives only approved OpenRTB markup and renders it using the existing banner, interstitial, native, video, or wallet modules.
+
 ## What Sets This SDK Apart
 
 Most ad SDKs (including major ones from Google, Meta, Unity) share a common set of problems. ApexAds was designed to solve all of them out of the box:
