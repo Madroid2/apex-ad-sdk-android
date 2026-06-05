@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="820" viewBox="0 0 1440 820" role="img" aria-labelledby="title desc">
+  <title id="title">Apex Agentic Creative Review Flow</title>
+  <desc id="desc">A STAR-style diagram showing situation, task, action, and result for the Apex agentic creative review approach.</desc>
+
+  <defs>
+    <marker id="arrow-navy" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#12324A"/>
+    </marker>
+    <marker id="arrow-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#0F9F95"/>
+    </marker>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#F3FBFC"/>
+      <stop offset="55%" stop-color="#F8FBFF"/>
+      <stop offset="100%" stop-color="#EEF7F5"/>
+    </linearGradient>
+    <filter id="soft-shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#0B2C42" flood-opacity="0.10"/>
+    </filter>
+  </defs>
+
+  <rect width="1440" height="820" fill="url(#bg)"/>
+
+  <text x="80" y="76" font-family="Inter, Arial, sans-serif" font-size="42" font-weight="800" fill="#10263A">Apex Agentic Creative Review</text>
+  <text x="80" y="112" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="500" fill="#547087">Agentic AI is injected in campaign review, not inside the SDK or auction hot path.</text>
+
+  <!-- STAR cards -->
+  <g filter="url(#soft-shadow)">
+    <rect x="80" y="160" width="290" height="230" rx="24" fill="#FFFFFF" stroke="#CFE1EA" stroke-width="2"/>
+    <rect x="402" y="160" width="290" height="230" rx="24" fill="#FFFFFF" stroke="#CFE1EA" stroke-width="2"/>
+    <rect x="724" y="160" width="290" height="230" rx="24" fill="#FFFFFF" stroke="#CFE1EA" stroke-width="2"/>
+    <rect x="1046" y="160" width="314" height="230" rx="24" fill="#FFFFFF" stroke="#CFE1EA" stroke-width="2"/>
+  </g>
+
+  <circle cx="122" cy="205" r="25" fill="#EAF3FF" stroke="#8CB7E8" stroke-width="2"/>
+  <text x="122" y="214" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="800" fill="#0F3B63">S</text>
+  <text x="162" y="200" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="800" fill="#10263A">Situation</text>
+  <text x="112" y="248" font-family="Inter, Arial, sans-serif" font-size="17" fill="#35556D">
+    <tspan x="112" dy="0">Self-serve advertisers can</tspan>
+    <tspan x="112" dy="27">generate many creatives, but</tspan>
+    <tspan x="112" dy="27">manual policy review becomes</tspan>
+    <tspan x="112" dy="27">the launch bottleneck.</tspan>
+  </text>
+
+  <circle cx="444" cy="205" r="25" fill="#FFF7DE" stroke="#E9B949" stroke-width="2"/>
+  <text x="444" y="214" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="800" fill="#7A5400">T</text>
+  <text x="484" y="200" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="800" fill="#10263A">Task</text>
+  <text x="434" y="248" font-family="Inter, Arial, sans-serif" font-size="17" fill="#35556D">
+    <tspan x="434" dy="0">Approve safe creatives fast,</tspan>
+    <tspan x="434" dy="27">reject obvious violations, and</tspan>
+    <tspan x="434" dy="27">keep uncertain cases in a</tspan>
+    <tspan x="434" dy="27">human review queue.</tspan>
+  </text>
+
+  <circle cx="766" cy="205" r="25" fill="#E7FBF7" stroke="#0F9F95" stroke-width="2"/>
+  <text x="766" y="214" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="800" fill="#08766E">A</text>
+  <text x="806" y="200" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="800" fill="#10263A">Action</text>
+  <text x="756" y="248" font-family="Inter, Arial, sans-serif" font-size="17" fill="#35556D">
+    <tspan x="756" dy="0">Add a Creative Review Agent</tspan>
+    <tspan x="756" dy="27">after DRAFT submission. It</tspan>
+    <tspan x="756" dy="27">checks URL, copy, format,</tspan>
+    <tspan x="756" dy="27">markup signals, and policy.</tspan>
+  </text>
+
+  <circle cx="1088" cy="205" r="25" fill="#F4EEFF" stroke="#9F7AEA" stroke-width="2"/>
+  <text x="1088" y="214" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="800" fill="#5B35A8">R</text>
+  <text x="1128" y="200" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="800" fill="#10263A">Result</text>
+  <text x="1078" y="248" font-family="Inter, Arial, sans-serif" font-size="17" fill="#35556D">
+    <tspan x="1078" dy="0">Only APPROVED creatives</tspan>
+    <tspan x="1078" dy="27">enter the bidder cache. The</tspan>
+    <tspan x="1078" dy="27">SDK renders safe OpenRTB ads,</tspan>
+    <tspan x="1078" dy="27">while every decision is audited.</tspan>
+  </text>
+
+  <path d="M 374 275 C 390 275 394 275 400 275" stroke="#12324A" stroke-width="3" fill="none" marker-end="url(#arrow-navy)"/>
+  <path d="M 696 275 C 712 275 716 275 722 275" stroke="#12324A" stroke-width="3" fill="none" marker-end="url(#arrow-navy)"/>
+  <path d="M 1018 275 C 1034 275 1038 275 1044 275" stroke="#12324A" stroke-width="3" fill="none" marker-end="url(#arrow-navy)"/>
+
+  <!-- System flow -->
+  <rect x="80" y="450" width="1280" height="305" rx="28" fill="#FFFFFF" stroke="#D3E3EA" stroke-width="2" filter="url(#soft-shadow)"/>
+  <text x="112" y="496" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="800" fill="#10263A">Where the agent lives in the Apex stack</text>
+  <text x="112" y="526" font-family="Inter, Arial, sans-serif" font-size="16" fill="#547087">The agent is an async control-plane step. The ad request path stays fast, deterministic, and model-free.</text>
+
+  <rect x="116" y="570" width="175" height="78" rx="18" fill="#F6FAFF" stroke="#AFC9E9" stroke-width="2"/>
+  <text x="203" y="603" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="800" fill="#103B63">Advertiser</text>
+  <text x="203" y="628" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="14" fill="#547087">submits creative</text>
+
+  <rect x="346" y="570" width="190" height="78" rx="18" fill="#F6FAFF" stroke="#AFC9E9" stroke-width="2"/>
+  <text x="441" y="603" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="800" fill="#103B63">Demand Platform</text>
+  <text x="441" y="628" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="14" fill="#547087">stores DRAFT</text>
+
+  <rect x="591" y="548" width="220" height="122" rx="22" fill="#E7FBF7" stroke="#0F9F95" stroke-width="3"/>
+  <text x="701" y="587" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="900" fill="#08766E">Review Agent</text>
+  <text x="701" y="614" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="14" fill="#266B68">AUTO_APPROVE</text>
+  <text x="701" y="637" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="14" fill="#266B68">AUTO_REJECT</text>
+  <text x="701" y="660" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="14" fill="#266B68">NEEDS_MANUAL_REVIEW</text>
+
+  <rect x="866" y="570" width="190" height="78" rx="18" fill="#F4EEFF" stroke="#B69CE8" stroke-width="2"/>
+  <text x="961" y="603" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="800" fill="#4E2C84">Approved Cache</text>
+  <text x="961" y="628" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="14" fill="#67517E">eligible bids only</text>
+
+  <rect x="1111" y="570" width="205" height="78" rx="18" fill="#FFF8E8" stroke="#E6B64A" stroke-width="2"/>
+  <text x="1214" y="603" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="800" fill="#6C4A00">SDK + Ad Server</text>
+  <text x="1214" y="628" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="14" fill="#695A38">deterministic hot path</text>
+
+  <path d="M 292 609 L 340 609" stroke="#12324A" stroke-width="3" fill="none" marker-end="url(#arrow-navy)"/>
+  <path d="M 537 609 L 584 609" stroke="#0F9F95" stroke-width="3" fill="none" marker-end="url(#arrow-teal)"/>
+  <path d="M 812 609 L 860 609" stroke="#0F9F95" stroke-width="3" fill="none" marker-end="url(#arrow-teal)"/>
+  <path d="M 1057 609 L 1105 609" stroke="#12324A" stroke-width="3" fill="none" marker-end="url(#arrow-navy)"/>
+
+  <path d="M 701 670 C 701 724 961 724 961 651" stroke="#0F9F95" stroke-width="3" fill="none" stroke-dasharray="8 8" marker-end="url(#arrow-teal)"/>
+  <text x="752" y="744" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="700" fill="#08766E">safe creative becomes eligible</text>
+
+  <rect x="109" y="684" width="352" height="40" rx="20" fill="#EAF3FF" stroke="#AFC9E9"/>
+  <text x="285" y="710" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="800" fill="#103B63">Cost guardrail: deterministic mode costs $0 locally</text>
+
+  <rect x="1037" y="684" width="290" height="40" rx="20" fill="#FFF8E8" stroke="#E6B64A"/>
+  <text x="1182" y="710" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="800" fill="#6C4A00">No LLM calls during ad serving</text>
+</svg>

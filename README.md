@@ -47,62 +47,16 @@
 
 ## Portfolio Demo: Agentic Creative Review Loop
 
-Apex is not only an Android SDK. The portfolio demo shows a full ad-tech loop:
+Apex is not only an Android SDK. The demo shows the full ad-tech loop from creative generation to safe serving, using an agentic review step in the demand platform.
 
-`Apex Android SDK -> Apex Ad Server -> Apex Demand Platform -> Creative Review Agent -> approved creative back to the SDK`
+<img src="assets/agentic_creative_review_star.svg" alt="Apex Agentic Creative Review STAR flow" width="100%"/>
 
-The agent runs in the demand platform during campaign setup and review. It never runs on-device and never runs inside the auction hot path.
-
-```mermaid
-sequenceDiagram
-    participant Adv as Advertiser
-    participant DSP as Apex Demand Platform
-    participant Agent as Creative Review Agent
-    participant Cache as Approved Creative Cache
-    participant Server as Apex Ad Server
-    participant SDK as Apex Android SDK
-
-    Adv->>DSP: Generate campaign creatives
-    DSP->>DSP: Store variants as DRAFT
-    Adv->>DSP: Submit creative for review
-    DSP->>Agent: Review copy, URL, format, markup signals
-
-    alt Clearly safe
-        Agent-->>DSP: AUTO_APPROVE + confidence + rationale
-        DSP->>Cache: Make creative eligible for bidding
-    else Clear policy violation
-        Agent-->>DSP: AUTO_REJECT + findings
-        DSP->>DSP: Keep creative out of bidder cache
-    else Uncertain or regulated
-        Agent-->>DSP: NEEDS_MANUAL_REVIEW + findings
-        DSP->>DSP: Human review required
-    end
-
-    SDK->>Server: OpenRTB ad request
-    Server->>DSP: POST /api/dsp/bid
-    DSP-->>Server: Approved creative only
-    Server-->>SDK: BidResponse
-    SDK->>SDK: Render ad + MRC impression tracking
-```
-
-```mermaid
-flowchart LR
-    subgraph ControlPlane["Control plane - async, agentic, low cost"]
-        Draft["DRAFT creative"] --> Review["Review agent"]
-        Review -->|"AUTO_APPROVE"| Approved["APPROVED"]
-        Review -->|"AUTO_REJECT"| Rejected["REJECTED"]
-        Review -->|"NEEDS_MANUAL_REVIEW"| Human["Human review queue"]
-        Approved --> Cache["Bidder cache"]
-    end
-
-    subgraph HotPath["Auction hot path - deterministic, low latency"]
-        SDK["Apex SDK"] --> AdServer["Apex Ad Server"]
-        AdServer --> Bidder["DSP bid endpoint"]
-        Bidder --> Cache
-        Cache --> Bid["OpenRTB bid response"]
-        Bid --> SDK
-    end
-```
+| STAR | What happened |
+|---|---|
+| **Situation** | Self-serve advertisers can generate many creatives, but manual review becomes the launch bottleneck. |
+| **Task** | Approve safe creatives fast, reject obvious violations, and keep uncertain cases in human review. |
+| **Action** | Added a Creative Review Agent after draft submission in `apex-demand-platform`. It checks URL safety, copy, format, markup signals, and policy rules. |
+| **Result** | Only `APPROVED` creatives enter the bidder cache. The SDK receives safe OpenRTB markup, and every agent decision is auditable. |
 
 **What this demo proves**
 
