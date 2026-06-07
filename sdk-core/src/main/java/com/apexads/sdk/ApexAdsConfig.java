@@ -44,6 +44,7 @@ public final class ApexAdsConfig {
     private final String usPrivacyString;
     private final boolean debugLogging;
     private final boolean testMode;
+    private final boolean debugFakeFill;
     private final String sentryDsn;
 
     private ApexAdsConfig(Builder builder) {
@@ -57,6 +58,7 @@ public final class ApexAdsConfig {
         this.usPrivacyString = builder.usPrivacyString;
         this.debugLogging = builder.debugLogging;
         this.testMode = builder.testMode;
+        this.debugFakeFill = builder.debugFakeFill;
         this.sentryDsn = builder.sentryDsn;
     }
 
@@ -70,6 +72,9 @@ public final class ApexAdsConfig {
     @Nullable public String getUsPrivacyString() { return usPrivacyString; }
     public boolean isDebugLogging() { return debugLogging; }
     public boolean isTestMode() { return testMode; }
+    /** Debug/CI only: when true, {@code ApexAds.init} appends an in-process mock demand
+     *  source to the waterfall so the SDK fills without a live server. Never true in production. */
+    public boolean isDebugFakeFill() { return debugFakeFill; }
     @Nullable public String getSentryDsn() { return sentryDsn; }
 
     public static final class Builder {
@@ -83,6 +88,7 @@ public final class ApexAdsConfig {
         private String usPrivacyString = null;
         private boolean debugLogging = false;
         private boolean testMode = false;
+        private boolean debugFakeFill = false;
         private String sentryDsn = null;
 
         public Builder(@NonNull String appToken) {
@@ -99,6 +105,9 @@ public final class ApexAdsConfig {
         public Builder usPrivacyString(@Nullable String privacy) { usPrivacyString = privacy; return this; }
         public Builder debugLogging(boolean enabled) { debugLogging = enabled; return this; }
         public Builder testMode(boolean enabled) { testMode = enabled; return this; }
+        /** Debug/CI only: append an in-process mock demand source so the SDK fills without a
+         *  live server. Never enable in production. */
+        public Builder debugFakeFill(boolean enabled) { debugFakeFill = enabled; return this; }
         public Builder sentryDsn(@Nullable String dsn) { sentryDsn = dsn; return this; }
 
         @NonNull

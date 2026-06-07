@@ -21,4 +21,6 @@ dependencies {
     compileOnly(libs.annotation)
     testImplementation(libs.junit)
     testImplementation(libs.truth)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
 }

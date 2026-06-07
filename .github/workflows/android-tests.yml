@@ -1,0 +1,52 @@
+name: Android Tests
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  unit-tests:
+    name: Unit tests and coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run unit tests and coverage gate
+        run: ./gradlew testDebugUnitTest jacocoDebugUnitTestReport jacocoDebugCoverageVerification --stacktrace
+
+      - name: Compile instrumentation tests
+        run: ./gradlew :demo-app:assembleDebugAndroidTest --stacktrace
+
+      - name: Upload unit test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-reports
+          path: |
+            **/build/reports/tests/testDebugUnitTest
+            **/build/test-results/testDebugUnitTest
+
+      - name: Upload Jacoco coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-debug-unit-test-report
+          path: build/reports/jacoco/jacocoDebugUnitTestReport

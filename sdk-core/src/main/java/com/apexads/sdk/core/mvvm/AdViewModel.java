@@ -52,6 +52,8 @@ public abstract class AdViewModel {
     @Nullable protected AdError lastError;
 
     @Nullable private AdViewModelListener viewListener;
+    private int loadGeneration;
+    private boolean destroyed;
 
     // ── Configuration ─────────────────────────────────────────────────────────
     private final AdFormat format;
@@ -121,6 +123,7 @@ public abstract class AdViewModel {
             AdLog.d(TAG + "[" + placementId + "]: load() while LOADING — ignored");
             return;
         }
+        destroyed = false;
 
         // Cache-hit path
         AdData cached = cache.get(format, placementId);
@@ -131,16 +134,18 @@ public abstract class AdViewModel {
         }
 
         // Live auction path
+        final int generation = ++loadGeneration;
         transitionTo(AdState.LOADING);
         repository.loadAd(
                 format, defaultSize, placementId, bidFloor,
                 // onSuccess — already on main thread
                 data -> {
-                    cache.put(format, placementId, data);
+                    if (shouldIgnoreCallback(generation)) return;
                     applyLoaded(data);
                 },
                 // onFailure — already on main thread
                 error -> {
+                    if (shouldIgnoreCallback(generation)) return;
                     lastError = error;
                     transitionTo(AdState.FAILED);
                     if (viewListener != null) viewListener.onAdFailed(error);
@@ -188,6 +193,8 @@ public abstract class AdViewModel {
 
     /** Releases all held state. Call when the ad unit is permanently discarded. */
     public void destroy() {
+        destroyed = true;
+        loadGeneration++;
         cache.remove(format, placementId);
         adData = null;
         lastError = null;
@@ -225,6 +232,7 @@ public abstract class AdViewModel {
     private void applyLoaded(@NonNull AdData raw) {
         try {
             AdData processed = onAdLoaded(raw);
+            cache.put(format, placementId, processed);
             adData = processed;
             transitionTo(AdState.LOADED);
             if (viewListener != null) viewListener.onAdLoaded(processed);
@@ -239,5 +247,9 @@ public abstract class AdViewModel {
     private void transitionTo(@NonNull AdState next) {
         AdLog.d(TAG + "[" + placementId + "]: " + stateObservable.getState() + " → " + next);
         stateObservable.setState(next);
+    }
+
+    private boolean shouldIgnoreCallback(int generation) {
+        return destroyed || generation != loadGeneration;
     }
 }

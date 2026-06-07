@@ -10,9 +10,13 @@ import com.apexads.sdk.core.crashreporter.CrashReporter;
 import com.apexads.sdk.core.device.DeviceInfoProvider;
 import com.apexads.sdk.core.di.ServiceLocator;
 import com.apexads.sdk.core.network.AdNetworkClient;
-import com.apexads.sdk.core.network.FallbackAdNetworkClient;
 import com.apexads.sdk.core.network.HttpAdNetworkClient;
+import com.apexads.sdk.core.network.MockAdExchange;
+import com.apexads.sdk.core.network.WaterfallAdNetworkClient;
 import com.apexads.sdk.core.utils.AdLog;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Main entry point for the ApexAd SDK. Initialise once in Application.onCreate().
@@ -91,11 +95,20 @@ public final class ApexAds {
     }
 
     private static void bootstrapServiceLocator(Application application) {
-        // FallbackAdNetworkClient tries the live Apex Ad Server first; if the
-        // server is unreachable or returns no-fill it transparently serves mock
-        // ads via MockAdExchange so the app remains functional at all times.
-        HttpAdNetworkClient httpClient = new HttpAdNetworkClient(config);
-        FallbackAdNetworkClient networkClient = new FallbackAdNetworkClient(httpClient);
+        // Demand sources are tried in priority order; the FIRST genuine fill wins.
+        // Production serves REAL demand only — no mock/fabricated fill is wired here.
+        // Add more OpenRTB exchange clients to this list to raise fill rate.
+        List<AdNetworkClient> demandSources = new ArrayList<>();
+        demandSources.add(new HttpAdNetworkClient(config)); // Apex DSP / OpenRTB exchange
+
+        // Debug/CI only: opt-in in-process mock so the SDK fills without a live
+        // server. Gated by ApexAdsConfig.debugFakeFill — never on in production.
+        if (config.isDebugFakeFill()) {
+            demandSources.add(new MockAdExchange());
+            AdLog.w("ApexAds: debugFakeFill enabled — mock demand appended (DEV ONLY)");
+        }
+
+        AdNetworkClient networkClient = new WaterfallAdNetworkClient(demandSources);
 
         DeviceInfoProvider deviceInfoProvider = new DeviceInfoProvider(application);
         ConsentManager consentManager = new ConsentManager(application);

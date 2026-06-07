@@ -23,4 +23,5 @@ dependencies {
     implementation(libs.appcompat)
     testImplementation(libs.junit)
     testImplementation(libs.truth)
+    testImplementation(libs.json)
 }
