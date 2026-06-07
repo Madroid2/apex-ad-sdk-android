@@ -6,6 +6,21 @@ plugins {
     jacoco
 }
 
+val apexGroupId = "com.apexads"
+val apexVersion = providers.gradleProperty("APEX_VERSION").orElse("1.0.0-SNAPSHOT")
+val githubPackagesUrl = uri("https://maven.pkg.github.com/Madroid2/apex-ad-sdk-android")
+val publishableArtifacts = mapOf(
+    "sdk-core" to "apex-sdk-core",
+    "sdk-banner" to "apex-sdk-banner",
+    "sdk-interstitial" to "apex-sdk-interstitial",
+    "sdk-native" to "apex-sdk-native",
+    "sdk-video" to "apex-sdk-video",
+    "sdk-inappbidding" to "apex-sdk-inappbidding",
+    "sdk-appopen" to "apex-sdk-appopen",
+    "sdk-wallet" to "apex-sdk-wallet",
+    "adapters-admob" to "apex-adapter-admob"
+)
+
 val businessLogicExcludes = listOf(
     "**/R.class",
     "**/R$*.class",
@@ -49,6 +64,9 @@ val businessLogicExcludes = listOf(
 // version appcompat/constraintlayout etc. resolve at runtime (e.g. 1.6.0),
 // which then conflicts with the 1.8.1 we declare on compile classpaths.
 subprojects {
+    group = apexGroupId
+    version = apexVersion.get()
+
     apply(plugin = "jacoco")
 
     tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
@@ -65,11 +83,77 @@ subprojects {
     }
 
     plugins.withId("com.android.library") {
+        if (name in publishableArtifacts) {
+            apply(plugin = "maven-publish")
+        }
+
         extensions.configure<com.android.build.gradle.LibraryExtension>("android") {
+            if (name in publishableArtifacts) {
+                publishing {
+                    singleVariant("release") {
+                        withSourcesJar()
+                    }
+                }
+            }
+
             testOptions {
                 unitTests {
                     isIncludeAndroidResources = true
                     isReturnDefaultValues = true
+                }
+            }
+        }
+
+        if (name in publishableArtifacts) {
+            extensions.configure<PublishingExtension>("publishing") {
+                publications {
+                    register<MavenPublication>("release") {
+                        groupId = apexGroupId
+                        artifactId = publishableArtifacts.getValue(project.name)
+                        version = apexVersion.get()
+
+                        afterEvaluate {
+                            from(components["release"])
+                        }
+
+                        pom {
+                            name.set("Apex Ad SDK ${project.name}")
+                            description.set("Android library module for the Apex Ad SDK.")
+                            url.set("https://github.com/Madroid2/apex-ad-sdk-android")
+                            licenses {
+                                license {
+                                    name.set("Apache License 2.0")
+                                    url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                                }
+                            }
+                            developers {
+                                developer {
+                                    id.set("Madroid2")
+                                    name.set("Madroid2")
+                                }
+                            }
+                            scm {
+                                connection.set("scm:git:https://github.com/Madroid2/apex-ad-sdk-android.git")
+                                developerConnection.set("scm:git:https://github.com/Madroid2/apex-ad-sdk-android.git")
+                                url.set("https://github.com/Madroid2/apex-ad-sdk-android")
+                            }
+                        }
+                    }
+                }
+
+                repositories {
+                    maven {
+                        name = "GitHubPackages"
+                        url = githubPackagesUrl
+                        credentials {
+                            username = findProperty("gpr.user") as String?
+                                ?: System.getenv("GITHUB_ACTOR")
+                                ?: "Madroid2"
+                            password = findProperty("gpr.key") as String?
+                                ?: System.getenv("GITHUB_TOKEN")
+                                ?: ""
+                        }
+                    }
                 }
             }
         }

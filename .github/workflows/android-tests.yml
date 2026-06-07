@@ -50,3 +50,32 @@ jobs:
         with:
           name: jacoco-debug-unit-test-report
           path: build/reports/jacoco/jacocoDebugUnitTestReport
+
+  publish-github-packages:
+    name: Publish GitHub Packages
+    needs: unit-tests
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Publish SDK artifacts
+        run: ./gradlew publish -PAPEX_VERSION=1.0.${{ github.run_number }}-SNAPSHOT --stacktrace
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
