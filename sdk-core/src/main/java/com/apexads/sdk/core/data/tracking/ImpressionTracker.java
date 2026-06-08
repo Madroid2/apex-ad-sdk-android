@@ -5,6 +5,7 @@ import android.view.View;
 import android.view.ViewTreeObserver;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.apexads.sdk.core.models.AdData;
 import com.apexads.sdk.core.network.AdNetworkClient;
@@ -23,6 +24,10 @@ public final class ImpressionTracker {
     private boolean fired = false;
     private long visibleStart = 0L;
 
+    @Nullable private ViewTreeObserver.OnPreDrawListener preDrawListener;
+    @Nullable private View.OnAttachStateChangeListener attachStateListener;
+    @Nullable private View attachedView;
+
     public ImpressionTracker(@NonNull AdNetworkClient networkClient) {
         this.networkClient = networkClient;
     }
@@ -30,32 +35,60 @@ public final class ImpressionTracker {
     public void attach(@NonNull View view, @NonNull AdData adData) {
         if (fired) return;
 
-        ViewTreeObserver.OnPreDrawListener preDrawListener = new ViewTreeObserver.OnPreDrawListener() {
+        // Tear down any previous attachment first — guards against leaking listeners
+        // onto a stale view if attach() is called again (e.g. ad refresh) without an
+        // explicit detach()/destroy() in between.
+        detach();
+
+        attachedView = view;
+
+        preDrawListener = new ViewTreeObserver.OnPreDrawListener() {
             @Override
             public boolean onPreDraw() {
                 if (!fired) {
                     checkVisibility(view, adData);
                 }
-                if (fired && view.getViewTreeObserver().isAlive()) {
-                    view.getViewTreeObserver().removeOnPreDrawListener(this);
+                if (fired) {
+                    detach();
                 }
                 return true;
             }
         };
 
-        view.getViewTreeObserver().addOnPreDrawListener(preDrawListener);
-
-        view.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+        attachStateListener = new View.OnAttachStateChangeListener() {
             @Override public void onViewAttachedToWindow(@NonNull View v) {}
 
             @Override
             public void onViewDetachedFromWindow(@NonNull View v) {
-                if (v.getViewTreeObserver().isAlive()) {
-                    v.getViewTreeObserver().removeOnPreDrawListener(preDrawListener);
-                }
-                v.removeOnAttachStateChangeListener(this);
+                detach();
             }
-        });
+        };
+
+        view.getViewTreeObserver().addOnPreDrawListener(preDrawListener);
+        view.addOnAttachStateChangeListener(attachStateListener);
+    }
+
+    /**
+     * Removes both the {@link ViewTreeObserver.OnPreDrawListener} and the
+     * {@link View.OnAttachStateChangeListener} registered in {@link #attach}, releasing
+     * the strong references they hold to the bound View/AdData. Must be invoked whenever
+     * the owning ad view is destroyed/recycled — otherwise a tracker that never reaches
+     * the MRC visibility threshold keeps its pre-draw closure (and the View it captures)
+     * alive for the remainder of the ViewTreeObserver's lifetime ("ghost" visibility checks).
+     */
+    public void detach() {
+        if (attachedView != null) {
+            View view = attachedView;
+            if (preDrawListener != null && view.getViewTreeObserver().isAlive()) {
+                view.getViewTreeObserver().removeOnPreDrawListener(preDrawListener);
+            }
+            if (attachStateListener != null) {
+                view.removeOnAttachStateChangeListener(attachStateListener);
+            }
+        }
+        preDrawListener = null;
+        attachStateListener = null;
+        attachedView = null;
     }
 
     private void checkVisibility(View view, AdData adData) {

@@ -128,11 +128,21 @@ public abstract class AdViewModel {
 
     public void destroy() {
         destroyed = true;
+        // Bump the generation *before* anything else so any in-flight repository callback
+        // (already queued on SdkExecutors.MAIN from a background load) is recognized as
+        // stale by shouldIgnoreCallback() and is a no-op — preventing ghost onAdLoaded/
+        // onAdFailed deliveries into a dead listener chain.
         loadGeneration++;
         cache.remove(format, placementId);
         adData = null;
         lastError = null;
         viewListener = null;
+        // Wipe every AdStateObservable subscriber. Views (e.g. BannerAdView) subscribe a
+        // stateObserver lambda that captures strong references to themselves/WebViews;
+        // if destroy() is invoked without the view first unbinding, those observers would
+        // otherwise keep receiving state broadcasts (and keep the view graph reachable)
+        // for as long as this ViewModel instance is alive.
+        stateObservable.clear();
         transitionTo(AdState.IDLE);
     }
 

@@ -174,10 +174,27 @@ public final class InterstitialActivity extends Activity {
     @Override
     protected void onDestroy() {
         mainHandler.removeCallbacks(closeTickRunnable);
-        if (webView != null) webView.destroy();
-        if (activeListener != null) activeListener.onInterstitialClosed();
+
+        // Snapshot before clearing the static — guarantees exactly one onInterstitialClosed()
+        // delivery to the listener that was active when this Activity was launched, and
+        // prevents a second/late teardown path from firing into a listener the host has
+        // already moved on from (ghost callback).
+        InterstitialAdListener listenerToNotify = activeListener;
         activeListener = null;
         pendingAdData = null;
+
+        if (webView != null) {
+            webView.stopLoading();
+            webView.removeJavascriptInterface("ApexMRAID");
+            webView.setWebViewClient(new WebViewClient());
+            webView.setWebChromeClient(null);
+            webView.loadUrl("about:blank");
+            webView.destroy();
+            webView = null;
+        }
+        mraidBridge = null;
+
+        if (listenerToNotify != null) listenerToNotify.onInterstitialClosed();
         super.onDestroy();
     }
 

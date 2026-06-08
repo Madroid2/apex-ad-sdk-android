@@ -67,6 +67,32 @@ public class NativeAdView extends FrameLayout {
         AdLog.d("NativeAdView: bound payload title='%s'", payload.title);
     }
 
+    /**
+     * Releases everything {@link #bind} wired up: click listeners (which capture the
+     * clickUrl + this view in a closure) and the asset-view references handed to us by
+     * the host layout. Without this, a recycled/destroyed NativeAdView keeps its
+     * click-through closures registered — capable of launching a stale click Intent and
+     * keeping the bound TextViews/ImageViews (and their host Activity) reachable.
+     * Safe to call from a host's onDestroy()/onViewRecycled() and idempotent.
+     */
+    public void destroy() {
+        setOnClickListener(null);
+        if (ctaView != null) ctaView.setOnClickListener(null);
+
+        titleView = null;
+        descriptionView = null;
+        ctaView = null;
+        advertiserView = null;
+        iconView = null;
+        mainImageView = null;
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        destroy();
+    }
+
     private void openUrl(String url) {
         try {
             Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));

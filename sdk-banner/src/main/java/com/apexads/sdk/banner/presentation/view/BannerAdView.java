@@ -72,6 +72,9 @@ public class BannerAdView extends FrameLayout {
     }
 
     public void render(@NonNull AdData adData) {
+        if (impressionTracker != null) {
+            impressionTracker.detach();
+        }
         impressionTracker = new ImpressionTracker(ApexAds.getNetworkClient());
 
         String html = "<!DOCTYPE html><html><head>"
@@ -102,18 +105,51 @@ public class BannerAdView extends FrameLayout {
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-        if (boundViewModel != null) {
-            boundViewModel.getStateObservable().removeObserver(stateObserver);
-            boundViewModel = null;
-        }
         destroy();
     }
 
+    /**
+     * Full teardown chain for the bound ad. Prior to this fix, destroy() only tore down
+     * the WebView — leaving the bound {@link BannerAdViewModel} (and, transitively, its
+     * {@link com.apexads.sdk.core.presentation.mvvm.AdStateObservable} subscriber, network
+     * callbacks queued on SdkExecutors, ImpressionTracker ViewTreeObserver listeners, the
+     * MRAID JS bridge and any WalletDelegate callback) alive and able to deliver "ghost"
+     * callbacks into a half-destroyed view, or to keep the Activity/Context reachable via
+     * those closures. destroy() is now idempotent and safe to call multiple times (e.g.
+     * once from the host explicitly and again from onDetachedFromWindow()).
+     */
     public void destroy() {
+        // 1. Unsubscribe from ViewModel state broadcasts and release the underlying
+        //    ViewModel — this cancels in-flight load callbacks (via the destroyed/
+        //    generation guard in AdViewModel) and clears its observer list/listener.
+        if (boundViewModel != null) {
+            boundViewModel.getStateObservable().removeObserver(stateObserver);
+            boundViewModel.destroy();
+            boundViewModel = null;
+        }
+
+        // 2. Detach the impression tracker so its ViewTreeObserver.OnPreDrawListener /
+        //    OnAttachStateChangeListener stop holding strong references to this View.
+        if (impressionTracker != null) {
+            impressionTracker.detach();
+            impressionTracker = null;
+        }
+
+        // 3. Drop the format listener reference — nothing should be able to reach the
+        //    host's BannerAdListener through this view once destroyed.
+        listener = null;
+
+        // 4. Tear down the WebView, including the MRAID JS bridge, so its closures
+        //    (which capture `this`) can no longer fire ghost MRAID/click callbacks.
         webView.stopLoading();
+        webView.removeJavascriptInterface("ApexMRAID");
+        webView.setWebViewClient(new WebViewClient());
+        webView.setWebChromeClient(null);
+        webView.loadUrl("about:blank");
         webView.clearHistory();
         webView.removeAllViews();
         webView.destroy();
+        mraidBridge = null;
     }
 
     @SuppressLint("SetJavaScriptEnabled")

@@ -62,6 +62,8 @@ public final class VideoAdActivity extends Activity {
     private AdNetworkClient networkClient;
     private VideoAdListener listener;
 
+    @Nullable private Player.Listener playerListener;
+
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     private boolean startFired     = false;
@@ -132,7 +134,13 @@ public final class VideoAdActivity extends Activity {
         mainHandler.removeCallbacks(skipTickRunnable);
         mainHandler.removeCallbacks(quartileRunnable);
         releasePlayer();
+        // Null both the static "pending show" reference AND the instance field. Any
+        // SdkExecutors.MAIN.post(...) lambda still in flight captures `this` (the
+        // Activity), not the field directly, so nulling here prevents a ghost
+        // onVideoAdXxx() delivery from resolving `listener` to a non-null value after
+        // the Activity (and the Context the listener may hold) should be dead.
         activeListener = null;
+        listener = null;
         super.onDestroy();
     }
 
@@ -146,7 +154,7 @@ public final class VideoAdActivity extends Activity {
         if (btnSkip != null && btnSkip.getVisibility() == View.VISIBLE) {
 
             fireTracking(TrackingEvent.SKIP);
-            if (listener != null) SdkExecutors.MAIN.post(() -> listener.onVideoAdSkipped());
+            notifyListener(VideoAdListener::onVideoAdSkipped);
             finish();
             return;
         }
@@ -212,7 +220,7 @@ public final class VideoAdActivity extends Activity {
 
         btnSkip.setOnClickListener(v -> {
             fireTracking(TrackingEvent.SKIP);
-            if (listener != null) SdkExecutors.MAIN.post(() -> listener.onVideoAdSkipped());
+            notifyListener(VideoAdListener::onVideoAdSkipped);
             finish();
         });
 
@@ -224,7 +232,7 @@ public final class VideoAdActivity extends Activity {
                     Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(clickUrl));
                     i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     startActivity(i);
-                    if (listener != null) SdkExecutors.MAIN.post(() -> listener.onVideoAdClicked());
+                    notifyListener(VideoAdListener::onVideoAdClicked);
                 } catch (Exception e) {
                     AdLog.w(e, "VideoAdActivity: could not open click URL");
                 }
@@ -248,7 +256,7 @@ public final class VideoAdActivity extends Activity {
         player.prepare();
         player.setPlayWhenReady(true);
 
-        player.addListener(new Player.Listener() {
+        playerListener = new Player.Listener() {
             @Override
             public void onPlaybackStateChanged(int state) {
                 if (state == Player.STATE_ENDED) onAdComplete();
@@ -259,7 +267,7 @@ public final class VideoAdActivity extends Activity {
                 if (isPlaying && !startFired) {
                     startFired = true;
                     fireTracking(TrackingEvent.START);
-                    if (listener != null) SdkExecutors.MAIN.post(() -> listener.onVideoAdStarted());
+                    notifyListener(VideoAdListener::onVideoAdStarted);
                 }
             }
 
@@ -270,7 +278,8 @@ public final class VideoAdActivity extends Activity {
                     int reason) {
                 checkQuartiles();
             }
-        });
+        };
+        player.addListener(playerListener);
 
         mainHandler.post(quartileRunnable);
     }
@@ -295,15 +304,34 @@ public final class VideoAdActivity extends Activity {
         showCloseButton();
         if (!rewardGranted) {
             rewardGranted = true;
-            if (listener != null) SdkExecutors.MAIN.post(() -> {
-                listener.onVideoAdCompleted();
-                listener.onRewardEarned();
-            });
+            notifyListener(l -> { l.onVideoAdCompleted(); l.onRewardEarned(); });
+        }
+    }
+
+    /**
+     * Snapshots the listener field on the calling thread and posts to MAIN only if it
+     * was non-null at that moment — avoiding both an NPE (if onDestroy() nulls the field
+     * before the posted Runnable executes) and a ghost callback into a listener the host
+     * has already considered detached.
+     */
+    private void notifyListener(@NonNull java.util.function.Consumer<VideoAdListener> action) {
+        VideoAdListener snapshot = listener;
+        if (snapshot != null) {
+            SdkExecutors.MAIN.post(() -> action.accept(snapshot));
         }
     }
 
     private void releasePlayer() {
         if (player != null) {
+            // Remove the Player.Listener before releasing — ExoPlayer does not guarantee
+            // listeners are cleared by release(), and the anonymous listener captures
+            // `this` (the Activity) plus `listener`/`networkClient`. Leaving it registered
+            // risks a ghost onPlaybackStateChanged()/onIsPlayingChanged() callback firing
+            // mid-teardown and keeping the Activity reachable.
+            if (playerListener != null) {
+                player.removeListener(playerListener);
+                playerListener = null;
+            }
             player.stop();
             player.release();
             player = null;
