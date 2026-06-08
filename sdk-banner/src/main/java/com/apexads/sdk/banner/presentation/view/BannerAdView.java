@@ -38,6 +38,7 @@ public class BannerAdView extends FrameLayout {
     @Nullable private BannerAdViewModel boundViewModel;
 
     private final AdStateObserver stateObserver;
+    private boolean destroyed;
 
     public BannerAdView(@NonNull Context context) {
         this(context, null);
@@ -119,6 +120,14 @@ public class BannerAdView extends FrameLayout {
      * once from the host explicitly and again from onDetachedFromWindow()).
      */
     public void destroy() {
+        // Guard against double-destroy: the host may call destroy() explicitly *and*
+        // the view may subsequently be detached (which also routes here). WebView
+        // throws IllegalStateException ("WebView.destroy() was called ... cannot be
+        // reused") if its methods are touched again after destroy(), so make this whole
+        // chain a true no-op on the second invocation.
+        if (destroyed) return;
+        destroyed = true;
+
         // 1. Unsubscribe from ViewModel state broadcasts and release the underlying
         //    ViewModel — this cancels in-flight load callbacks (via the destroyed/
         //    generation guard in AdViewModel) and clears its observer list/listener.
