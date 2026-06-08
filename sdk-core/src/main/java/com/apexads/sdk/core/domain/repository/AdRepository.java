@@ -1,4 +1,4 @@
-package com.apexads.sdk.core.mvvm;
+package com.apexads.sdk.core.domain.repository;
 
 import androidx.annotation.NonNull;
 

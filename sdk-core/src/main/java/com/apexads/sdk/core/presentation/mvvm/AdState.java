@@ -1,4 +1,4 @@
-package com.apexads.sdk.core.mvvm;
+package com.apexads.sdk.core.presentation.mvvm;
 
 /**
  * Lifecycle state of an Apex ad unit.

@@ -1,4 +1,4 @@
-package com.apexads.sdk.core.mvvm;
+package com.apexads.sdk.core.presentation.mvvm;
 
 /**
  * Receives {@link AdState} change notifications dispatched by {@link AdStateObservable}.

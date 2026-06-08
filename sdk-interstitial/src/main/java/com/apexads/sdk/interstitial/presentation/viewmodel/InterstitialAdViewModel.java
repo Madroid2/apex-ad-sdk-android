@@ -8,8 +8,8 @@ import com.apexads.sdk.core.cache.AdCache;
 import com.apexads.sdk.core.models.AdData;
 import com.apexads.sdk.core.models.AdFormat;
 import com.apexads.sdk.core.models.AdSize;
-import com.apexads.sdk.core.mvvm.AdRepository;
-import com.apexads.sdk.core.mvvm.AdViewModel;
+import com.apexads.sdk.core.domain.repository.AdRepository;
+import com.apexads.sdk.core.presentation.mvvm.AdViewModel;
 import com.apexads.sdk.core.utils.AdLog;
 
 /**
@@ -32,7 +32,7 @@ public final class InterstitialAdViewModel extends AdViewModel {
 
     /**
      * Launches the fullscreen interstitial. Safe to call only after the
-     * {@link com.apexads.sdk.core.mvvm.AdViewModelListener#onAdLoaded} callback.
+     * {@link com.apexads.sdk.core.presentation.mvvm.AdViewModelListener#onAdLoaded} callback.
      *
      * @param context  Must be an Activity or Application context.
      * @param listener Publisher listener forwarded to {@link InterstitialActivity}.

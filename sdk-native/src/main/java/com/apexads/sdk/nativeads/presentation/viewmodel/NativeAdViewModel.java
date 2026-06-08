@@ -9,8 +9,8 @@ import com.apexads.sdk.core.models.AdData;
 import com.apexads.sdk.core.models.AdFormat;
 import com.apexads.sdk.core.models.AdSize;
 import com.apexads.sdk.core.models.NativeAdPayload;
-import com.apexads.sdk.core.mvvm.AdRepository;
-import com.apexads.sdk.core.mvvm.AdViewModel;
+import com.apexads.sdk.core.domain.repository.AdRepository;
+import com.apexads.sdk.core.presentation.mvvm.AdViewModel;
 import com.apexads.sdk.core.utils.AdLog;
 
 /**

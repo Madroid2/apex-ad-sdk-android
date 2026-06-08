@@ -20,8 +20,8 @@ import com.apexads.sdk.banner.mraid.MRAIDBridge;
 import com.apexads.sdk.core.di.ServiceLocator;
 import com.apexads.sdk.core.di.WalletDelegate;
 import com.apexads.sdk.core.models.AdData;
-import com.apexads.sdk.core.mvvm.AdState;
-import com.apexads.sdk.core.mvvm.AdStateObserver;
+import com.apexads.sdk.core.presentation.mvvm.AdState;
+import com.apexads.sdk.core.presentation.mvvm.AdStateObserver;
 import com.apexads.sdk.core.tracking.ImpressionTracker;
 import com.apexads.sdk.core.utils.AdLog;
 
@@ -38,7 +38,7 @@ import com.apexads.sdk.core.utils.AdLog;
  *
  * <p>When {@link BannerAd#show(BannerAdView)} is called the view is
  * <em>bound</em> to the {@link BannerAdViewModel} via {@link #bind}.
- * The view then observes the ViewModel's {@link com.apexads.sdk.core.mvvm.AdStateObservable}
+ * The view then observes the ViewModel's {@link com.apexads.sdk.core.presentation.mvvm.AdStateObservable}
  * and reacts to future state changes (e.g. {@link AdState#EXPIRED}) without
  * being commanded by the ad controller directly.
  */

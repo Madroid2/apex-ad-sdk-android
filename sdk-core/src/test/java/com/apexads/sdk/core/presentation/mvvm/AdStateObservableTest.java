@@ -1,4 +1,4 @@
-package com.apexads.sdk.core.mvvm;
+package com.apexads.sdk.core.presentation.mvvm;
 
 import static com.google.common.truth.Truth.assertThat;
 

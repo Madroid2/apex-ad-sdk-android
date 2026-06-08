@@ -9,11 +9,11 @@ import com.apexads.sdk.core.error.AdError;
 import com.apexads.sdk.core.models.AdData;
 import com.apexads.sdk.core.models.AdFormat;
 import com.apexads.sdk.core.models.AdSize;
-import com.apexads.sdk.core.mvvm.AdRepository;
-import com.apexads.sdk.core.mvvm.AdState;
-import com.apexads.sdk.core.mvvm.AdStateObserver;
-import com.apexads.sdk.core.mvvm.AdViewModelListener;
-import com.apexads.sdk.core.mvvm.OpenRTBAdRepository;
+import com.apexads.sdk.core.domain.repository.AdRepository;
+import com.apexads.sdk.core.presentation.mvvm.AdState;
+import com.apexads.sdk.core.presentation.mvvm.AdStateObserver;
+import com.apexads.sdk.core.presentation.mvvm.AdViewModelListener;
+import com.apexads.sdk.core.data.repository.OpenRTBAdRepository;
 import com.apexads.sdk.core.request.OpenRTBRequestBuilder;
 import com.apexads.sdk.core.utils.AdLog;
 
@@ -98,7 +98,7 @@ public final class BannerAd {
      * Renders the loaded ad into {@code view}.
      *
      * <p>Must be called after {@link BannerAdListener#onAdLoaded()}.
-     * The view subscribes to the ViewModel's {@link com.apexads.sdk.core.mvvm.AdStateObservable}
+     * The view subscribes to the ViewModel's {@link com.apexads.sdk.core.presentation.mvvm.AdStateObservable}
      * so it will automatically reflect future state changes (e.g. EXPIRED).
      */
     public void show(@NonNull BannerAdView view) {

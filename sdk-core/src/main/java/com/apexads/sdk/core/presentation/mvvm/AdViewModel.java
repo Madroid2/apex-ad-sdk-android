@@ -1,9 +1,10 @@
-package com.apexads.sdk.core.mvvm;
+package com.apexads.sdk.core.presentation.mvvm;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.apexads.sdk.core.cache.AdCache;
+import com.apexads.sdk.core.domain.repository.AdRepository;
 import com.apexads.sdk.core.error.AdError;
 import com.apexads.sdk.core.models.AdData;
 import com.apexads.sdk.core.models.AdFormat;

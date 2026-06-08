@@ -9,11 +9,11 @@ import com.apexads.sdk.ApexAds;
 import com.apexads.sdk.core.cache.AdCache;
 import com.apexads.sdk.core.error.AdError;
 import com.apexads.sdk.core.models.AdData;
-import com.apexads.sdk.core.mvvm.AdRepository;
-import com.apexads.sdk.core.mvvm.AdState;
-import com.apexads.sdk.core.mvvm.AdStateObserver;
-import com.apexads.sdk.core.mvvm.AdViewModelListener;
-import com.apexads.sdk.core.mvvm.OpenRTBAdRepository;
+import com.apexads.sdk.core.domain.repository.AdRepository;
+import com.apexads.sdk.core.presentation.mvvm.AdState;
+import com.apexads.sdk.core.presentation.mvvm.AdStateObserver;
+import com.apexads.sdk.core.presentation.mvvm.AdViewModelListener;
+import com.apexads.sdk.core.data.repository.OpenRTBAdRepository;
 import com.apexads.sdk.core.request.OpenRTBRequestBuilder;
 
 /**
