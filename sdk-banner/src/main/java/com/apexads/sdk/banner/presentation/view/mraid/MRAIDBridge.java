@@ -1,4 +1,4 @@
-package com.apexads.sdk.banner.mraid;
+package com.apexads.sdk.banner.presentation.view.mraid;
 
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;

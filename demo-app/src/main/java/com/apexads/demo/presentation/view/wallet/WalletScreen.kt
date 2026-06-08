@@ -1,4 +1,4 @@
-package com.apexads.demo.ui.wallet
+package com.apexads.demo.presentation.view.wallet
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement

@@ -1,4 +1,4 @@
-package com.apexads.sdk.nativeads;
+package com.apexads.sdk.nativeads.presentation.view;
 
 import android.content.Context;
 import android.content.Intent;
@@ -17,6 +17,7 @@ import com.apexads.sdk.core.network.AdNetworkClient;
 import com.apexads.sdk.core.network.SdkExecutors;
 
 import com.apexads.sdk.core.utils.AdLog;
+import com.apexads.sdk.nativeads.NativeAd;
 
 /**
  * Flexible native ad container.
@@ -25,7 +26,7 @@ import com.apexads.sdk.core.utils.AdLog;
  * {@link #setTitleView}, {@link #setDescriptionView}, etc. The SDK binds
  * data assets and fires impression trackers — publisher retains full visual control.
  */
-public final class NativeAdView extends FrameLayout {
+public class NativeAdView extends FrameLayout {
 
     private TextView titleView;
     private TextView descriptionView;
@@ -52,7 +53,7 @@ public final class NativeAdView extends FrameLayout {
     public void setMainImageView(@NonNull ImageView view)  { mainImageView = view; }
 
     /** Called by {@link NativeAd#bindTo(NativeAdView)} — not publisher API. */
-    void bind(@NonNull NativeAdPayload payload, @NonNull AdNetworkClient networkClient) {
+    public void bind(@NonNull NativeAdPayload payload, @NonNull AdNetworkClient networkClient) {
         if (titleView != null)       titleView.setText(payload.title);
         if (descriptionView != null) descriptionView.setText(payload.description);
         if (ctaView != null)         ctaView.setText(payload.ctaText);

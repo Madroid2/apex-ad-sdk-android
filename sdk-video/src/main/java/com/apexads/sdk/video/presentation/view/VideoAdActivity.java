@@ -1,4 +1,4 @@
-package com.apexads.sdk.video;
+package com.apexads.sdk.video.presentation.view;
 
 import android.content.Context;
 import android.content.Intent;
@@ -23,6 +23,7 @@ import androidx.media3.ui.PlayerView;
 
 import com.apexads.sdk.core.network.AdNetworkClient;
 import com.apexads.sdk.core.network.SdkExecutors;
+import com.apexads.sdk.video.VideoAdListener;
 import com.apexads.sdk.video.vast.VastParser;
 import com.apexads.sdk.video.vast.VastParser.TrackingEvent;
 import com.apexads.sdk.video.vast.VastParser.VastAd;
@@ -47,10 +48,10 @@ public final class VideoAdActivity extends Activity {
     private static volatile AdNetworkClient  pendingNetworkClient;
     private static volatile VideoAdListener  activeListener;
 
-    static void launch(@NonNull Context context,
-                       @NonNull VastAd ad,
-                       @NonNull AdNetworkClient networkClient,
-                       @Nullable VideoAdListener listener) {
+    public static void launch(@NonNull Context context,
+                              @NonNull VastAd ad,
+                              @NonNull AdNetworkClient networkClient,
+                              @Nullable VideoAdListener listener) {
         pendingAd            = ad;
         pendingNetworkClient = networkClient;
         activeListener       = listener;

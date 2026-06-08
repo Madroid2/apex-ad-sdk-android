@@ -1,4 +1,4 @@
-package com.apexads.demo.ui.appopen
+package com.apexads.demo.presentation.view.appopen
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

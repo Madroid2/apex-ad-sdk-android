@@ -1,4 +1,4 @@
-package com.apexads.demo.ui.video
+package com.apexads.demo.presentation.view.video
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement

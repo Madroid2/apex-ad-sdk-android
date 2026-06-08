@@ -19,6 +19,7 @@ import com.apexads.sdk.core.di.WalletDelegate;
 import com.apexads.sdk.core.models.AdData;
 import com.apexads.sdk.core.network.SdkExecutors;
 import com.apexads.sdk.core.utils.AdLog;
+import com.apexads.sdk.wallet.presentation.view.WalletResultActivity;
 
 import java.lang.ref.WeakReference;
 

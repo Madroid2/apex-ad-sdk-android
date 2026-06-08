@@ -18,10 +18,10 @@ import com.google.android.gms.pay.PayClient;
  * The wallet save result is delivered to the calling Activity via
  * {@link Activity#onActivityResult(int, int, android.content.Intent)}.
  */
-final class WalletPassManager {
+public final class WalletPassManager {
 
     /** Request code used with {@link Activity#startActivityForResult}. */
-    static final int REQUEST_CODE_SAVE_PASS = 0xBA11;
+    public static final int REQUEST_CODE_SAVE_PASS = 0xBA11;
 
     private WalletPassManager() {}
 
@@ -29,7 +29,7 @@ final class WalletPassManager {
      * Returns {@code true} if Google Play Services are available and the
      * {@link PayClient} can be created on this device.
      */
-    static boolean isAvailable(@NonNull Context context) {
+    public static boolean isAvailable(@NonNull Context context) {
         try {
             int status = GoogleApiAvailability.getInstance()
                     .isGooglePlayServicesAvailable(context);
@@ -51,7 +51,7 @@ final class WalletPassManager {
      * @param activity   the foreground Activity that will receive the result
      * @param passJwt    signed Google Wallet pass JWT from the advertiser server
      */
-    static void savePass(@NonNull Activity activity, @NonNull String passJwt) {
+    public static void savePass(@NonNull Activity activity, @NonNull String passJwt) {
         try {
             PayClient payClient = Pay.getClient(activity);
             payClient.savePassesJwt(passJwt, activity, REQUEST_CODE_SAVE_PASS);

@@ -1,4 +1,4 @@
-package com.apexads.demo.ui.inappbidding
+package com.apexads.demo.presentation.view.inappbidding
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility

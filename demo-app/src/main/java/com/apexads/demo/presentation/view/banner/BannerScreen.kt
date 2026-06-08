@@ -1,4 +1,4 @@
-package com.apexads.demo.ui.banner
+package com.apexads.demo.presentation.view.banner
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement

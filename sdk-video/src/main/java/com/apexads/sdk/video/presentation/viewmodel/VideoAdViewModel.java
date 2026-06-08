@@ -14,6 +14,7 @@ import com.apexads.sdk.core.domain.repository.AdRepository;
 import com.apexads.sdk.core.presentation.mvvm.AdViewModel;
 import com.apexads.sdk.core.network.AdNetworkClient;
 import com.apexads.sdk.core.utils.AdLog;
+import com.apexads.sdk.video.presentation.view.VideoAdActivity;
 import com.apexads.sdk.video.vast.VastParser;
 
 /**

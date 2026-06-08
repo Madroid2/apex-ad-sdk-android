@@ -1,4 +1,4 @@
-package com.apexads.demo.ui.native
+package com.apexads.demo.presentation.view.native
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory

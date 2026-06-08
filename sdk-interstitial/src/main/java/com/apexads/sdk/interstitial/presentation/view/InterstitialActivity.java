@@ -1,4 +1,4 @@
-package com.apexads.sdk.interstitial;
+package com.apexads.sdk.interstitial.presentation.view;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -26,11 +26,12 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.apexads.sdk.banner.mraid.MRAIDBridge;
+import com.apexads.sdk.banner.presentation.view.mraid.MRAIDBridge;
 import com.apexads.sdk.core.di.ServiceLocator;
 import com.apexads.sdk.core.di.WalletDelegate;
 import com.apexads.sdk.core.models.AdData;
 import com.apexads.sdk.core.utils.AdLog;
+import com.apexads.sdk.interstitial.InterstitialAdListener;
 
 /**
  * Fullscreen Activity that hosts the interstitial WebView.
@@ -223,9 +224,9 @@ public final class InterstitialActivity extends Activity {
 
     // ── Static launch ─────────────────────────────────────────────────────────
 
-    static void launch(@NonNull Context context,
-                       @NonNull AdData adData,
-                       @Nullable InterstitialAdListener listener) {
+    public static void launch(@NonNull Context context,
+                              @NonNull AdData adData,
+                              @Nullable InterstitialAdListener listener) {
         pendingAdData = adData;
         activeListener = listener;
         Intent intent = new Intent(context, InterstitialActivity.class);

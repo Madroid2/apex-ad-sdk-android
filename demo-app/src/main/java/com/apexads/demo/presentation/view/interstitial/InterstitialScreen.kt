@@ -1,4 +1,4 @@
-package com.apexads.demo.ui.interstitial
+package com.apexads.demo.presentation.view.interstitial
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement

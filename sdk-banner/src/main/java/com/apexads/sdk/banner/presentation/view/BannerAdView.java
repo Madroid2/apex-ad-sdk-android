@@ -1,4 +1,4 @@
-package com.apexads.sdk.banner;
+package com.apexads.sdk.banner.presentation.view;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -16,7 +16,10 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.apexads.sdk.ApexAds;
-import com.apexads.sdk.banner.mraid.MRAIDBridge;
+import com.apexads.sdk.banner.BannerAd;
+import com.apexads.sdk.banner.BannerAdListener;
+import com.apexads.sdk.banner.BannerAdViewModel;
+import com.apexads.sdk.banner.presentation.view.mraid.MRAIDBridge;
 import com.apexads.sdk.core.di.ServiceLocator;
 import com.apexads.sdk.core.di.WalletDelegate;
 import com.apexads.sdk.core.models.AdData;
@@ -42,7 +45,7 @@ import com.apexads.sdk.core.utils.AdLog;
  * and reacts to future state changes (e.g. {@link AdState#EXPIRED}) without
  * being commanded by the ad controller directly.
  */
-public final class BannerAdView extends FrameLayout {
+public class BannerAdView extends FrameLayout {
 
     private final WebView webView;
     private MRAIDBridge mraidBridge;
@@ -94,7 +97,7 @@ public final class BannerAdView extends FrameLayout {
      * publisher-facing API. Subscribes to the ViewModel's state observable so
      * the view reacts to lifecycle events (e.g. expiry) without being commanded.
      */
-    void bind(@NonNull BannerAdViewModel viewModel, @Nullable BannerAdListener adListener) {
+    public void bind(@NonNull BannerAdViewModel viewModel, @Nullable BannerAdListener adListener) {
         // Detach from any previously bound ViewModel
         if (boundViewModel != null) {
             boundViewModel.getStateObservable().removeObserver(stateObserver);
@@ -105,7 +108,7 @@ public final class BannerAdView extends FrameLayout {
     }
 
     /** Called by {@link BannerAd#show(BannerAdView)} to render the creative. */
-    void render(@NonNull AdData adData) {
+    public void render(@NonNull AdData adData) {
         impressionTracker = new ImpressionTracker(ApexAds.getNetworkClient());
 
         String html = "<!DOCTYPE html><html><head>"

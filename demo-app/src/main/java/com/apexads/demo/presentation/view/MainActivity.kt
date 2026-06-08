@@ -1,4 +1,4 @@
-package com.apexads.demo
+package com.apexads.demo.presentation.view
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -25,14 +25,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.apexads.demo.ui.appopen.AppOpenScreen
-import com.apexads.demo.ui.banner.BannerScreen
-import com.apexads.demo.ui.inappbidding.InAppBiddingScreen
-import com.apexads.demo.ui.interstitial.InterstitialScreen
-import com.apexads.demo.ui.native.NativeScreen
+import com.apexads.demo.presentation.view.appopen.AppOpenScreen
+import com.apexads.demo.presentation.view.banner.BannerScreen
+import com.apexads.demo.presentation.view.inappbidding.InAppBiddingScreen
+import com.apexads.demo.presentation.view.interstitial.InterstitialScreen
+import com.apexads.demo.presentation.view.native.NativeScreen
 import com.apexads.demo.ui.theme.ApexTheme
-import com.apexads.demo.ui.video.VideoScreen
-import com.apexads.demo.ui.wallet.WalletScreen
+import com.apexads.demo.presentation.view.video.VideoScreen
+import com.apexads.demo.presentation.view.wallet.WalletScreen
 import com.apexads.demo.viewmodel.AdViewModel
 
 class MainActivity : ComponentActivity() {

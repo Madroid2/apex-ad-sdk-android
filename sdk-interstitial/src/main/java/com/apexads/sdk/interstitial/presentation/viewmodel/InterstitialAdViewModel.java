@@ -11,6 +11,7 @@ import com.apexads.sdk.core.models.AdSize;
 import com.apexads.sdk.core.domain.repository.AdRepository;
 import com.apexads.sdk.core.presentation.mvvm.AdViewModel;
 import com.apexads.sdk.core.utils.AdLog;
+import com.apexads.sdk.interstitial.presentation.view.InterstitialActivity;
 
 /**
  * ViewModel for {@link InterstitialAd}.
