@@ -134,11 +134,6 @@ public final class VideoAdActivity extends Activity {
         mainHandler.removeCallbacks(skipTickRunnable);
         mainHandler.removeCallbacks(quartileRunnable);
         releasePlayer();
-        // Null both the static "pending show" reference AND the instance field. Any
-        // SdkExecutors.MAIN.post(...) lambda still in flight captures `this` (the
-        // Activity), not the field directly, so nulling here prevents a ghost
-        // onVideoAdXxx() delivery from resolving `listener` to a non-null value after
-        // the Activity (and the Context the listener may hold) should be dead.
         activeListener = null;
         listener = null;
         super.onDestroy();
@@ -308,12 +303,7 @@ public final class VideoAdActivity extends Activity {
         }
     }
 
-    /**
-     * Snapshots the listener field on the calling thread and posts to MAIN only if it
-     * was non-null at that moment — avoiding both an NPE (if onDestroy() nulls the field
-     * before the posted Runnable executes) and a ghost callback into a listener the host
-     * has already considered detached.
-     */
+    /** Posts to the listener only if it's still set, snapshotting it to avoid NPEs/ghost calls. */
     private void notifyListener(@NonNull java.util.function.Consumer<VideoAdListener> action) {
         VideoAdListener snapshot = listener;
         if (snapshot != null) {
@@ -323,11 +313,7 @@ public final class VideoAdActivity extends Activity {
 
     private void releasePlayer() {
         if (player != null) {
-            // Remove the Player.Listener before releasing — ExoPlayer does not guarantee
-            // listeners are cleared by release(), and the anonymous listener captures
-            // `this` (the Activity) plus `listener`/`networkClient`. Leaving it registered
-            // risks a ghost onPlaybackStateChanged()/onIsPlayingChanged() callback firing
-            // mid-teardown and keeping the Activity reachable.
+            // release() doesn't guarantee listener removal — remove it explicitly.
             if (playerListener != null) {
                 player.removeListener(playerListener);
                 playerListener = null;

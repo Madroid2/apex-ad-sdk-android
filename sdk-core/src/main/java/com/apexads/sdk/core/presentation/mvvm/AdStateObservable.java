@@ -46,12 +46,7 @@ public final class AdStateObservable {
         pruneDeadRefs();
     }
 
-    /**
-     * Wipes every registered observer. Called from {@link AdViewModel#destroy()} so that
-     * destroying a ViewModel cannot leave stale observers (and the views/listeners they
-     * capture) registered to receive further state broadcasts — a classic "ghost callback"
-     * source when a bound View is torn down without being detached from its ViewModel.
-     */
+    /** Removes all observers. Called from {@link AdViewModel#destroy()} to prevent ghost callbacks. */
     public void clear() {
         observers.clear();
     }

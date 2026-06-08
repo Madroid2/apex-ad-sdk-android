@@ -35,10 +35,7 @@ public final class ImpressionTracker {
     public void attach(@NonNull View view, @NonNull AdData adData) {
         if (fired) return;
 
-        // Tear down any previous attachment first — guards against leaking listeners
-        // onto a stale view if attach() is called again (e.g. ad refresh) without an
-        // explicit detach()/destroy() in between.
-        detach();
+        detach(); // release any previous attachment first
 
         attachedView = view;
 
@@ -68,14 +65,7 @@ public final class ImpressionTracker {
         view.addOnAttachStateChangeListener(attachStateListener);
     }
 
-    /**
-     * Removes both the {@link ViewTreeObserver.OnPreDrawListener} and the
-     * {@link View.OnAttachStateChangeListener} registered in {@link #attach}, releasing
-     * the strong references they hold to the bound View/AdData. Must be invoked whenever
-     * the owning ad view is destroyed/recycled — otherwise a tracker that never reaches
-     * the MRC visibility threshold keeps its pre-draw closure (and the View it captures)
-     * alive for the remainder of the ViewTreeObserver's lifetime ("ghost" visibility checks).
-     */
+    /** Removes the pre-draw and attach-state listeners, releasing the bound View. */
     public void detach() {
         if (attachedView != null) {
             View view = attachedView;
