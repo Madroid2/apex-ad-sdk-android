@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">ApexAd Demo</string>
+    <string name="interstitial_ad">Interstitial Ad</string>
+    <string name="fullscreen_html_mraid_3_0_renders_in_a_separate_activity">Fullscreen HTML · MRAID 3.0 · renders in a separate Activity</string>
 </resources>

@@ -13,14 +13,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.apexads.demo.R
 import com.apexads.demo.viewmodel.AdViewModel
 import com.apexads.sdk.core.error.AdError
 import com.apexads.sdk.interstitial.InterstitialAd
@@ -31,16 +34,18 @@ fun InterstitialScreen(viewModel: AdViewModel) {
     val state by viewModel.interstitialState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var interstitialAd by remember { mutableStateOf<InterstitialAd?>(null) }
-
+    DisposableEffect(Unit) {
+        onDispose { interstitialAd = null }
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("Interstitial Ad", style = MaterialTheme.typography.titleLarge)
+        Text(stringResource(R.string.interstitial_ad), style = MaterialTheme.typography.titleLarge)
         Text(
-            text = "Fullscreen HTML · MRAID 3.0 · renders in a separate Activity",
+            text = stringResource(R.string.fullscreen_html_mraid_3_0_renders_in_a_separate_activity),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
