@@ -13,12 +13,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.apexads.sdk.core.utils.AdLog;
 
-/**
- * Thread-safe in-memory ad cache with TTL-based expiry.
- *
- * Keyed by {@link CacheKey} (format + placement). Expired entries are lazily
- * evicted on access and eagerly on {@link #evictExpired()}.
- */
 public final class AdCache {
 
     private final ConcurrentHashMap<CacheKey, AdData> store = new ConcurrentHashMap<>();

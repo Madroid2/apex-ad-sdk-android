@@ -6,16 +6,6 @@ import androidx.annotation.Nullable;
 import com.apexads.sdk.core.utils.AdLog;
 import com.apexads.sdk.inappbidding.BidToken;
 
-/**
- * Simulates a mediation platform (MAX / LevelPlay) for demo and POC purposes.
- *
- * In production you replace calls to this class with the real MAX or LevelPlay SDK.
- *
- * Simulated waterfall (CPM floors):
- *   Tier 1 — $5.00+  → ApexAds wins
- *   Tier 2 — $2.00+  → ApexAds wins
- *   Tier 3 — below   → Waterfall fallback (other network wins)
- */
 public final class MockMediationPlatform {
 
     private static final double TIER1_FLOOR = 5.00;
@@ -25,16 +15,11 @@ public final class MockMediationPlatform {
 
     public MockMediationPlatform() {}
 
-    /** Equivalent to MAX's {@code setLocalExtraParameter} — stores the ApexAds bid signal. */
     public void setApexBidToken(@NonNull BidToken token) {
         this.apexBidToken = token;
         AdLog.d("MockMediationPlatform: bid token received cpm=%.3f", token.cpmUsd);
     }
 
-    /**
-     * Simulates waterfall load. Returns the winning network name.
-     * In a real integration MAX/LevelPlay handles this comparison server-side.
-     */
     public String simulateLoad() {
         if (apexBidToken == null || apexBidToken.isExpired()) {
             AdLog.d("MockMediationPlatform: no valid ApexAds token — waterfall fallback wins");
@@ -55,7 +40,6 @@ public final class MockMediationPlatform {
         return winner;
     }
 
-    /** Simulates the impression callback from the mediation SDK. */
     public void simulateImpression(@NonNull OnImpressionListener listener) {
         String winner = simulateLoad();
         listener.onImpression(winner, apexBidToken != null ? apexBidToken.cpmUsd : 0.0);

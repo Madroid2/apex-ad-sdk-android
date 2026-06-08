@@ -21,11 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Assembles a standards-compliant OpenRTB 2.6 {@link BidRequest}.
- *
- * Call {@link #build()} after configuring the desired format, size, and targeting.
- */
 public class OpenRTBRequestBuilder {
 
     private final DeviceInfoProvider deviceInfoProvider;
@@ -82,14 +77,14 @@ public class OpenRTBRequestBuilder {
         imp.bidfloorcur = "USD";
         imp.secure = 1;
         imp.tagid = placementId;
-        imp.api = Arrays.asList(3, 5, 6); // MRAID 1, 2, 3
+        imp.api = Arrays.asList(3, 5, 6);
 
         boolean walletRegistered = ServiceLocator.isRegistered(WalletDelegate.class);
 
         switch (adFormat) {
             case BANNER:
                 imp.banner = buildBanner();
-                // Signal wallet support for MRECT and larger sizes
+
                 if (walletRegistered && adSize.height >= 250) {
                     imp.ext = walletSupportedExt();
                 }
@@ -128,7 +123,7 @@ public class OpenRTBRequestBuilder {
     private BidRequest.Video buildVideo() {
         BidRequest.Video video = new BidRequest.Video();
         video.mimes = Collections.singletonList("video/mp4");
-        video.protocols = Arrays.asList(2, 3, 7); // VAST 2, 3, 4
+        video.protocols = Arrays.asList(2, 3, 7);
         video.minduration = 5;
         video.maxduration = 60;
         video.skip = 1;
@@ -207,33 +202,19 @@ public class OpenRTBRequestBuilder {
         regs.coppa = config.getCoppa() > 0 ? 1 : null;
         regs.ext = new BidRequest.RegsExt();
         regs.ext.gdpr = consentManager.isGdprApplicable() ? 1 : 0;
-        // us_privacy: prefer runtime override from config, fall back to IAB SharedPrefs
+
         String usPrivacy = config.getUsPrivacyString();
         regs.ext.us_privacy = usPrivacy != null ? usPrivacy : consentManager.getUsPrivacyString();
         return regs;
     }
 
-    /**
-     * Builds the Apex-proprietary {@code req.ext.apex} block.
-     *
-     * <p>This block carries consent + test-mode signals in a way that is
-     * forward-compatible with standard OpenRTB. The server reads these fields
-     * explicitly so it does not have to re-parse them from the standard locations.
-     *
-     * <ul>
-     *   <li>{@code testmode=1} — server skips GDPR/CCPA enforcement (QA/emulator use)</li>
-     *   <li>{@code gdpr}  — mirrors {@code regs.ext.gdpr}</li>
-     *   <li>{@code tcf}   — IAB TCF 2.0 TC String from {@link ConsentManager#getTcfConsentString()}</li>
-     *   <li>{@code ccpa}  — IAB US Privacy string from {@link ConsentManager#getUsPrivacyString()}</li>
-     * </ul>
-     */
     private BidRequest.ApexExt buildApexExt() {
         ApexAdsConfig config = ApexAds.getConfig();
         BidRequest.ApexExt ext = new BidRequest.ApexExt();
         ext.testmode = config.isTestMode() ? 1 : 0;
         ext.gdpr = consentManager.isGdprApplicable() ? 1 : 0;
         ext.tcf = consentManager.getTcfConsentString();
-        // us_privacy: prefer config override, fall back to IAB SharedPrefs
+
         String usPrivacy = config.getUsPrivacyString();
         ext.ccpa = usPrivacy != null ? usPrivacy : consentManager.getUsPrivacyString();
         return ext;

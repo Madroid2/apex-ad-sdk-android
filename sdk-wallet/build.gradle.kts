@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.android.library)
-    // Pure Java — no Kotlin plugin
 }
 
 android {
@@ -19,8 +18,6 @@ android {
 
 dependencies {
     api(project(":sdk-core"))
-    // play-services-wallet is an implementation dep here, so it does NOT
-    // leak into sdk-core or any other module that only depends on sdk-core.
     implementation(libs.play.services.pay)
     compileOnly(libs.annotation)
     testImplementation(libs.junit)

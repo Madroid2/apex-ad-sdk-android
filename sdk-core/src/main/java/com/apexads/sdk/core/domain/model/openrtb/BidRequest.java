@@ -3,12 +3,6 @@ package com.apexads.sdk.core.models.openrtb;
 import java.util.List;
 import java.util.Map;
 
-/**
- * OpenRTB 2.6 Bid Request top-level object.
- * Ref: https://www.iab.com/wp-content/uploads/2022/04/OpenRTB-2-6_FINAL.pdf
- *
- * Plain POJO — JSON serialization handled by BidRequestSerializer (org.json, no 3p dep).
- */
 public class BidRequest {
 
     public static final int AUCTION_FIRST_PRICE = 1;
@@ -28,39 +22,25 @@ public class BidRequest {
     public List<String> badv;
     public int test = 0;
     public Map<String, Object> ext;
-    /** Apex-specific extension block, serialized under {@code req.ext.apex}. */
+
     public ApexExt apexExt;
 
-    /**
-     * Apex-proprietary extension carried in {@code req.ext.apex}.
-     * Allows the server to apply special handling (e.g. bypass consent checks
-     * in test environments) without changing standard OpenRTB fields.
-     */
     public static class ApexExt {
-        /**
-         * Mirror of {@link BidRequest#test}: 1 = test/dev mode.
-         * When 1, the server skips GDPR/CCPA enforcement so integration
-         * testing works without a real CMP.
-         */
+
         public int testmode;
 
-        /** Explicit GDPR applicability signal. 1 = applies, 0 = does not apply. */
         public Integer gdpr;
 
-        /** IAB TCF 2.0 TC String — full consent string as set by the publisher's CMP. */
         public String tcf;
 
-        /** IAB US Privacy (CCPA) string, e.g. "1YNN". */
         public String ccpa;
     }
-
-    // ── Impression ───────────────────────────────────────────────────────────
 
     public static class Impression {
         public String id;
         public Banner banner;
         public Video video;
-        /** Serialized as "native" JSON key — Java keyword avoided via field rename. */
+
         public NativeObject nativeObject;
         public int instl = 0;
         public String tagid;
@@ -72,8 +52,6 @@ public class BidRequest {
         public String displaymanagerver;
         public Map<String, Object> ext;
     }
-
-    // ── Banner ───────────────────────────────────────────────────────────────
 
     public static class Banner {
         public List<Format> format;
@@ -91,8 +69,6 @@ public class BidRequest {
         public int h;
         public Format(int w, int h) { this.w = w; this.h = h; }
     }
-
-    // ── Video ────────────────────────────────────────────────────────────────
 
     public static class Video {
         public List<String> mimes;
@@ -112,16 +88,12 @@ public class BidRequest {
         public Integer placement;
     }
 
-    // ── Native ───────────────────────────────────────────────────────────────
-
     public static class NativeObject {
-        public String request; // JSON-encoded native request
+        public String request;
         public String ver = "1.2";
         public List<Integer> api;
         public List<Integer> battr;
     }
-
-    // ── App / Site / Publisher ────────────────────────────────────────────────
 
     public static class App {
         public String id;
@@ -150,8 +122,6 @@ public class BidRequest {
         public List<String> cat;
         public String domain;
     }
-
-    // ── Device / Geo ──────────────────────────────────────────────────────────
 
     public static class Device {
         public String ua;
@@ -183,8 +153,6 @@ public class BidRequest {
         public String city;
         public String zip;
     }
-
-    // ── User / Regs ───────────────────────────────────────────────────────────
 
     public static class User {
         public String id;

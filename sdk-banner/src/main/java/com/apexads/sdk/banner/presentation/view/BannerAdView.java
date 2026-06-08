@@ -28,23 +28,6 @@ import com.apexads.sdk.core.presentation.mvvm.AdStateObserver;
 import com.apexads.sdk.core.tracking.ImpressionTracker;
 import com.apexads.sdk.core.utils.AdLog;
 
-/**
- * Drop-in banner ad container.
- *
- * <p>Add to layout XML, then call {@link BannerAd#show(BannerAdView)} after load:
- * <pre>{@code
- * <com.apexads.sdk.banner.BannerAdView
- *     android:id="@+id/banner_ad"
- *     android:layout_width="320dp"
- *     android:layout_height="50dp" />
- * }</pre>
- *
- * <p>When {@link BannerAd#show(BannerAdView)} is called the view is
- * <em>bound</em> to the {@link BannerAdViewModel} via {@link #bind}.
- * The view then observes the ViewModel's {@link com.apexads.sdk.core.presentation.mvvm.AdStateObservable}
- * and reacts to future state changes (e.g. {@link AdState#EXPIRED}) without
- * being commanded by the ad controller directly.
- */
 public class BannerAdView extends FrameLayout {
 
     private final WebView webView;
@@ -54,17 +37,7 @@ public class BannerAdView extends FrameLayout {
     @Nullable private BannerAdListener listener;
     @Nullable private BannerAdViewModel boundViewModel;
 
-    /**
-     * Observes the ViewModel state; removed when the view detaches from window.
-     *
-     * Assigned in the constructor (not as a field initializer) so that the
-     * {@code final} field {@code webView} is guaranteed to be initialized before
-     * the lambda captures it — avoids "variable webView might not have been
-     * initialized" compile errors from Java's blank-final analysis.
-     */
     private final AdStateObserver stateObserver;
-
-    // ── Constructors ──────────────────────────────────────────────────────────
 
     public BannerAdView(@NonNull Context context) {
         this(context, null);
@@ -77,7 +50,7 @@ public class BannerAdView extends FrameLayout {
     public BannerAdView(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         webView = new WebView(context);
-        // stateObserver assigned here — webView is already initialised above
+
         stateObserver = state -> {
             if (state == AdState.EXPIRED) {
                 AdLog.d("BannerAdView: ad expired — clearing WebView");
@@ -88,17 +61,8 @@ public class BannerAdView extends FrameLayout {
         addView(webView, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
     }
 
-    // ── ViewModel binding ─────────────────────────────────────────────────────
-
-    /**
-     * Binds this view to a {@link BannerAdViewModel}.
-     *
-     * <p>Called by {@link BannerAd#show(BannerAdView)} — not part of the
-     * publisher-facing API. Subscribes to the ViewModel's state observable so
-     * the view reacts to lifecycle events (e.g. expiry) without being commanded.
-     */
     public void bind(@NonNull BannerAdViewModel viewModel, @Nullable BannerAdListener adListener) {
-        // Detach from any previously bound ViewModel
+
         if (boundViewModel != null) {
             boundViewModel.getStateObservable().removeObserver(stateObserver);
         }
@@ -107,7 +71,6 @@ public class BannerAdView extends FrameLayout {
         viewModel.getStateObservable().addObserver(stateObserver);
     }
 
-    /** Called by {@link BannerAd#show(BannerAdView)} to render the creative. */
     public void render(@NonNull AdData adData) {
         impressionTracker = new ImpressionTracker(ApexAds.getNetworkClient());
 
@@ -120,7 +83,6 @@ public class BannerAdView extends FrameLayout {
         webView.loadDataWithBaseURL("https://apexads.sdk", html, "text/html", "UTF-8", null);
         impressionTracker.attach(this, adData);
 
-        // Attach wallet CTA for MRECT and larger banners when sdk-wallet is installed
         if (adData.walletExtJson != null
                 && adData.width >= 300 && adData.height >= 250
                 && ServiceLocator.isRegistered(WalletDelegate.class)) {
@@ -136,8 +98,6 @@ public class BannerAdView extends FrameLayout {
         AdLog.d("BannerAdView: rendering cpm=$%.2f wallet=%s",
                 adData.cpm, adData.walletExtJson != null ? "yes" : "no");
     }
-
-    // ── Window lifecycle ──────────────────────────────────────────────────────
 
     @Override
     protected void onDetachedFromWindow() {
@@ -155,8 +115,6 @@ public class BannerAdView extends FrameLayout {
         webView.removeAllViews();
         webView.destroy();
     }
-
-    // ── WebView setup ─────────────────────────────────────────────────────────
 
     @SuppressLint("SetJavaScriptEnabled")
     private void setupWebView() {
@@ -196,8 +154,6 @@ public class BannerAdView extends FrameLayout {
         });
         webView.setWebChromeClient(new WebChromeClient());
     }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private void openUrl(String url) {
         try {

@@ -17,17 +17,6 @@ import com.apexads.sdk.core.utils.AdLog;
 import com.apexads.sdk.video.presentation.view.VideoAdActivity;
 import com.apexads.sdk.video.vast.VastParser;
 
-/**
- * ViewModel for {@link VideoAd}.
- *
- * <p>Overrides {@link #onAdLoaded(AdData)} to parse the VAST XML embedded in
- * {@link AdData#vastXml}. If parsing fails an {@link AdError.InvalidMarkup} is
- * thrown, which the base class catches and routes to {@code AdState.FAILED}.
- *
- * <p>On success the parsed {@link VastParser.VastAd} is stored internally so
- * {@link #show(Context, VideoAdListener)} can pass the structured object directly
- * to {@link VideoAdActivity} without re-parsing at render time.
- */
 public final class VideoAdViewModel extends AdViewModel {
 
     private static final String TAG = "VideoAdViewModel";
@@ -48,16 +37,11 @@ public final class VideoAdViewModel extends AdViewModel {
         this.networkClient = networkClient;
     }
 
-    /** Returns the parsed VAST ad, or {@code null} until a successful load. */
     @Nullable
     public VastParser.VastAd getVastAd() {
         return vastAd;
     }
 
-    /**
-     * Launches {@link VideoAdActivity}.
-     * Must be called only after the {@code onVideoAdLoaded} publisher callback.
-     */
     public void show(@NonNull Context context, @NonNull VideoAdListener listener) {
         if (checkAndMarkExpired()) {
             AdLog.w(TAG + ": show() — ad expired");
@@ -71,12 +55,6 @@ public final class VideoAdViewModel extends AdViewModel {
         onDisplayed();
     }
 
-    /**
-     * Parses VAST XML from the auction response.
-     *
-     * <p>Throws {@link AdError.InvalidMarkup} when the VAST XML is absent or
-     * malformed — the base class catches this and transitions to {@code FAILED}.
-     */
     @NonNull
     @Override
     protected AdData onAdLoaded(@NonNull AdData adData) throws AdError {

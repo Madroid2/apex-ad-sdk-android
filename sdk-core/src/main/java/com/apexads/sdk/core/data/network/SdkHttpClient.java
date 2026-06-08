@@ -7,12 +7,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
-/**
- * Minimal HTTP client using {@link java.net.HttpURLConnection}.
- *
- * Zero third-party dependencies. Both methods are blocking — always call
- * from {@link SdkExecutors#IO}.
- */
 final class SdkHttpClient {
 
     private static final String JSON_TYPE      = "application/json; charset=utf-8";
@@ -21,11 +15,6 @@ final class SdkHttpClient {
 
     private SdkHttpClient() {}
 
-    /**
-     * HTTP POST with a JSON body. Returns the response body string.
-     *
-     * @throws IOException on network error or non-2xx HTTP status.
-     */
     static String post(String urlStr,
                        String jsonBody,
                        String appToken,
@@ -57,24 +46,18 @@ final class SdkHttpClient {
         }
     }
 
-    /**
-     * Fire-and-forget HTTP GET. Silently ignores errors — tracking pixels must
-     * not surface exceptions to the publisher.
-     */
     static void fireGet(String urlStr) {
         try {
             HttpURLConnection conn = open(urlStr, READ_TIMEOUT);
             try {
                 conn.setRequestMethod("GET");
-                conn.getResponseCode(); // ensure request is sent
+                conn.getResponseCode();
             } finally {
                 conn.disconnect();
             }
         } catch (IOException ignored) {
         }
     }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static HttpURLConnection open(String urlStr, int timeoutMs) throws IOException {
         URL url = new URL(urlStr);

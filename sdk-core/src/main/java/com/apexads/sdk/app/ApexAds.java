@@ -18,13 +18,6 @@ import com.apexads.sdk.core.utils.AdLog;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Main entry point for the ApexAd SDK. Initialise once in Application.onCreate().
- *
- * <pre>{@code
- * ApexAds.init(this, new ApexAdsConfig.Builder("APP_TOKEN").build());
- * }</pre>
- */
 public final class ApexAds {
 
     private static volatile boolean initialized = false;
@@ -86,7 +79,6 @@ public final class ApexAds {
         return ServiceLocator.get(DeviceInfoProvider.class);
     }
 
-    /** Resets SDK state — for testing only. */
     public static synchronized void reset() {
         if (initialized) {
             ServiceLocator.reset();
@@ -95,14 +87,10 @@ public final class ApexAds {
     }
 
     private static void bootstrapServiceLocator(Application application) {
-        // Demand sources are tried in priority order; the FIRST genuine fill wins.
-        // Production serves REAL demand only — no mock/fabricated fill is wired here.
-        // Add more OpenRTB exchange clients to this list to raise fill rate.
-        List<AdNetworkClient> demandSources = new ArrayList<>();
-        demandSources.add(new HttpAdNetworkClient(config)); // Apex DSP / OpenRTB exchange
 
-        // Debug/CI only: opt-in in-process mock so the SDK fills without a live
-        // server. Gated by ApexAdsConfig.debugFakeFill — never on in production.
+        List<AdNetworkClient> demandSources = new ArrayList<>();
+        demandSources.add(new HttpAdNetworkClient(config));
+
         if (config.isDebugFakeFill()) {
             demandSources.add(new MockAdExchange());
             AdLog.w("ApexAds: debugFakeFill enabled — mock demand appended (DEV ONLY)");

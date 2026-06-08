@@ -16,17 +16,8 @@ import androidx.annotation.Nullable;
 
 import java.util.Locale;
 
-/**
- * Collects device signals for the OpenRTB 2.6 {@code Device} object.
- *
- * All properties are derived synchronously from Android APIs — no async GAID
- * fetch here so init never blocks the main thread. Advertising ID is surfaced
- * as {@code null} when limit-ad-tracking is set; publishers may supply it via
- * {@link com.apexads.sdk.ApexAdsConfig}.
- */
 public final class DeviceInfoProvider {
 
-    // OpenRTB 2.6 connectiontype values
     public static final int CONNECTION_UNKNOWN  = 0;
     public static final int CONNECTION_ETHERNET = 1;
     public static final int CONNECTION_WIFI     = 2;
@@ -102,7 +93,7 @@ public final class DeviceInfoProvider {
         b.packageName   = context.getPackageName();
         b.appName       = appInfo[0];
         b.appVersion    = appInfo[1];
-        b.limitAdTracking = false; // Real apps: populate via Google Play Services AdvertisingIdClient
+        b.limitAdTracking = false;
         b.advertisingId = null;
         return new DeviceInfo(b);
     }

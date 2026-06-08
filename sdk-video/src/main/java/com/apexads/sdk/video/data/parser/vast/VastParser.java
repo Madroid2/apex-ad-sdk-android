@@ -21,17 +21,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 
 import com.apexads.sdk.core.utils.AdLog;
 
-/**
- * VAST 4.0 XML parser.
- *
- * Parses media files, tracking events, click URLs, and skip configuration
- * from both Inline and Wrapper VAST documents (single wrapper level).
- *
- * Ref: https://www.iab.com/guidelines/vast/
- */
 public final class VastParser {
-
-    // ── Public result types ───────────────────────────────────────────────────
 
     public enum TrackingEvent {
         START, FIRST_QUARTILE, MIDPOINT, THIRD_QUARTILE, COMPLETE,
@@ -80,13 +70,13 @@ public final class VastParser {
     public static final class VastAd implements Serializable {
         public final String               adId;
         public final String               adTitle;
-        public final int                  duration;          // seconds
+        public final int                  duration;
         public final List<MediaFile>      mediaFiles;
         public final List<String>         impressionUrls;
         public final Map<TrackingEvent, List<String>> trackingEvents;
         public final String               clickThroughUrl;
         public final List<String>         clickTrackingUrls;
-        public final int                  skipOffset;        // -1 = not skippable
+        public final int                  skipOffset;
         public final boolean              isWrapper;
         public final String               wrapperAdTagUri;
 
@@ -104,7 +94,6 @@ public final class VastParser {
             wrapperAdTagUri   = b.wrapperAdTagUri;
         }
 
-        /** Returns the highest-bitrate MP4 media file, or null if none available. */
         @Nullable
         public MediaFile getBestMediaFile() {
             MediaFile best = null;
@@ -144,8 +133,6 @@ public final class VastParser {
         static VastResult error(String msg)             { return new VastResult(null, msg, false); }
         static VastResult noFill()                      { return new VastResult(null, null, true); }
     }
-
-    // ── Parser ────────────────────────────────────────────────────────────────
 
     @NonNull
     public VastResult parse(@Nullable String vastXml) {
@@ -266,8 +253,6 @@ public final class VastParser {
         }
         return result;
     }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     @Nullable
     private Element firstElement(Element parent, String tag) {

@@ -16,21 +16,6 @@ import com.apexads.sdk.core.presentation.mvvm.AdViewModelListener;
 import com.apexads.sdk.core.data.repository.OpenRTBAdRepository;
 import com.apexads.sdk.core.request.OpenRTBRequestBuilder;
 
-/**
- * Fullscreen interstitial ad facade.
- *
- * <p>Thin wrapper over {@link InterstitialAdViewModel}. Pre-load at a natural
- * pause point; call {@link #show(Context)} when ready.
- *
- * <pre>{@code
- * InterstitialAd ad = new InterstitialAd.Builder("placement-002")
- *     .listener(myListener)
- *     .build();
- * ad.load();
- * // ... at a content transition:
- * if (ad.isReady()) ad.show(activity);
- * }</pre>
- */
 public final class InterstitialAd {
 
     private final InterstitialAdViewModel viewModel;
@@ -50,7 +35,6 @@ public final class InterstitialAd {
 
         this.listener = builder.listener;
 
-        // Bridge generic AdViewModelListener → InterstitialAdListener
         viewModel.setViewListener(new AdViewModelListener() {
             @Override
             public void onAdLoaded(@NonNull AdData adData) {
@@ -70,48 +54,34 @@ public final class InterstitialAd {
         });
     }
 
-    // ── Publisher API ─────────────────────────────────────────────────────────
-
-    /** Fetches the ad. Calls listener on the main thread when done. */
     public void load() {
         viewModel.load();
     }
 
-    /**
-     * Launches the fullscreen ad.
-     * Guard with {@link #isReady()} before calling.
-     */
     public void show(@NonNull Context context) {
         viewModel.show(context, listener != null ? listener : NO_OP_LISTENER);
     }
 
-    /** {@code true} when a non-expired creative is ready to display. */
     public boolean isReady() {
         return viewModel.isReady();
     }
 
-    /** Returns the current {@link AdState}. */
     @NonNull
     public AdState getState() {
         return viewModel.getState();
     }
 
-    /** Subscribes a raw {@link AdStateObserver}; receives immediate state delivery. */
     public void addStateObserver(@NonNull AdStateObserver observer) {
         viewModel.getStateObservable().addObserver(observer);
     }
 
-    /** Removes a previously added {@link AdStateObserver}. */
     public void removeStateObserver(@NonNull AdStateObserver observer) {
         viewModel.getStateObservable().removeObserver(observer);
     }
 
-    /** Releases the ViewModel and cache entry. */
     public void destroy() {
         viewModel.destroy();
     }
-
-    // ── Builder ───────────────────────────────────────────────────────────────
 
     public static final class Builder {
         private final String placementId;
@@ -132,8 +102,6 @@ public final class InterstitialAd {
             return new InterstitialAd(this);
         }
     }
-
-    // ── Internal helpers ──────────────────────────────────────────────────────
 
     private static final InterstitialAdListener NO_OP_LISTENER = new InterstitialAdListener() {
         @Override public void onInterstitialLoaded() {}

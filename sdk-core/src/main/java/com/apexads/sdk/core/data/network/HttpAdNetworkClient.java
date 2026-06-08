@@ -8,13 +8,6 @@ import com.apexads.sdk.core.models.openrtb.BidRequest;
 import com.apexads.sdk.core.models.openrtb.BidResponse;
 import com.apexads.sdk.core.utils.AdLog;
 
-/**
- * {@link AdNetworkClient} backed by {@link java.net.HttpURLConnection}.
- *
- * Zero third-party dependencies: org.json (Android built-in) for
- * serialization, HttpURLConnection for transport. Both methods are blocking —
- * callers must invoke from {@link SdkExecutors#IO}.
- */
 public final class HttpAdNetworkClient implements AdNetworkClient {
 
     private final ApexAdsConfig config;
@@ -52,7 +45,7 @@ public final class HttpAdNetworkClient implements AdNetworkClient {
 
     @Override
     public void fireTrackingUrl(@NonNull String url) {
-        // Non-throwing by contract — tracking failure must not surface to publisher.
+
         SdkHttpClient.fireGet(url);
         AdLog.d("Tracking pixel fired: %s", url);
     }

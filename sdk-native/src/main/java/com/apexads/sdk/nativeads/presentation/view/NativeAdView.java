@@ -19,13 +19,6 @@ import com.apexads.sdk.core.network.SdkExecutors;
 import com.apexads.sdk.core.utils.AdLog;
 import com.apexads.sdk.nativeads.NativeAd;
 
-/**
- * Flexible native ad container.
- *
- * The publisher supplies their own inner layout and registers views via
- * {@link #setTitleView}, {@link #setDescriptionView}, etc. The SDK binds
- * data assets and fires impression trackers — publisher retains full visual control.
- */
 public class NativeAdView extends FrameLayout {
 
     private TextView titleView;
@@ -52,14 +45,12 @@ public class NativeAdView extends FrameLayout {
     public void setIconView(@NonNull ImageView view)       { iconView = view; }
     public void setMainImageView(@NonNull ImageView view)  { mainImageView = view; }
 
-    /** Called by {@link NativeAd#bindTo(NativeAdView)} — not publisher API. */
     public void bind(@NonNull NativeAdPayload payload, @NonNull AdNetworkClient networkClient) {
         if (titleView != null)       titleView.setText(payload.title);
         if (descriptionView != null) descriptionView.setText(payload.description);
         if (ctaView != null)         ctaView.setText(payload.ctaText);
         if (advertiserView != null)  advertiserView.setText(payload.advertiserName);
 
-        // Store image URLs as tags so publishers can pick them up with Glide/Coil/Picasso
         if (iconView != null)      iconView.setTag(payload.iconUrl);
         if (mainImageView != null) mainImageView.setTag(payload.imageUrl);
 
@@ -69,7 +60,6 @@ public class NativeAdView extends FrameLayout {
             if (ctaView != null) ctaView.setOnClickListener(v -> openUrl(clickUrl));
         }
 
-        // Fire impression trackers from background thread
         for (String url : payload.impressionTrackers) {
             SdkExecutors.IO.execute(() -> networkClient.fireTrackingUrl(url));
         }

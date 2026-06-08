@@ -16,14 +16,6 @@ import com.apexads.sdk.core.presentation.mvvm.AdViewModel;
 import com.apexads.sdk.core.request.OpenRTBRequestBuilder;
 import com.apexads.sdk.core.utils.AdLog;
 
-/**
- * Live {@link AdRepository} implementation that fires an OpenRTB auction.
- *
- * <p>Dispatches the network call onto {@link SdkExecutors#IO} and posts results
- * back to {@link SdkExecutors#MAIN} before invoking the success/failure callbacks.
- * The caller (typically {@link AdViewModel}) can therefore update UI state without
- * an extra thread hop.
- */
 public final class OpenRTBAdRepository implements AdRepository {
 
     private final AdNetworkClient networkClient;

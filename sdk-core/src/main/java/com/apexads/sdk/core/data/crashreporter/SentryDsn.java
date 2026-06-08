@@ -4,12 +4,6 @@ import androidx.annotation.NonNull;
 
 import java.net.URI;
 
-/**
- * Parses a Sentry DSN string into the components needed to POST crash envelopes.
- *
- * DSN format: https://{publicKey}@{host}/{projectId}
- * Envelope endpoint: https://{host}/api/{projectId}/envelope/
- */
 final class SentryDsn {
 
     final String publicKey;
@@ -27,10 +21,10 @@ final class SentryDsn {
         if (userInfo == null || userInfo.isEmpty()) {
             throw new IllegalArgumentException("Sentry DSN missing public key in userinfo: " + dsn);
         }
-        // userInfo may be "publicKey:secretKey" or just "publicKey"
+
         String publicKey = userInfo.contains(":") ? userInfo.split(":", 2)[0] : userInfo;
 
-        String path = uri.getPath(); // e.g. "/123456"
+        String path = uri.getPath();
         String projectId = path.replaceAll("^/+", "");
         if (projectId.isEmpty()) {
             throw new IllegalArgumentException("Sentry DSN missing project ID: " + dsn);

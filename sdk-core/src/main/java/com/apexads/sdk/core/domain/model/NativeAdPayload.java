@@ -6,7 +6,6 @@ import androidx.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
 
-/** Parsed IAB OpenRTB Native 1.2 asset payload. */
 public final class NativeAdPayload {
 
     @NonNull  public final String title;

@@ -9,12 +9,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
-/**
- * Delivers a {@link CrashEvent} to the Sentry envelope endpoint.
- *
- * Retries up to 3 times with exponential back-off (1s, 2s, 4s).
- * Respects Sentry's 429 rate-limit response — no retry on 429.
- */
 final class CrashDelivery {
 
     private static final int MAX_ATTEMPTS = 3;

@@ -5,13 +5,6 @@ import androidx.annotation.Nullable;
 
 import com.apexads.sdk.core.models.openrtb.BidResponse;
 
-/**
- * Resolved ad data passed from the auction engine to the renderer.
- *
- * Kept as a plain Java class (not Parcelable) — inter-Activity communication
- * uses a static holder in each Activity so we avoid the verbose Parcelable
- * boilerplate and any cross-process concerns (SDK activities are internal only).
- */
 public final class AdData {
 
     public final String requestId;
@@ -25,10 +18,10 @@ public final class AdData {
     public final int height;
     public final double cpm;
     public final String currency;
-    public final long expiresAt;          // epoch ms
+    public final long expiresAt;
     @Nullable public final NativeAdPayload nativePayload;
     @Nullable public final String vastXml;
-    /** Raw {@code ext.wallet} JSON string from the bid — {@code null} if absent. */
+
     @Nullable public final String walletExtJson;
 
     private AdData(Builder b) {

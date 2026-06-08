@@ -1,10 +1,8 @@
 plugins {
     alias(libs.plugins.android.library)
-    // Pure Java — no Kotlin plugin
 }
 
 android {
-    // 'native' is a Java keyword — use 'nativeads' suffix
     namespace = "com.apexads.sdk.nativeads"
     compileSdk = 35
     defaultConfig {

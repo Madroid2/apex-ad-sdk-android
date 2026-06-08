@@ -8,15 +8,6 @@ import androidx.annotation.Nullable;
 
 import com.apexads.sdk.core.utils.AdLog;
 
-/**
- * MRAID 3.0 JavaScript bridge injected into ad WebViews.
- *
- * MRAID (Mobile Rich media Ad Interface Definitions) is the IAB standard that
- * lets HTML5 creatives interact with the host app container — close, expand,
- * open URLs, query state, etc.
- *
- * Ref: https://www.iab.com/guidelines/mraid/
- */
 public final class MRAIDBridge {
 
     public enum MRAIDState { LOADING, DEFAULT, EXPANDED, HIDDEN, RESIZED }
@@ -109,11 +100,8 @@ public final class MRAIDBridge {
             null);
     }
 
-    // ── Inline MRAID 3.0 JavaScript polyfill ──────────────────────────────
-
     public static final String MRAID_VERSION = "3.0";
 
-    /** Returns the full MRAID 3.0 JS polyfill to inject before ad markup. */
     public static String getMRAIDScript() {
         return "(function(){" +
             "var _s='loading',_v=false,_l={},_p={};" +

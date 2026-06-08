@@ -32,18 +32,8 @@ import java.util.List;
 
 import com.apexads.sdk.core.utils.AdLog;
 
-/**
- * Fullscreen rewarded-video Activity driven by a parsed {@link VastAd}.
- *
- * <ul>
- *   <li><b>Close button</b> (top-right) — hidden until the video finishes. Reward is granted
- *       on completion; the user then taps X to dismiss. Back-press is swallowed until it appears.</li>
- *   <li><b>Skip timer</b> (bottom-right) — counts down {@link VastAd#skipOffset} seconds
- *       per the VAST spec, then reveals a Skip button. Only shown for skippable ads.</li>
- * </ul>
- */
 public final class VideoAdActivity extends Activity {
-    // Static holder — avoids Parcelable / Intent serialization of complex objects
+
     private static volatile VastAd           pendingAd;
     private static volatile AdNetworkClient  pendingNetworkClient;
     private static volatile VideoAdListener  activeListener;
@@ -60,15 +50,11 @@ public final class VideoAdActivity extends Activity {
         context.startActivity(intent);
     }
 
-    // ── Fields ────────────────────────────────────────────────────────────────
-
     private ExoPlayer    player;
     private PlayerView   playerView;
 
-    // Close button — top-right, revealed only after video completes
     private ImageButton  btnClose;
 
-    // Skip controls — bottom-right (VAST skipOffset driven)
     private TextView     tvSkipTimer;
     private ImageButton  btnSkip;
 
@@ -78,7 +64,6 @@ public final class VideoAdActivity extends Activity {
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
-    // VAST quartile state
     private boolean startFired     = false;
     private boolean q1Fired        = false;
     private boolean midFired       = false;
@@ -86,7 +71,6 @@ public final class VideoAdActivity extends Activity {
     private boolean completeFired  = false;
     private boolean rewardGranted  = false;
 
-    // Timer state
     private int skipCountdown;
 
     private final Runnable skipTickRunnable = new Runnable() {
@@ -109,19 +93,15 @@ public final class VideoAdActivity extends Activity {
         }
     };
 
-    // ── Activity lifecycle ────────────────────────────────────────────────────
-
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Snapshot statics; clear pendingAd immediately to prevent leaks on early exit
         vastAd        = pendingAd;
         networkClient = pendingNetworkClient;
         listener      = activeListener;
         pendingAd            = null;
         pendingNetworkClient = null;
-        // Keep activeListener until onDestroy so reward fires even after finish()
 
         if (vastAd == null) {
             AdLog.e("VideoAdActivity: launched with null VastAd — finishing");
@@ -159,34 +139,30 @@ public final class VideoAdActivity extends Activity {
     @Override
     public void onBackPressed() {
         if (btnClose != null && btnClose.getVisibility() == View.VISIBLE) {
-            // Close button available — exit without reward
+
             finish();
             return;
         }
         if (btnSkip != null && btnSkip.getVisibility() == View.VISIBLE) {
-            // Skip button available (but close not yet) — skip without reward
+
             fireTracking(TrackingEvent.SKIP);
             if (listener != null) SdkExecutors.MAIN.post(() -> listener.onVideoAdSkipped());
             finish();
             return;
         }
-        // Swallow — neither close nor skip is available yet
-    }
 
-    // ── Layout ────────────────────────────────────────────────────────────────
+    }
 
     private View buildLayout() {
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(0xFF000000);
 
-        // Player — full screen
         playerView = new PlayerView(this);
         playerView.setUseController(false);
         root.addView(playerView, new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT));
 
-        // "Ad" label — top-left
         TextView tvAdLabel = new TextView(this);
         tvAdLabel.setText("Ad");
         tvAdLabel.setTextColor(0xCCFFFFFF);
@@ -199,7 +175,6 @@ public final class VideoAdActivity extends Activity {
         adLabelParams.setMargins(dp(12), dp(12), 0, 0);
         root.addView(tvAdLabel, adLabelParams);
 
-        // Close button — top-right, hidden until video ends
         btnClose = new ImageButton(this);
         btnClose.setImageResource(android.R.drawable.ic_menu_close_clear_cancel);
         btnClose.setBackgroundColor(0xCC000000);
@@ -212,7 +187,6 @@ public final class VideoAdActivity extends Activity {
         closeParams.setMargins(0, dp(10), dp(10), 0);
         root.addView(btnClose, closeParams);
 
-        // Skip countdown text — bottom-right (only for skippable ads)
         tvSkipTimer = new TextView(this);
         tvSkipTimer.setTextColor(0xCCFFFFFF);
         tvSkipTimer.setTextSize(13f);
@@ -224,7 +198,6 @@ public final class VideoAdActivity extends Activity {
         timerParams.setMargins(0, 0, dp(12), dp(12));
         root.addView(tvSkipTimer, timerParams);
 
-        // Skip button — bottom-right, revealed after skipOffset
         btnSkip = new ImageButton(this);
         btnSkip.setImageResource(android.R.drawable.ic_media_next);
         btnSkip.setBackgroundColor(0xCC000000);
@@ -243,7 +216,6 @@ public final class VideoAdActivity extends Activity {
             finish();
         });
 
-        // Click-through on the player surface
         if (vastAd.clickThroughUrl != null) {
             String clickUrl = vastAd.clickThroughUrl;
             playerView.setOnClickListener(v -> {
@@ -261,8 +233,6 @@ public final class VideoAdActivity extends Activity {
 
         return root;
     }
-
-    // ── Player ────────────────────────────────────────────────────────────────
 
     private void initPlayer() {
         VastParser.MediaFile media = vastAd.getBestMediaFile();
@@ -321,7 +291,7 @@ public final class VideoAdActivity extends Activity {
         if (completeFired) return;
         completeFired = true;
         fireTracking(TrackingEvent.COMPLETE);
-        // Reveal close button — user dismisses manually after receiving their reward
+
         showCloseButton();
         if (!rewardGranted) {
             rewardGranted = true;
@@ -340,15 +310,13 @@ public final class VideoAdActivity extends Activity {
         }
     }
 
-    // ── Close / Skip logic ────────────────────────────────────────────────────
-
     private void showCloseButton() {
         btnClose.setVisibility(View.VISIBLE);
     }
 
     private void startSkipCountdown() {
         if (vastAd.skipOffset < 0) {
-            // Not skippable — hide skip controls entirely
+
             tvSkipTimer.setVisibility(View.GONE);
             return;
         }
@@ -365,8 +333,6 @@ public final class VideoAdActivity extends Activity {
         btnSkip.setVisibility(View.VISIBLE);
     }
 
-    // ── VAST tracking ─────────────────────────────────────────────────────────
-
     private void fireTracking(@NonNull TrackingEvent event) {
         List<String> urls = vastAd.trackingEvents.get(event);
         if (urls != null) fireTrackingList(urls);
@@ -378,8 +344,6 @@ public final class VideoAdActivity extends Activity {
             SdkExecutors.IO.execute(() -> networkClient.fireTrackingUrl(url));
         }
     }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private void makeFullscreen() {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);

@@ -23,24 +23,9 @@ import com.apexads.sdk.wallet.presentation.view.WalletResultActivity;
 
 import java.lang.ref.WeakReference;
 
-/**
- * Concrete implementation of {@link WalletDelegate}.
- *
- * Handles all Google Wallet interactions on behalf of sdk-interstitial and sdk-banner.
- * Neither of those modules has any compile-time dependency on sdk-wallet or
- * play-services-wallet — everything is resolved at runtime via ServiceLocator.
- *
- * Registered by {@link WalletAdExtension#install()}.
- */
 final class WalletDelegateImpl implements WalletDelegate {
 
-    /**
-     * Holds state for the currently active interstitial wallet save flow.
-     * Cleared by {@link #handleActivityResult} and by the session's own cleanup.
-     */
     private static volatile WalletSession activeInterstitialSession;
-
-    // ── WalletDelegate ────────────────────────────────────────────────────────
 
     @Override
     public boolean isAvailable(@NonNull Context context) {
@@ -59,14 +44,12 @@ final class WalletDelegateImpl implements WalletDelegate {
             return;
         }
 
-        // Bottom overlay panel
         LinearLayout panel = new LinearLayout(activity);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setBackgroundColor(0xF2000000);
         panel.setPadding(dp(activity, 16), dp(activity, 12), dp(activity, 16), dp(activity, 16));
         panel.setGravity(Gravity.CENTER_HORIZONTAL);
 
-        // Status text — revealed after wallet result
         TextView tvStatus = new TextView(activity);
         tvStatus.setTextColor(Color.WHITE);
         tvStatus.setTextSize(13f);
@@ -77,7 +60,6 @@ final class WalletDelegateImpl implements WalletDelegate {
         statusParams.setMargins(0, 0, 0, dp(activity, 8));
         panel.addView(tvStatus, statusParams);
 
-        // Save button
         TextView tvBtn = new TextView(activity);
         tvBtn.setText(passData.ctaText);
         tvBtn.setTextColor(Color.WHITE);
@@ -93,7 +75,6 @@ final class WalletDelegateImpl implements WalletDelegate {
             tvBtn.setText("Google Wallet not available");
         }
 
-        // Session created before onClick so the closure can reference it safely
         WalletSession session = new WalletSession(passData, tvBtn, tvStatus, callback);
         activeInterstitialSession = session;
 
@@ -102,9 +83,6 @@ final class WalletDelegateImpl implements WalletDelegate {
             session.saveAttempted = true;
             tvBtn.setEnabled(false);
 
-            // In test mode, the mock JWT is a placeholder — calling the real Google Wallet
-            // API would show a "Something went wrong" error screen. Simulate the full success
-            // flow instead so the CTA UX can be demoed without a live issuer account.
             if (ApexAds.isInitialized() && ApexAds.getConfig().isTestMode()) {
                 AdLog.d("WalletDelegateImpl: test mode — simulating wallet save for offer=%s",
                         passData.offerId);
@@ -186,7 +164,6 @@ final class WalletDelegateImpl implements WalletDelegate {
             return;
         }
 
-        // Compact CTA strip — bottom-aligned overlay inside the BannerAdView
         TextView tvBtn = new TextView(context);
         tvBtn.setText(passData.ctaText);
         tvBtn.setTextColor(Color.WHITE);
@@ -204,7 +181,7 @@ final class WalletDelegateImpl implements WalletDelegate {
 
         tvBtn.setOnClickListener(v -> {
             tvBtn.setEnabled(false);
-            // Test mode: simulate success without calling Google Wallet (placeholder JWT would error)
+
             if (ApexAds.isInitialized() && ApexAds.getConfig().isTestMode()) {
                 AdLog.d("WalletDelegateImpl: test mode — simulating banner wallet save offer=%s",
                         passData.offerId);
@@ -224,8 +201,6 @@ final class WalletDelegateImpl implements WalletDelegate {
 
         AdLog.d("WalletDelegateImpl: wallet CTA strip attached to MRECT offer=%s", passData.offerId);
     }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static void showStatus(@NonNull TextView tv, @NonNull String msg, int bgColor) {
         if (msg.isEmpty()) {
@@ -249,9 +224,7 @@ final class WalletDelegateImpl implements WalletDelegate {
                 conn.setRequestMethod("GET");
                 conn.getResponseCode();
                 conn.disconnect();
-            } catch (Exception ignored) {
-                // Tracking pixel failure must never surface to the publisher.
-            }
+            } catch (Exception ignored) {}
         });
     }
 
@@ -259,13 +232,6 @@ final class WalletDelegateImpl implements WalletDelegate {
         return Math.round(dp * ctx.getResources().getDisplayMetrics().density);
     }
 
-    // ── Session ───────────────────────────────────────────────────────────────
-
-    /**
-     * Carries interstitial wallet state across the Activity → Google Wallet → Activity
-     * round-trip. WeakReferences on the Views prevent leaks if the Activity is destroyed
-     * before {@link #handleActivityResult} fires.
-     */
     private static final class WalletSession {
         final WalletPassData passData;
         final WeakReference<TextView> tvBtnRef;

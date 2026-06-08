@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.android.library)
-    // Pure Java — no Kotlin plugin
 }
 
 android {

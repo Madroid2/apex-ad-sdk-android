@@ -33,20 +33,10 @@ import com.apexads.sdk.core.models.AdData;
 import com.apexads.sdk.core.utils.AdLog;
 import com.apexads.sdk.interstitial.InterstitialAdListener;
 
-/**
- * Fullscreen Activity that hosts the interstitial WebView.
- *
- * A countdown badge appears in the top-right corner for the first
- * {@link #CLOSE_DELAY_SECONDS} seconds, after which it is replaced by an
- * X close button — matching the behaviour of production interstitial SDKs.
- * Back-press is swallowed while the countdown is running.
- */
 public final class InterstitialActivity extends Activity {
 
-    /** Seconds before the close button becomes tappable. */
     private static final int CLOSE_DELAY_SECONDS = 5;
 
-    // Static slots — cleared in onDestroy
     private static volatile AdData pendingAdData;
     private static volatile InterstitialAdListener activeListener;
 
@@ -83,7 +73,6 @@ public final class InterstitialActivity extends Activity {
 
         FrameLayout root = new FrameLayout(this);
 
-        // WebView — full screen
         webView = new WebView(this);
         webView.getSettings().setJavaScriptEnabled(true);
         webView.getSettings().setDomStorageEnabled(true);
@@ -124,7 +113,6 @@ public final class InterstitialActivity extends Activity {
             "</head><body>" + adData.adMarkup + "</body></html>";
         webView.loadDataWithBaseURL("https://apexads.sdk", html, "text/html", "UTF-8", null);
 
-        // Countdown badge — top-right, circular
         tvCountdown = new TextView(this);
         tvCountdown.setTextColor(Color.WHITE);
         tvCountdown.setTextSize(16f);
@@ -140,7 +128,6 @@ public final class InterstitialActivity extends Activity {
         cdParams.setMargins(0, dp(12), dp(12), 0);
         root.addView(tvCountdown, cdParams);
 
-        // Close button — same corner, hidden until countdown ends
         btnClose = new ImageButton(this);
         btnClose.setImageResource(android.R.drawable.ic_menu_close_clear_cancel);
         btnClose.setBackgroundColor(0xCC000000);
@@ -153,7 +140,6 @@ public final class InterstitialActivity extends Activity {
         closeParams.setMargins(0, dp(10), dp(10), 0);
         root.addView(btnClose, closeParams);
 
-        // Wallet CTA panel — attached when sdk-wallet is installed and ext.wallet present
         if (adData.walletExtJson != null && ServiceLocator.isRegistered(WalletDelegate.class)) {
             WalletDelegate delegate = ServiceLocator.get(WalletDelegate.class);
             delegate.attachToInterstitial(this, root, adData.walletExtJson,
@@ -200,10 +186,8 @@ public final class InterstitialActivity extends Activity {
         if (btnClose != null && btnClose.getVisibility() == View.VISIBLE) {
             finish();
         }
-        // Swallow back-press while countdown is running
-    }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    }
 
     private void showCloseButton() {
         tvCountdown.setVisibility(View.GONE);
@@ -221,8 +205,6 @@ public final class InterstitialActivity extends Activity {
     private int dp(int dp) {
         return Math.round(dp * getResources().getDisplayMetrics().density);
     }
-
-    // ── Static launch ─────────────────────────────────────────────────────────
 
     public static void launch(@NonNull Context context,
                               @NonNull AdData adData,

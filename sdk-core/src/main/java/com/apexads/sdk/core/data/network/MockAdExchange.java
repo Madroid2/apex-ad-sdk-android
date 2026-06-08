@@ -8,18 +8,6 @@ import com.apexads.sdk.core.models.openrtb.BidResponse;
 import java.util.Collections;
 import java.util.UUID;
 
-/**
- * In-process mock ad exchange for development and CI testing.
- *
- * Returns realistic OpenRTB 2.6 responses with inline HTML creatives,
- * a VAST 4.0 video tag (public Google sample MP4), and IAB Native 1.2 JSON.
- * No live server, API key, or network beyond the video file itself.
- *
- * Wire up in DemoApplication:
- * <pre>{@code
- * ServiceLocator.register(AdNetworkClient.class, new MockAdExchange());
- * }</pre>
- */
 public class MockAdExchange implements AdNetworkClient {
 
     private static final long SIMULATED_LATENCY_MS = 120L;
@@ -63,9 +51,7 @@ public class MockAdExchange implements AdNetworkClient {
     }
 
     @Override
-    public void fireTrackingUrl(@NonNull String url) {
-        // No-op in mock — tracking URLs are logged but not fired.
-    }
+    public void fireTrackingUrl(@NonNull String url) {}
 
     private BidResponse noFill(String requestId) {
         BidResponse r = new BidResponse();
@@ -113,7 +99,7 @@ public class MockAdExchange implements AdNetworkClient {
         bid.crid = "video-001";
         bid.adm = VAST_XML;
         bid.nurl = "https://track.apexads.mock/win?type=video";
-        bid.protocol = 7; // VAST 4.0
+        bid.protocol = 7;
         bid.w = 640;
         bid.h = 360;
         return bid;
@@ -134,8 +120,6 @@ public class MockAdExchange implements AdNetworkClient {
         bid.price = price;
         return bid;
     }
-
-    // ── Creative assets ───────────────────────────────────────────────────────
 
     private static final String BANNER_HTML =
         "<!DOCTYPE html><html><head>" +
@@ -173,8 +157,6 @@ public class MockAdExchange implements AdNetworkClient {
         "<button class=\"cta\" onclick=\"ApexMRAID.close()\">Get Started →</button>" +
         "</body></html>";
 
-    // 10-second Big Buck Bunny clip — 720p H.264, ~1 MB, stable CDN purpose-built for media testing.
-    // Previous URL (storage.googleapis.com/gvabox) now returns 403.
     private static final String VAST_XML =
         "<VAST version=\"4.0\">" +
         "<Ad id=\"mock-preroll-001\"><InLine>" +

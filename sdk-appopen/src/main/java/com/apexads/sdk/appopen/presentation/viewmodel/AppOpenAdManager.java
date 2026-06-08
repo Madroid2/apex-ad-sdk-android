@@ -16,20 +16,10 @@ import com.apexads.sdk.interstitial.InterstitialAdListener;
 
 import java.lang.ref.WeakReference;
 
-/**
- * Package-private singleton that owns the App Open Ad lifecycle.
- *
- * Registers an {@link Application.ActivityLifecycleCallbacks} to detect background→foreground
- * transitions. On each foreground event it checks the loaded ad and frequency cap, then
- * shows the ad via {@link InterstitialAd} if all conditions are met.
- *
- * After every show (or expiry), a fresh ad is preloaded automatically.
- */
-// Application context is process-scoped — holding it statically is safe and intentional.
 @SuppressLint("StaticFieldLeak")
 final class AppOpenAdManager {
 
-    private static final long DEFAULT_EXPIRY_MS = 30 * 60 * 1_000L; // 30 min
+    private static final long DEFAULT_EXPIRY_MS = 30 * 60 * 1_000L;
 
     @SuppressLint("StaticFieldLeak")
     private static AppOpenAdManager sInstance;
@@ -53,8 +43,7 @@ final class AppOpenAdManager {
 
     private WeakReference<Activity> currentActivityRef;
     private int startedActivityCount = 0;
-    // Start as false: the first onActivityResumed (cold start) is NOT a background→foreground
-    // event. appInBackground only becomes true once the user actually presses Home.
+
     private boolean appInBackground = false;
 
     static AppOpenAdManager getInstance() {
@@ -63,8 +52,6 @@ final class AppOpenAdManager {
     }
 
     private AppOpenAdManager() {}
-
-    // ── Public API (called from AppOpenAd facade) ─────────────────────────────
 
     void initialize(@NonNull Context context,
                     @NonNull String placementId,
@@ -115,8 +102,6 @@ final class AppOpenAdManager {
         isShowingAd = false;
         isPreloading = false;
     }
-
-    // ── Core logic ────────────────────────────────────────────────────────────
 
     private void preload() {
         if (destroyed || isPreloading || placementId == null) return;
@@ -199,8 +184,6 @@ final class AppOpenAdManager {
         if (expiryMs <= 0 || adLoadedAtMs == 0L) return false;
         return (System.currentTimeMillis() - adLoadedAtMs) >= expiryMs;
     }
-
-    // ── Activity lifecycle watcher ────────────────────────────────────────────
 
     private final Application.ActivityLifecycleCallbacks lifecycleCallbacks =
             new Application.ActivityLifecycleCallbacks() {

@@ -16,8 +16,6 @@ public class VastParserTest {
         parser = new VastParser();
     }
 
-    // ── Null / empty input ────────────────────────────────────────────────────
-
     @Test
     public void parse_nullXml_returnsError() {
         VastParser.VastResult result = parser.parse(null);
@@ -40,8 +38,6 @@ public class VastParserTest {
         assertThat(result.isNoFill).isTrue();
     }
 
-    // ── Inline ad ─────────────────────────────────────────────────────────────
-
     @Test
     public void parse_validInlineAd_succeeds() {
         VastParser.VastResult result = parser.parse(INLINE_VAST);
@@ -59,7 +55,7 @@ public class VastParserTest {
     @Test
     public void parse_inlineAd_durationParsed() {
         VastParser.VastAd ad = parser.parse(INLINE_VAST).ad;
-        assertThat(ad.duration).isEqualTo(15); // 00:00:15
+        assertThat(ad.duration).isEqualTo(15);
     }
 
     @Test
@@ -101,7 +97,7 @@ public class VastParserTest {
     @Test
     public void parse_inlineAd_skipOffsetParsed() {
         VastParser.VastAd ad = parser.parse(INLINE_VAST).ad;
-        assertThat(ad.skipOffset).isEqualTo(5); // skipoffset="5"
+        assertThat(ad.skipOffset).isEqualTo(5);
     }
 
     @Test
@@ -109,8 +105,6 @@ public class VastParserTest {
         VastParser.VastAd ad = parser.parse(INLINE_VAST_NO_SKIP).ad;
         assertThat(ad.skipOffset).isEqualTo(-1);
     }
-
-    // ── getBestMediaFile ──────────────────────────────────────────────────────
 
     @Test
     public void getBestMediaFile_returnsHighestBitrateMP4() {
@@ -127,8 +121,6 @@ public class VastParserTest {
         assertThat(ad.getBestMediaFile()).isNull();
     }
 
-    // ── Wrapper ───────────────────────────────────────────────────────────────
-
     @Test
     public void parse_wrapperAd_isWrapperTrue() {
         VastParser.VastResult result = parser.parse(WRAPPER_VAST);
@@ -136,8 +128,6 @@ public class VastParserTest {
         assertThat(result.ad.isWrapper).isTrue();
         assertThat(result.ad.wrapperAdTagUri).isEqualTo("https://example.com/wrapper-tag.xml");
     }
-
-    // ── TrackingEvent.fromVastName ────────────────────────────────────────────
 
     @Test
     public void fromVastName_knownEvents_parsedCorrectly() {
@@ -160,8 +150,6 @@ public class VastParserTest {
         assertThat(VastParser.TrackingEvent.fromVastName("START")).isEqualTo(VastParser.TrackingEvent.START);
         assertThat(VastParser.TrackingEvent.fromVastName("Complete")).isEqualTo(VastParser.TrackingEvent.COMPLETE);
     }
-
-    // ── Test fixtures ─────────────────────────────────────────────────────────
 
     private static final String INLINE_VAST =
         "<VAST version=\"4.0\">" +

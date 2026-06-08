@@ -4,32 +4,10 @@ import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-// BuildConfig is generated from sdk-core/build.gradle.kts and carries the
-// environment-specific URLs injected at compile time via buildConfigField.
-
-/**
- * Immutable SDK configuration. Create via {@link Builder}.
- */
 public final class ApexAdsConfig {
 
-    /**
-     * OpenRTB 2.6 auction endpoint injected at compile time.
-     *
-     * Values come from buildConfigField in sdk-core/build.gradle.kts:
-     *   debug   → http://10.0.2.2:8080/openrtb/v1/auction  (Android emulator → host localhost)
-     *   release → https://api.apexads.net/openrtb/v1/auction (production)
-     *
-     * Override at runtime via {@link Builder#adServerUrl(String)}.
-     */
     public static final String DEFAULT_AD_SERVER_URL = BuildConfig.AD_SERVER_URL;
 
-    /**
-     * Base tracking URL injected at compile time (same host as the ad server).
-     * Embedded in bid-response win/event/click URLs by the server.
-     *
-     *   debug   → http://10.0.2.2:8080
-     *   release → https://api.apexads.net
-     */
     public static final String DEFAULT_TRACKING_URL = BuildConfig.TRACKING_URL;
     public static final long DEFAULT_TIMEOUT_MS = 5_000L;
     public static final long DEFAULT_CACHE_TTL_SECONDS = 300L;
@@ -72,8 +50,7 @@ public final class ApexAdsConfig {
     @Nullable public String getUsPrivacyString() { return usPrivacyString; }
     public boolean isDebugLogging() { return debugLogging; }
     public boolean isTestMode() { return testMode; }
-    /** Debug/CI only: when true, {@code ApexAds.init} appends an in-process mock demand
-     *  source to the waterfall so the SDK fills without a live server. Never true in production. */
+
     public boolean isDebugFakeFill() { return debugFakeFill; }
     @Nullable public String getSentryDsn() { return sentryDsn; }
 
@@ -105,8 +82,7 @@ public final class ApexAdsConfig {
         public Builder usPrivacyString(@Nullable String privacy) { usPrivacyString = privacy; return this; }
         public Builder debugLogging(boolean enabled) { debugLogging = enabled; return this; }
         public Builder testMode(boolean enabled) { testMode = enabled; return this; }
-        /** Debug/CI only: append an in-process mock demand source so the SDK fills without a
-         *  live server. Never enable in production. */
+
         public Builder debugFakeFill(boolean enabled) { debugFakeFill = enabled; return this; }
         public Builder sentryDsn(@Nullable String dsn) { sentryDsn = dsn; return this; }
 

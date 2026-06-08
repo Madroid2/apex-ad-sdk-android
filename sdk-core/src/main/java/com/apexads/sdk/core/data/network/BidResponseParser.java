@@ -8,11 +8,6 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 
-/**
- * Parses an OpenRTB 2.6 bid response JSON string into a {@link BidResponse}.
- *
- * Uses Android's built-in {@code org.json} — no third-party dependency.
- */
 final class BidResponseParser {
 
     private BidResponseParser() {}
@@ -68,7 +63,6 @@ final class BidResponseParser {
         bid.api      = o.has("api")      ? o.getInt("api")      : null;
         bid.protocol = o.has("protocol") ? o.getInt("protocol") : null;
 
-        // Strip empty strings that optString returns for missing keys
         if (bid.adm   != null && bid.adm.isEmpty())   bid.adm   = null;
         if (bid.nurl  != null && bid.nurl.isEmpty())  bid.nurl  = null;
         if (bid.crid  != null && bid.crid.isEmpty())  bid.crid  = null;

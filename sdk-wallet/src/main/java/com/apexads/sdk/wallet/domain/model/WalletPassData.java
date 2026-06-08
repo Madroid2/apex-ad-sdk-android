@@ -6,27 +6,16 @@ import androidx.annotation.Nullable;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-/**
- * Immutable value object carrying everything needed to save a Google Wallet pass.
- *
- * Parsed from the {@code ext.wallet} block in the OpenRTB bid response.
- * Kept entirely within sdk-wallet — sdk-core has no knowledge of this class.
- */
 public final class WalletPassData {
 
-    /** Signed JWT from the advertiser's server — passed directly to Google Wallet. */
     @NonNull public final String passJwt;
 
-    /** Pass type identifier: {@code "coupon"} or {@code "loyalty"}. */
     @NonNull public final String passType;
 
-    /** Advertiser-assigned unique offer ID — used for attribution. */
     @NonNull public final String offerId;
 
-    /** Tracking pixel fired on a successful wallet save. {@code null} if not provided. */
     @Nullable public final String saveTrackingUrl;
 
-    /** Text shown on the native save button inside the ad. */
     @NonNull public final String ctaText;
 
     private WalletPassData(
@@ -42,13 +31,6 @@ public final class WalletPassData {
         this.ctaText = ctaText;
     }
 
-    /**
-     * Parses a {@link WalletPassData} from the raw JSON string stored in
-     * {@link com.apexads.sdk.core.models.openrtb.BidResponse.BidExt#walletExtJson}.
-     *
-     * @return a valid instance, or {@code null} if the JSON is absent, malformed,
-     *         or missing the required {@code pass_jwt} field.
-     */
     @Nullable
     public static WalletPassData fromJson(@Nullable String json) {
         if (json == null || json.isEmpty()) return null;

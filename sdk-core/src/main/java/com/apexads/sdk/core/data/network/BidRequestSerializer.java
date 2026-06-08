@@ -9,12 +9,6 @@ import org.json.JSONObject;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Serializes a {@link BidRequest} to an OpenRTB 2.6 JSON string.
- *
- * Uses Android's built-in {@code org.json} — no third-party dependency.
- * JSON field names follow the OpenRTB 2.6 spec (section 3.2.1 et al.).
- */
 final class BidRequestSerializer {
 
     private BidRequestSerializer() {}
@@ -28,10 +22,10 @@ final class BidRequestSerializer {
         putStrings(o, "cur", req.cur);
         putStrings(o, "bcat", req.bcat);
         putStrings(o, "badv", req.badv);
-        // req.ext — wrap custom map + apex extension under the same "ext" key.
+
         JSONObject extObj = new JSONObject();
         if (req.ext != null && !req.ext.isEmpty()) {
-            // Merge any caller-supplied flat ext fields.
+
             JSONObject flat = serFlatMap(req.ext);
             for (java.util.Iterator<String> it = flat.keys(); it.hasNext(); ) {
                 String k = it.next();
@@ -54,8 +48,6 @@ final class BidRequestSerializer {
         return o.toString();
     }
 
-    // ── Impression ────────────────────────────────────────────────────────────
-
     private static JSONObject serImp(BidRequest.Impression imp) throws JSONException {
         JSONObject o = new JSONObject();
         o.put("id", imp.id);
@@ -69,12 +61,10 @@ final class BidRequestSerializer {
         putInts(o, "api", imp.api);
         if (imp.banner != null) o.put("banner", serBanner(imp.banner));
         if (imp.video != null) o.put("video", serVideo(imp.video));
-        if (imp.nativeObject != null) o.put("native", serNative(imp.nativeObject)); // "native" JSON key
+        if (imp.nativeObject != null) o.put("native", serNative(imp.nativeObject));
         if (imp.ext != null && !imp.ext.isEmpty()) o.put("ext", serFlatMap(imp.ext));
         return o;
     }
-
-    // ── Banner ────────────────────────────────────────────────────────────────
 
     private static JSONObject serBanner(BidRequest.Banner b) throws JSONException {
         JSONObject o = new JSONObject();
@@ -94,8 +84,6 @@ final class BidRequestSerializer {
         }
         return o;
     }
-
-    // ── Video ─────────────────────────────────────────────────────────────────
 
     private static JSONObject serVideo(BidRequest.Video v) throws JSONException {
         JSONObject o = new JSONObject();
@@ -117,8 +105,6 @@ final class BidRequestSerializer {
         return o;
     }
 
-    // ── Native ────────────────────────────────────────────────────────────────
-
     private static JSONObject serNative(BidRequest.NativeObject n) throws JSONException {
         JSONObject o = new JSONObject();
         o.put("request", n.request);
@@ -127,8 +113,6 @@ final class BidRequestSerializer {
         putInts(o, "battr", n.battr);
         return o;
     }
-
-    // ── App / Site / Publisher ────────────────────────────────────────────────
 
     private static JSONObject serApp(BidRequest.App a) throws JSONException {
         JSONObject o = new JSONObject();
@@ -163,8 +147,6 @@ final class BidRequestSerializer {
         putStrings(o, "cat", p.cat);
         return o;
     }
-
-    // ── Device / Geo ──────────────────────────────────────────────────────────
 
     private static JSONObject serDevice(BidRequest.Device d) throws JSONException {
         JSONObject o = new JSONObject();
@@ -201,8 +183,6 @@ final class BidRequestSerializer {
         return o;
     }
 
-    // ── User / Regs ───────────────────────────────────────────────────────────
-
     private static JSONObject serUser(BidRequest.User u) throws JSONException {
         JSONObject o = new JSONObject();
         o.putOpt("id", u.id);
@@ -227,8 +207,6 @@ final class BidRequestSerializer {
         return o;
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
-
     private static void putStrings(JSONObject obj, String key, List<String> list)
             throws JSONException {
         if (list == null || list.isEmpty()) return;
@@ -245,8 +223,6 @@ final class BidRequestSerializer {
         obj.put(key, a);
     }
 
-    // ── Apex extension ────────────────────────────────────────────────────────
-
     private static JSONObject serApexExt(BidRequest.ApexExt ext) throws JSONException {
         JSONObject o = new JSONObject();
         o.put("testmode", ext.testmode);
@@ -256,11 +232,6 @@ final class BidRequestSerializer {
         return o;
     }
 
-    /**
-     * Serializes a flat {@code Map<String, Object>} to a {@link JSONObject}.
-     * Supports {@link Boolean}, {@link Number}, and {@link String} values.
-     * Silently skips null values and unsupported types.
-     */
     private static JSONObject serFlatMap(Map<String, Object> map) throws JSONException {
         JSONObject o = new JSONObject();
         for (Map.Entry<String, Object> entry : map.entrySet()) {

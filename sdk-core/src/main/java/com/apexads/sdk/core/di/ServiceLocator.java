@@ -4,12 +4,6 @@ import androidx.annotation.NonNull;
 
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Lightweight service locator (DI container) for the SDK.
- *
- * Avoids Dagger/Hilt to minimise SDK footprint and prevent DI graph conflicts
- * with the host application. Thread-safe via ConcurrentHashMap.
- */
 public final class ServiceLocator {
 
     private static final ConcurrentHashMap<Class<?>, Object> registry = new ConcurrentHashMap<>();

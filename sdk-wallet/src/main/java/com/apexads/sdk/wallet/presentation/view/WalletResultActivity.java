@@ -13,37 +13,13 @@ import com.apexads.sdk.core.network.SdkExecutors;
 import com.apexads.sdk.core.utils.AdLog;
 import com.apexads.sdk.wallet.WalletPassManager;
 
-/**
- * Transparent, short-lived Activity that drives the Google Wallet save flow for
- * MRECT banner ads.
- *
- * <p>Banner ads live inside a publisher-owned Activity, so the SDK cannot intercept
- * {@code onActivityResult} there. This transparent Activity acts as a proxy:
- * <ol>
- *   <li>Launched by {@link WalletDelegateImpl#attachToBanner} when the user taps the CTA.</li>
- *   <li>Immediately calls {@link WalletPassManager#savePass}, which starts the Google Wallet
- *       intent for result.</li>
- *   <li>Receives the wallet result in {@link #onActivityResult}, fires the appropriate
- *       callback, then finishes — leaving the publisher's UI untouched.</li>
- * </ol>
- *
- * <p>Memory safety:
- * <ul>
- *   <li>Static slots are cleared in {@link #onDestroy}.</li>
- *   <li>No Activity reference is stored statically.</li>
- * </ul>
- */
 public final class WalletResultActivity extends Activity {
 
-    // ── Static handoff slots — cleared in onDestroy ───────────────────────────
     private static volatile String pendingPassJwt;
     private static volatile String pendingTrackingUrl;
     private static volatile WalletDelegate.WalletEventCallback pendingCallback;
 
-    // ── Instance state ────────────────────────────────────────────────────────
     private boolean delivered = false;
-
-    // ── Static launch method ──────────────────────────────────────────────────
 
     public static void launch(
             @NonNull Context context,
@@ -57,8 +33,6 @@ public final class WalletResultActivity extends Activity {
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         context.startActivity(intent);
     }
-
-    // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -89,15 +63,13 @@ public final class WalletResultActivity extends Activity {
 
     @Override
     protected void onDestroy() {
-        // Guard against the Activity being destroyed without onActivityResult firing.
+
         deliver(RESULT_CANCELED);
         pendingPassJwt = null;
         pendingTrackingUrl = null;
         pendingCallback = null;
         super.onDestroy();
     }
-
-    // ── Internal ──────────────────────────────────────────────────────────────
 
     private void deliver(int resultCode) {
         if (delivered) return;
@@ -129,9 +101,7 @@ public final class WalletResultActivity extends Activity {
                 conn.setRequestMethod("GET");
                 conn.getResponseCode();
                 conn.disconnect();
-            } catch (Exception ignored) {
-                // Tracking pixel failure must never surface to the publisher.
-            }
+            } catch (Exception ignored) {}
         });
     }
 }

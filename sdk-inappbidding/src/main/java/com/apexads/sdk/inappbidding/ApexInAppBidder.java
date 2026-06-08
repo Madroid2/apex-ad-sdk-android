@@ -23,61 +23,12 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
-/**
- * Fetches a real-time bid from the Apex Ad Server's in-app bidding signal endpoint
- * ({@code POST /inapp/v1/signal}) and packages the result as a {@link BidToken}
- * for header-bidding integration with AppLovin MAX or Unity LevelPlay.
- *
- * <h3>Integration flow</h3>
- * <ol>
- *   <li>Implement a mediation adapter for MAX or LevelPlay.</li>
- *   <li>In {@code collectSignal()} / {@code getBidToken()}, call
- *       {@link #fetchBidToken(String, AdFormat, InAppBidListener)}.</li>
- *   <li>In {@code onBidReady(BidToken)}, set the token and CPM on the mediation
- *       SDK's ad unit (e.g. {@code maxAd.setLocalExtraParameter("apex_bid_token", token.token)}).</li>
- *   <li>If {@code onBidFailed}, proceed without Apex — the mediation waterfall
- *       will fall back to the next network.</li>
- * </ol>
- *
- * <h3>Token-path rendering</h3>
- * When Apex wins the waterfall, the mediation SDK calls {@code loadAd()} on the
- * adapter. The adapter should pass {@code BidToken.token} (as {@code user.buyeruid}
- * or a platform-specific extra) in the subsequent {@code POST /inapp/v1/bid} request.
- * The server looks up the pre-cached creative and returns it without re-running the
- * auction — this is the fastest path.
- *
- * <h3>Example — AppLovin MAX adapter</h3>
- * <pre>{@code
- * // In collectSignal():
- * ApexInAppBidder.fetchBidToken("placement-001", AdFormat.BANNER, new InAppBidListener() {
- *     public void onBidReady(BidToken token) {
- *         maxAd.setLocalExtraParameter("apex_bid_token", token.token);
- *         maxAd.setLocalExtraParameter("apex_bid_price", String.valueOf(token.cpmUsd));
- *         callback.onSignalCollected(token.token);
- *     }
- *     public void onBidFailed(AdError error) {
- *         callback.onSignalCollectionFailed(error.getMessage());
- *     }
- * });
- * }</pre>
- */
 public final class ApexInAppBidder {
 
-    /** Path of the signal endpoint relative to the ad server base URL. */
     private static final String SIGNAL_PATH = "/inapp/v1/signal";
 
     private ApexInAppBidder() {}
 
-    /**
-     * Fetches a bid token from the Apex Ad Server.
-     *
-     * <p>The call is made on a background thread; callbacks are delivered on the
-     * main thread.</p>
-     *
-     * @param placementId  Publisher placement ID (forwarded as {@code imp[0].tagid}).
-     * @param format       Requested ad format.
-     * @param listener     Callback for bid result.
-     */
     public static void fetchBidToken(@NonNull String placementId,
                                      @NonNull AdFormat format,
                                      @NonNull InAppBidListener listener) {
@@ -104,31 +55,24 @@ public final class ApexInAppBidder {
         });
     }
 
-    // ── Internal ──────────────────────────────────────────────────────────────
-
     @Nullable
     private static BidToken doFetch(String placementId, AdFormat format)
             throws IOException, JSONException {
 
         ApexAdsConfig config = ApexAds.getConfig();
 
-        // Build the signal endpoint URL: replace /openrtb/v1/auction suffix
-        // (if present) with /inapp/v1/signal to reach the correct endpoint.
         String base = config.getAdServerUrl();
         int auctionIdx = base.indexOf("/openrtb/v1/auction");
         String signalUrl = (auctionIdx >= 0 ? base.substring(0, auctionIdx) : base) + SIGNAL_PATH;
 
-        // Build OpenRTB bid request (reuses existing builder for full device/consent signals).
         BidRequest req = new OpenRTBRequestBuilder(
                 ApexAds.getDeviceInfoProvider(), ApexAds.getConsentManager())
                 .adFormat(format)
                 .placementId(placementId)
                 .build();
 
-        // Serialize using the SDK's own serializer (no 3p dep).
         String body = com.apexads.sdk.core.network.BidRequestSerializerAccess.serialize(req);
 
-        // HTTP POST.
         HttpURLConnection conn = (HttpURLConnection) new URL(signalUrl).openConnection();
         conn.setRequestMethod("POST");
         conn.setRequestProperty("Content-Type", "application/json");
@@ -144,7 +88,7 @@ public final class ApexInAppBidder {
 
         int status = conn.getResponseCode();
         if (status == HttpURLConnection.HTTP_NO_CONTENT || status == 204) {
-            return null; // no fill
+            return null;
         }
         if (status != HttpURLConnection.HTTP_OK) {
             throw new IOException("signal endpoint returned HTTP " + status);
@@ -157,7 +101,7 @@ public final class ApexInAppBidder {
         String token = json.optString("token", null);
 
         if (token == null || token.isEmpty() || priceCpm <= 0) {
-            return null; // malformed response
+            return null;
         }
 
         return new BidToken(placementId, priceCpm, token);

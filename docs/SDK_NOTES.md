@@ -1,0 +1,112 @@
+# Apex SDK Notes
+
+These notes hold design rationale that previously lived in source comments. Keep
+implementation files terse; add ADR-style context here or in a more specific doc.
+
+## Comment Policy
+
+- Keep code comments only when they prevent a real maintenance mistake.
+- Prefer clear names, small methods, and tests over comments that restate code.
+- Move setup examples, architecture rationale, module boundaries, and historical
+  decisions into docs.
+- Keep public API comments short when they describe callback timing or external
+  contracts that are not obvious from the signature.
+
+## Runtime Dependency Boundaries
+
+- `sdk-core` is Java-only and avoids third-party runtime dependencies. It relies
+  on Android platform APIs such as `org.json`, `HttpURLConnection`, and
+  `android.util.Log`.
+- SDK modules intentionally avoid the Kotlin Gradle plugin unless a module adds
+  Kotlin production sources.
+- The `sdk-native` Gradle namespace uses `nativeads` because `native` is a Java
+  keyword.
+- Optional feature dependencies should stay scoped to their feature module.
+  `play-services-wallet` belongs in `sdk-wallet`; apps that do not install
+  wallet support should not receive wallet APIs transitively.
+- `ServiceLocator` is the cross-module bridge for optional features. This avoids
+  making format modules compile against optional implementation modules.
+
+## Build Configuration
+
+- Release builds point at the production Apex Ad Server URL declared in
+  `sdk-core/build.gradle.kts`.
+- Debug builds use `10.0.2.2` so Android emulators can reach an ad server running
+  on the host machine.
+- Core ProGuard rules are embedded through `consumerProguardFiles` when the AAR
+  is consumed by an app.
+- Keep public SDK entry points and OpenRTB model fields from being obfuscated or
+  stripped because publishers call those APIs directly and JSON serialization
+  relies on the model fields.
+
+## Demand and No-Fill Rules
+
+- `ApexAds.init()` registers real OpenRTB demand first through
+  `HttpAdNetworkClient`.
+- `WaterfallAdNetworkClient` tries demand sources in priority order and returns
+  the first genuine priced creative.
+- If every source fails or no-fills, the SDK returns an honest OpenRTB no-fill.
+  Mock or house creatives must not be presented as paid demand.
+- `debugFakeFill` is for local development and CI only. It appends
+  `MockAdExchange` as a lowest-priority source so the SDK can render without a
+  live server.
+- `FallbackAdNetworkClient` is deprecated. It no longer substitutes mock demand;
+  it delegates to the live primary client and preserves no-fill responses.
+- `nbr = 2` is the SDK convention for OpenRTB no-bid/no-fill responses.
+
+## Mock Exchange
+
+- `MockAdExchange` is an in-process development exchange.
+- It emits representative banner, interstitial, MRECT wallet, VAST 4.0, and IAB
+  Native 1.2 responses.
+- Tracking URLs in mock responses are sample URLs. Mock tracking is intentionally
+  non-operational.
+- The VAST sample media is a stable public Big Buck Bunny MP4 used for parser and
+  render testing. If that media URL stops working, replace it with another small
+  stable public MP4 and update tests if needed.
+
+## Tracking
+
+- Tracking pixel failures must never surface to the publisher app.
+- Tracking transport may log failures internally, but impression, click, win, and
+  wallet-save tracking errors should not crash or block rendering.
+
+## App Open Ads
+
+- App Open Ads use `Application.ActivityLifecycleCallbacks` to detect a real
+  background-to-foreground transition.
+- Cold start is not treated as a foreground return. The app is marked backgrounded
+  only after the started activity count reaches zero.
+- The manager keeps the application context intentionally. Activity references
+  are weak and cleared when the app backgrounds.
+- Frequency caps and cached-ad expiry are enforced before showing.
+
+## Wallet Feature
+
+- Wallet support is activated by `WalletAdExtension.install()`, which registers
+  the wallet delegate through `ServiceLocator`.
+- Interstitial wallet CTAs are handled inside the publisher activity, so result
+  delivery is routed through the active wallet session.
+- MRECT banner wallet CTAs use `WalletResultActivity` as a short-lived proxy
+  because the SDK cannot intercept the publisher activity result directly.
+- `WalletResultActivity` uses static handoff slots for the pass JWT, tracking
+  URL, and callback. They must be cleared in `onDestroy`.
+- Wallet sessions store view references weakly so an activity destroy does not
+  leak views while waiting for the Google Wallet result.
+- In SDK test mode, the mock JWT is not sent to Google Wallet. The SDK simulates
+  success so the wallet CTA UX can be demoed without a live issuer account.
+
+## In-App Bidding
+
+- `ApexInAppBidder` requests an opaque bid token from `/inapp/v1/signal`.
+- Mediation integrations should pass the token and CPM to the chosen mediation
+  platform using the platform's supported local-extra or bidding API.
+- `MockMediationPlatform` is demo-only. It models coarse CPM floors so the demo
+  can show Apex winning or falling back without bundling MAX or LevelPlay SDKs.
+
+## OpenRTB Serialization
+
+- `BidRequestSerializer` and `BidResponseParser` use Android `org.json`.
+- Keep OpenRTB field names aligned with the OpenRTB 2.6 model classes.
+- Request `ext` may include caller-provided fields plus Apex-specific extension
+  values under the same `ext` object.

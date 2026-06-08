@@ -13,13 +13,6 @@ import com.apexads.sdk.core.presentation.mvvm.AdViewModel;
 import com.apexads.sdk.core.utils.AdLog;
 import com.apexads.sdk.interstitial.presentation.view.InterstitialActivity;
 
-/**
- * ViewModel for {@link InterstitialAd}.
- *
- * <p>Adds a {@link #show(Context, InterstitialAdListener)} method that launches
- * {@link InterstitialActivity} when a loaded creative is available and non-expired.
- * Delegates all auction, caching and state management to the base class.
- */
 public final class InterstitialAdViewModel extends AdViewModel {
 
     private static final String TAG = "InterstitialAdViewModel";
@@ -31,13 +24,6 @@ public final class InterstitialAdViewModel extends AdViewModel {
         super(repository, cache, AdFormat.INTERSTITIAL, AdSize.INTERSTITIAL_FULL, placementId, 0.0);
     }
 
-    /**
-     * Launches the fullscreen interstitial. Safe to call only after the
-     * {@link com.apexads.sdk.core.presentation.mvvm.AdViewModelListener#onAdLoaded} callback.
-     *
-     * @param context  Must be an Activity or Application context.
-     * @param listener Publisher listener forwarded to {@link InterstitialActivity}.
-     */
     public void show(@NonNull Context context, @NonNull InterstitialAdListener listener) {
         if (checkAndMarkExpired()) {
             AdLog.w(TAG + ": show() — ad expired, listener.onInterstitialFailed() fired");

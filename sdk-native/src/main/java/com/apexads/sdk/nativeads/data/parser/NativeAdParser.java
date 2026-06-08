@@ -12,13 +12,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * Parses IAB OpenRTB Native 1.2 ad markup JSON into {@link NativeAdPayload}.
- *
- * Uses Android's built-in {@code org.json} — no third-party dependency.
- * Asset IDs match the bid request native request definition sent in
- * {@link com.apexads.sdk.core.request.OpenRTBRequestBuilder}.
- */
 final class NativeAdParser {
 
     private static final int ASSET_TITLE      = 1;

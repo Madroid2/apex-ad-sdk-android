@@ -8,9 +8,6 @@ import com.apexads.sdk.BuildConfig;
 
 import java.util.UUID;
 
-/**
- * Crash data model serialized to Sentry envelope format (JSON, no 3p deps).
- */
 final class CrashEvent {
 
     final String eventId;
@@ -31,7 +28,6 @@ final class CrashEvent {
         this.osVersion = String.valueOf(Build.VERSION.SDK_INT);
     }
 
-    /** Serializes the event as a Sentry envelope (header\n{}\n{event}). */
     @NonNull
     String toEnvelope(@NonNull String publicKey) {
         String envelopeHeader = "{\"dsn\":\"" + publicKey + "\",\"sdk\":{\"name\":\"apex-ad-sdk\",\"version\":\"" + release + "\"}}";
@@ -83,7 +79,7 @@ final class CrashEvent {
     }
 
     private static String iso8601Now() {
-        // Use simple formatting without java.time to keep minSdk compatibility
+
         java.util.Date d = new java.util.Date();
         java.util.TimeZone tz = java.util.TimeZone.getTimeZone("UTC");
         java.util.Calendar cal = java.util.Calendar.getInstance(tz);
