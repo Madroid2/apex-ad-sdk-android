@@ -11,6 +11,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -30,6 +31,8 @@ import com.apexads.sdk.banner.presentation.view.mraid.MRAIDBridge;
 import com.apexads.sdk.core.di.ServiceLocator;
 import com.apexads.sdk.core.di.WalletDelegate;
 import com.apexads.sdk.core.models.AdData;
+import com.apexads.sdk.core.utils.AdNavigationGuard;
+import com.apexads.sdk.core.utils.AdUrlHandler;
 import com.apexads.sdk.core.utils.AdLog;
 import com.apexads.sdk.interstitial.InterstitialAdListener;
 
@@ -45,6 +48,7 @@ public final class InterstitialActivity extends Activity {
     private TextView tvCountdown;
     private ImageButton btnClose;
     private AdData adData;
+    private final AdNavigationGuard navigationGuard = new AdNavigationGuard("InterstitialActivity");
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private int closeCountdown = CLOSE_DELAY_SECONDS;
@@ -68,6 +72,7 @@ public final class InterstitialActivity extends Activity {
 
         adData = pendingAdData;
         if (adData == null) { finish(); return; }
+        navigationGuard.reset(adData);
 
         window();
 
@@ -87,9 +92,12 @@ public final class InterstitialActivity extends Activity {
             @Override public void onClose()                                          { finish(); }
             @Override public void onExpand(String url)                              {}
             @Override public void onResize(int w, int h, int x, int y, boolean ao) {}
-            @Override public void onOpen(String url)                                {}
+            @Override public void onOpen(String url)                                { openUrl(url, "mraid.open"); }
             @Override public void onLog(String m, String l)                         {}
             @Override public void onStateChange(MRAIDBridge.MRAIDState s)           {}
+            @Override public void onNavigationAttempt(String type, String url) {
+                navigationGuard.reportJsNavigationAttempt(type, url);
+            }
         });
 
         webView.addJavascriptInterface(mraidBridge, "ApexMRAID");
@@ -97,8 +105,16 @@ public final class InterstitialActivity extends Activity {
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest req) {
-                if (activeListener != null) activeListener.onInterstitialClicked();
-                return false;
+                if (req == null || !req.isForMainFrame()) {
+                    return true;
+                }
+                openUrl(req.getUrl().toString(), req, "webview-nav");
+                return true;
+            }
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView v, String url) {
+                openUrl(url, "webview-nav-legacy");
+                return true;
             }
             @Override
             public void onPageFinished(WebView v, String url) {
@@ -164,6 +180,12 @@ public final class InterstitialActivity extends Activity {
     }
 
     @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        navigationGuard.recordTouchEvent(ev);
+        return super.dispatchTouchEvent(ev);
+    }
+
+    @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (ServiceLocator.isRegistered(WalletDelegate.class)) {
@@ -206,6 +228,26 @@ public final class InterstitialActivity extends Activity {
     private void showCloseButton() {
         tvCountdown.setVisibility(View.GONE);
         btnClose.setVisibility(View.VISIBLE);
+    }
+
+    private void openUrl(String url, String trigger) {
+        AdNavigationGuard.Decision decision =
+                navigationGuard.evaluateNavigation(url, false, false, trigger);
+        openUrlIfAllowed(decision);
+    }
+
+    private void openUrl(String url, WebResourceRequest request, String trigger) {
+        AdNavigationGuard.Decision decision =
+                navigationGuard.evaluateNavigation(url, request, trigger);
+        openUrlIfAllowed(decision);
+    }
+
+    private void openUrlIfAllowed(AdNavigationGuard.Decision decision) {
+        if (decision.allowed && decision.safeUrl != null
+                && AdUrlHandler.openValidatedExternalUrl(this, decision.safeUrl, "InterstitialActivity")
+                && activeListener != null) {
+            activeListener.onInterstitialClicked();
+        }
     }
 
     private void window() {

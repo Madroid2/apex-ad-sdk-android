@@ -12,6 +12,9 @@ import com.apexads.sdk.core.models.AdSize;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
 public class AdViewModelTest {
 
     private AdCache cache;
@@ -78,6 +81,33 @@ public class AdViewModelTest {
     }
 
     @Test
+    public void load_repositoryThrowsSynchronously_transitionsFailed() {
+        repository.throwOnLoad = new RuntimeException("boom");
+
+        viewModel.load();
+
+        assertThat(viewModel.getState()).isEqualTo(AdState.FAILED);
+        assertThat(viewModel.getAdData()).isNull();
+        assertThat(viewModel.getError()).isInstanceOf(AdError.Network.class);
+        assertThat(listener.failedCount).isEqualTo(1);
+    }
+
+    @Test
+    public void load_failureAfterPreviousAd_clearsStaleAdData() {
+        viewModel.load();
+        repository.succeed(adData("live"));
+        cache.remove(AdFormat.BANNER, "placement");
+
+        viewModel.load();
+        repository.fail(new AdError.Network("timeout", null));
+
+        assertThat(viewModel.getState()).isEqualTo(AdState.FAILED);
+        assertThat(viewModel.getAdData()).isNull();
+        assertThat(listener.loadedCount).isEqualTo(1);
+        assertThat(listener.failedCount).isEqualTo(1);
+    }
+
+    @Test
     public void onAdLoadedFailure_doesNotCacheInvalidCreative() {
         viewModel.throwOnLoad = new AdError.InvalidMarkup("bad markup");
 
@@ -103,6 +133,29 @@ public class AdViewModelTest {
         assertThat(cache.size()).isEqualTo(0);
         assertThat(listener.loadedCount).isEqualTo(0);
         assertThat(listener.failedCount).isEqualTo(0);
+    }
+
+    @Test
+    public void destroy_ignoresPendingSuccessBeforeCreativeProcessing() {
+        viewModel.load();
+        viewModel.destroy();
+
+        repository.succeed(adData("late-success"));
+
+        assertThat(viewModel.onAdLoadedCount).isEqualTo(0);
+        assertThat(listener.loadedCount).isEqualTo(0);
+    }
+
+    @Test
+    public void destroy_runsCleanupOnSdkBackgroundThread() throws Exception {
+        CountDownLatch cleanup = new CountDownLatch(1);
+        viewModel.destroyLatch = cleanup;
+
+        viewModel.destroy();
+
+        assertThat(cleanup.await(3, TimeUnit.SECONDS)).isTrue();
+        assertThat(viewModel.destroyThreadName).startsWith("apexad-single");
+        assertThat(viewModel.destroyThreadName).isNotEqualTo(Thread.currentThread().getName());
     }
 
     @Test
@@ -147,6 +200,9 @@ public class AdViewModelTest {
 
     private static final class TestViewModel extends AdViewModel {
         AdError throwOnLoad;
+        int onAdLoadedCount;
+        CountDownLatch destroyLatch;
+        String destroyThreadName;
 
         TestViewModel(AdRepository repository, AdCache cache) {
             super(repository, cache, AdFormat.BANNER, AdSize.BANNER_320x50, "placement", 0.0);
@@ -154,8 +210,17 @@ public class AdViewModelTest {
 
         @Override
         protected AdData onAdLoaded(AdData adData) throws AdError {
+            onAdLoadedCount++;
             if (throwOnLoad != null) throw throwOnLoad;
             return adData;
+        }
+
+        @Override
+        protected void onDestroyLocked() {
+            destroyThreadName = Thread.currentThread().getName();
+            if (destroyLatch != null) {
+                destroyLatch.countDown();
+            }
         }
     }
 
@@ -163,6 +228,7 @@ public class AdViewModelTest {
         int calls;
         OnSuccess success;
         OnFailure failure;
+        RuntimeException throwOnLoad;
 
         @Override
         public void loadAd(
@@ -173,6 +239,7 @@ public class AdViewModelTest {
                 OnSuccess onSuccess,
                 OnFailure onFailure) {
             calls++;
+            if (throwOnLoad != null) throw throwOnLoad;
             success = onSuccess;
             failure = onFailure;
         }

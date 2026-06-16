@@ -21,6 +21,7 @@ import androidx.media3.common.Player;
 import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.ui.PlayerView;
 
+import com.apexads.sdk.core.utils.AdUrlHandler;
 import com.apexads.sdk.core.network.AdNetworkClient;
 import com.apexads.sdk.core.network.SdkExecutors;
 import com.apexads.sdk.video.VideoAdListener;
@@ -223,13 +224,8 @@ public final class VideoAdActivity extends Activity {
             String clickUrl = vastAd.clickThroughUrl;
             playerView.setOnClickListener(v -> {
                 fireTrackingList(vastAd.clickTrackingUrls);
-                try {
-                    Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(clickUrl));
-                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    startActivity(i);
+                if (AdUrlHandler.openExternalUrl(this, clickUrl, "VideoAdActivity")) {
                     notifyListener(VideoAdListener::onVideoAdClicked);
-                } catch (Exception e) {
-                    AdLog.w(e, "VideoAdActivity: could not open click URL");
                 }
             });
         }

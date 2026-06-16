@@ -18,7 +18,7 @@ android {
 
 dependencies {
     api(project(":sdk-core"))
-    implementation(libs.core.ktx)
+    compileOnly(libs.annotation)
     testImplementation(libs.junit)
     testImplementation(libs.truth)
 }

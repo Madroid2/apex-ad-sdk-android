@@ -9,6 +9,7 @@ import com.apexads.sdk.core.error.AdError;
 import com.apexads.sdk.core.models.AdData;
 import com.apexads.sdk.core.models.AdFormat;
 import com.apexads.sdk.core.models.AdSize;
+import com.apexads.sdk.core.network.SdkExecutors;
 import com.apexads.sdk.core.utils.AdLog;
 
 public abstract class AdViewModel {
@@ -19,6 +20,7 @@ public abstract class AdViewModel {
 
     protected final AdRepository repository;
     protected final AdCache cache;
+    protected final Object stateLock = new Object();
 
     @Nullable protected AdData adData;
     @Nullable protected AdError lastError;
@@ -26,6 +28,7 @@ public abstract class AdViewModel {
     @Nullable private AdViewModelListener viewListener;
     private int loadGeneration;
     private boolean destroyed;
+    private boolean loadInProgress;
 
     private final AdFormat format;
     private final AdSize defaultSize;
@@ -48,7 +51,9 @@ public abstract class AdViewModel {
     }
 
     public void setViewListener(@Nullable AdViewModelListener listener) {
-        this.viewListener = listener;
+        synchronized (stateLock) {
+            this.viewListener = listener;
+        }
     }
 
     @NonNull
@@ -63,78 +68,110 @@ public abstract class AdViewModel {
 
     @Nullable
     public AdError getError() {
-        return lastError;
+        synchronized (stateLock) {
+            return destroyed ? null : lastError;
+        }
     }
 
     @Nullable
     public AdData getAdData() {
-        return adData;
+        synchronized (stateLock) {
+            return destroyed ? null : adData;
+        }
     }
 
     public final void load() {
-        if (stateObservable.getState() == AdState.LOADING) {
-            AdLog.d(TAG + "[" + placementId + "]: load() while LOADING — ignored");
-            return;
+        final int generation;
+        synchronized (stateLock) {
+            if (loadInProgress) {
+                AdLog.d(TAG + "[" + placementId + "]: load() while LOADING — ignored");
+                return;
+            }
+
+            destroyed = false;
+            loadInProgress = true;
+            generation = ++loadGeneration;
+            adData = null;
+            lastError = null;
+            onAdClearedLocked();
         }
-        destroyed = false;
 
         AdData cached = cache.get(format, placementId);
         if (cached != null) {
             AdLog.d(TAG + "[" + placementId + "]: cache hit");
-            applyLoaded(cached);
+            applyLoaded(generation, cached);
             return;
         }
 
-        final int generation = ++loadGeneration;
-        transitionTo(AdState.LOADING);
-        repository.loadAd(
-                format, defaultSize, placementId, bidFloor,
-                data -> {
-                    if (shouldIgnoreCallback(generation)) return;
-                    applyLoaded(data);
-                },
-                error -> {
-                    if (shouldIgnoreCallback(generation)) return;
-                    lastError = error;
-                    transitionTo(AdState.FAILED);
-                    if (viewListener != null) viewListener.onAdFailed(error);
-                }
-        );
+        synchronized (stateLock) {
+            if (shouldIgnoreCallbackLocked(generation)) {
+                return;
+            }
+            transitionToLocked(AdState.LOADING);
+        }
+
+        try {
+            repository.loadAd(
+                    format, defaultSize, placementId, bidFloor,
+                    data -> {
+                        applyLoaded(generation, data);
+                    },
+                    error -> {
+                        applyFailed(generation, error);
+                    }
+            );
+        } catch (Exception e) {
+            applyFailed(generation, new AdError.Network(e.getMessage(), e));
+        }
     }
 
     public void onDisplayed() {
-        adData = null;
-        cache.remove(format, placementId);
-        transitionTo(AdState.DISPLAYED);
-        if (viewListener != null) viewListener.onAdDisplayed();
+        synchronized (stateLock) {
+            if (destroyed) return;
+            adData = null;
+            loadInProgress = false;
+            onAdClearedLocked();
+            cache.remove(format, placementId);
+            transitionToLocked(AdState.DISPLAYED);
+            if (viewListener != null) viewListener.onAdDisplayed();
+        }
     }
 
     public boolean checkAndMarkExpired() {
-        if (adData != null && adData.isExpired()) {
+        synchronized (stateLock) {
+            if (destroyed || adData == null || !adData.isExpired()) {
+                return false;
+            }
+
             cache.remove(format, placementId);
             adData = null;
-            transitionTo(AdState.EXPIRED);
+            loadInProgress = false;
+            onAdClearedLocked();
+            transitionToLocked(AdState.EXPIRED);
             if (viewListener != null) viewListener.onAdExpired();
             return true;
         }
-        return false;
     }
 
     public boolean isReady() {
-        return stateObservable.getState() == AdState.LOADED
-                && adData != null
-                && !adData.isExpired();
+        synchronized (stateLock) {
+            return isReadyLocked();
+        }
     }
 
-    public void destroy() {
-        destroyed = true;
-        loadGeneration++; // invalidates any in-flight load callback
-        cache.remove(format, placementId);
-        adData = null;
-        lastError = null;
-        viewListener = null;
-        stateObservable.clear(); // drop subscribers so they stop receiving broadcasts
-        transitionTo(AdState.IDLE);
+    public final void destroy() {
+        final int generation;
+        synchronized (stateLock) {
+            destroyed = true;
+            loadInProgress = false;
+            generation = ++loadGeneration; // invalidates any in-flight load callback
+            viewListener = null;
+            cache.remove(format, placementId);
+            stateObservable.clear(); // drop subscribers so they stop receiving broadcasts
+            transitionToLocked(AdState.IDLE);
+        }
+
+        SdkExecutors.SINGLE.execute(() -> destroyOnBackgroundThread(generation));
     }
 
     @NonNull
@@ -142,27 +179,103 @@ public abstract class AdViewModel {
         return adData;
     }
 
-    private void applyLoaded(@NonNull AdData raw) {
+    @NonNull
+    protected LoadedAd onAdLoadedResult(@NonNull AdData adData) throws AdError {
+        return loadedAd(onAdLoaded(adData));
+    }
+
+    protected void onAdLoadedCommittedLocked(@NonNull LoadedAd loadedAd) {}
+
+    protected void onAdClearedLocked() {}
+
+    protected void onDestroyLocked() {}
+
+    protected final boolean isReadyLocked() {
+        return !destroyed
+                && stateObservable.getState() == AdState.LOADED
+                && adData != null
+                && !adData.isExpired();
+    }
+
+    protected final boolean isDestroyedLocked() {
+        return destroyed;
+    }
+
+    @NonNull
+    protected static LoadedAd loadedAd(@NonNull AdData adData) {
+        return new LoadedAd(adData, null);
+    }
+
+    @NonNull
+    protected static LoadedAd loadedAd(@NonNull AdData adData, @Nullable Object payload) {
+        return new LoadedAd(adData, payload);
+    }
+
+    private void applyLoaded(int generation, @NonNull AdData raw) {
+        synchronized (stateLock) {
+            if (shouldIgnoreCallbackLocked(generation)) return;
+        }
+
+        LoadedAd loaded;
         try {
-            AdData processed = onAdLoaded(raw);
+            loaded = onAdLoadedResult(raw);
+        } catch (AdError parseError) {
+            applyFailed(generation, parseError);
+            return;
+        }
+
+        synchronized (stateLock) {
+            if (shouldIgnoreCallbackLocked(generation)) return;
+            AdData processed = loaded.adData;
+            onAdLoadedCommittedLocked(loaded);
             cache.put(format, placementId, processed);
             adData = processed;
-            transitionTo(AdState.LOADED);
+            lastError = null;
+            loadInProgress = false;
+            transitionToLocked(AdState.LOADED);
             if (viewListener != null) viewListener.onAdLoaded(processed);
-        } catch (AdError parseError) {
-            AdLog.w(TAG + "[" + placementId + "]: onAdLoaded threw " + parseError.getMessage());
-            lastError = parseError;
-            transitionTo(AdState.FAILED);
-            if (viewListener != null) viewListener.onAdFailed(parseError);
         }
     }
 
-    private void transitionTo(@NonNull AdState next) {
+    private void applyFailed(int generation, @NonNull AdError error) {
+        synchronized (stateLock) {
+            if (shouldIgnoreCallbackLocked(generation)) return;
+            AdLog.w(TAG + "[" + placementId + "]: load failed — " + error.getMessage());
+            lastError = error;
+            adData = null;
+            loadInProgress = false;
+            onAdClearedLocked();
+            transitionToLocked(AdState.FAILED);
+            if (viewListener != null) viewListener.onAdFailed(error);
+        }
+    }
+
+    private void transitionToLocked(@NonNull AdState next) {
         AdLog.d(TAG + "[" + placementId + "]: " + stateObservable.getState() + " → " + next);
         stateObservable.setState(next);
     }
 
-    private boolean shouldIgnoreCallback(int generation) {
+    private boolean shouldIgnoreCallbackLocked(int generation) {
         return destroyed || generation != loadGeneration;
+    }
+
+    private void destroyOnBackgroundThread(int generation) {
+        synchronized (stateLock) {
+            if (generation != loadGeneration || !destroyed) return;
+            adData = null;
+            lastError = null;
+            onAdClearedLocked();
+            onDestroyLocked();
+        }
+    }
+
+    protected static final class LoadedAd {
+        @NonNull public final AdData adData;
+        @Nullable public final Object payload;
+
+        private LoadedAd(@NonNull AdData adData, @Nullable Object payload) {
+            this.adData = adData;
+            this.payload = payload;
+        }
     }
 }

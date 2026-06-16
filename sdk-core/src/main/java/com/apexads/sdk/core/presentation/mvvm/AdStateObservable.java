@@ -9,53 +9,70 @@ import java.util.List;
 
 public final class AdStateObservable {
 
-    private volatile AdState currentState = AdState.IDLE;
+    private AdState currentState = AdState.IDLE;
     private final List<WeakReference<AdStateObserver>> observers = new ArrayList<>();
 
     @NonNull
-    public AdState getState() {
+    public synchronized AdState getState() {
         return currentState;
     }
 
     public void addObserver(@NonNull AdStateObserver observer) {
-        pruneDeadRefs();
-        observers.add(new WeakReference<>(observer));
-        observer.onAdStateChanged(currentState);
+        AdState state;
+        synchronized (this) {
+            pruneDeadRefsLocked();
+            observers.add(new WeakReference<>(observer));
+            state = currentState;
+        }
+        observer.onAdStateChanged(state);
     }
 
     public void removeObserver(@NonNull AdStateObserver observer) {
-        Iterator<WeakReference<AdStateObserver>> it = observers.iterator();
-        while (it.hasNext()) {
-            AdStateObserver ref = it.next().get();
-            if (ref == null || ref == observer) {
-                it.remove();
+        synchronized (this) {
+            Iterator<WeakReference<AdStateObserver>> it = observers.iterator();
+            while (it.hasNext()) {
+                AdStateObserver ref = it.next().get();
+                if (ref == null || ref == observer) {
+                    it.remove();
+                }
             }
         }
     }
 
     public void setState(@NonNull AdState state) {
-        currentState = state;
-
-        List<WeakReference<AdStateObserver>> snapshot = new ArrayList<>(observers);
-        for (WeakReference<AdStateObserver> ref : snapshot) {
-            AdStateObserver obs = ref.get();
-            if (obs != null) {
-                obs.onAdStateChanged(state);
-            }
+        List<AdStateObserver> snapshot = new ArrayList<>();
+        synchronized (this) {
+            currentState = state;
+            collectLiveObserversLocked(snapshot);
         }
-        pruneDeadRefs();
+
+        for (AdStateObserver obs : snapshot) {
+            obs.onAdStateChanged(state);
+        }
     }
 
     /** Removes all observers. Called from {@link AdViewModel#destroy()} to prevent ghost callbacks. */
-    public void clear() {
+    public synchronized void clear() {
         observers.clear();
     }
 
-    private void pruneDeadRefs() {
+    private void pruneDeadRefsLocked() {
         Iterator<WeakReference<AdStateObserver>> it = observers.iterator();
         while (it.hasNext()) {
             if (it.next().get() == null) {
                 it.remove();
+            }
+        }
+    }
+
+    private void collectLiveObserversLocked(@NonNull List<AdStateObserver> out) {
+        Iterator<WeakReference<AdStateObserver>> it = observers.iterator();
+        while (it.hasNext()) {
+            AdStateObserver observer = it.next().get();
+            if (observer == null) {
+                it.remove();
+            } else {
+                out.add(observer);
             }
         }
     }

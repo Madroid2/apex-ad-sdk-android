@@ -1,8 +1,6 @@
 package com.apexads.sdk.nativeads.presentation.view;
 
 import android.content.Context;
-import android.content.Intent;
-import android.net.Uri;
 import android.util.AttributeSet;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -16,6 +14,8 @@ import com.apexads.sdk.core.models.NativeAdPayload;
 import com.apexads.sdk.core.network.AdNetworkClient;
 import com.apexads.sdk.core.network.SdkExecutors;
 
+import com.apexads.sdk.core.utils.AdUrlHandler;
+import com.apexads.sdk.core.utils.AdViewLifecycle;
 import com.apexads.sdk.core.utils.AdLog;
 import com.apexads.sdk.nativeads.NativeAd;
 
@@ -83,16 +83,14 @@ public class NativeAdView extends FrameLayout {
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-        destroy();
+        if (AdViewLifecycle.isTerminalDetach(this)) {
+            destroy();
+        } else {
+            AdLog.d("NativeAdView: transient detach — retaining bound asset views");
+        }
     }
 
     private void openUrl(String url) {
-        try {
-            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            getContext().startActivity(intent);
-        } catch (Exception e) {
-            AdLog.w(e, "NativeAdView: could not open URL: %s", url);
-        }
+        AdUrlHandler.openExternalUrl(getContext(), url, "NativeAdView");
     }
 }

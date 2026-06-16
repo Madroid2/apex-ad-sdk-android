@@ -39,7 +39,9 @@ public final class VideoAdViewModel extends AdViewModel {
 
     @Nullable
     public VastParser.VastAd getVastAd() {
-        return vastAd;
+        synchronized (stateLock) {
+            return isDestroyedLocked() ? null : vastAd;
+        }
     }
 
     public void show(@NonNull Context context, @NonNull VideoAdListener listener) {
@@ -47,17 +49,21 @@ public final class VideoAdViewModel extends AdViewModel {
             AdLog.w(TAG + ": show() — ad expired");
             return;
         }
-        if (vastAd == null) {
+        VastParser.VastAd readyAd;
+        synchronized (stateLock) {
+            readyAd = isReadyLocked() ? vastAd : null;
+        }
+        if (readyAd == null) {
             AdLog.w(TAG + ": show() called before ad was loaded — ignored");
             return;
         }
-        VideoAdActivity.launch(context, vastAd, networkClient, listener);
+        VideoAdActivity.launch(context, readyAd, networkClient, listener);
         onDisplayed();
     }
 
     @NonNull
     @Override
-    protected AdData onAdLoaded(@NonNull AdData adData) throws AdError {
+    protected LoadedAd onAdLoadedResult(@NonNull AdData adData) throws AdError {
         String xml = adData.vastXml;
         if (xml == null || xml.isEmpty()) {
             throw new AdError.InvalidMarkup("VAST XML is empty");
@@ -70,15 +76,20 @@ public final class VideoAdViewModel extends AdViewModel {
             throw new AdError.InvalidMarkup(msg);
         }
 
-        vastAd = result.ad;
-        AdLog.i(TAG + ": VAST parsed adId=%s duration=%ds",
-                result.ad.adId, result.ad.duration);
-        return adData;
+        return loadedAd(adData, result.ad);
     }
 
     @Override
-    public void destroy() {
+    protected void onAdLoadedCommittedLocked(@NonNull LoadedAd loadedAd) {
+        vastAd = (VastParser.VastAd) loadedAd.payload;
+        if (vastAd != null) {
+            AdLog.i(TAG + ": VAST parsed adId=%s duration=%ds",
+                    vastAd.adId, vastAd.duration);
+        }
+    }
+
+    @Override
+    protected void onAdClearedLocked() {
         vastAd = null;
-        super.destroy();
     }
 }

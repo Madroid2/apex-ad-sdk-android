@@ -19,6 +19,7 @@ public final class MRAIDBridge {
         void onOpen(@NonNull String url);
         void onLog(@NonNull String message, @NonNull String logLevel);
         void onStateChange(@NonNull MRAIDState state);
+        void onNavigationAttempt(@NonNull String type, @Nullable String url);
     }
 
     private MRAIDState currentState = MRAIDState.LOADING;
@@ -54,6 +55,11 @@ public final class MRAIDBridge {
     public void open(@NonNull String url) {
         AdLog.d("MRAID: open(%s)", url);
         listener.onOpen(url);
+    }
+
+    @JavascriptInterface
+    public void reportNavigationAttempt(@NonNull String type, @Nullable String url) {
+        listener.onNavigationAttempt(type, url);
     }
 
     @JavascriptInterface
@@ -105,6 +111,14 @@ public final class MRAIDBridge {
     public static String getMRAIDScript() {
         return "(function(){" +
             "var _s='loading',_v=false,_l={},_p={};" +
+            "function _r(t,u){try{ApexMRAID.reportNavigationAttempt(String(t||''),String(u||''));}catch(x){}}" +
+            "var _wo=window.open;" +
+            "window.open=function(u,n,f){_r('window.open',u);try{ApexMRAID.open(String(u||''));}catch(x){}return null;};" +
+            "try{var _la=window.location.assign.bind(window.location);window.location.assign=function(u){_r('location.assign',u);_la(u);};}catch(x){}" +
+            "try{var _lr=window.location.replace.bind(window.location);window.location.replace=function(u){_r('location.replace',u);_lr(u);};}catch(x){}" +
+            "function _m(){try{var m=document.querySelectorAll('meta[http-equiv]');for(var i=0;i<m.length;i++){var h=(m[i].getAttribute('http-equiv')||'').toLowerCase();if(h==='refresh')_r('meta.refresh',m[i].getAttribute('content')||'');}}catch(x){}}" +
+            "if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',_m,{once:true});}else{_m();}" +
+            "try{new MutationObserver(_m).observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['content','http-equiv']});}catch(x){}" +
             "window.mraid={" +
             "getVersion:function(){return '3.0';}," +
             "getState:function(){return _s;}," +

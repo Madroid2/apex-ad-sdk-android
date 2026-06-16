@@ -2,9 +2,8 @@ package com.apexads.sdk.banner.presentation.view;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.content.Intent;
-import android.net.Uri;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
@@ -26,16 +25,21 @@ import com.apexads.sdk.core.models.AdData;
 import com.apexads.sdk.core.presentation.mvvm.AdState;
 import com.apexads.sdk.core.presentation.mvvm.AdStateObserver;
 import com.apexads.sdk.core.tracking.ImpressionTracker;
+import com.apexads.sdk.core.utils.AdNavigationGuard;
+import com.apexads.sdk.core.utils.AdUrlHandler;
+import com.apexads.sdk.core.utils.AdViewLifecycle;
 import com.apexads.sdk.core.utils.AdLog;
 
 public class BannerAdView extends FrameLayout {
 
     private final WebView webView;
+    private final AdNavigationGuard navigationGuard = new AdNavigationGuard("BannerAdView");
     private MRAIDBridge mraidBridge;
     private ImpressionTracker impressionTracker;
 
     @Nullable private BannerAdListener listener;
     @Nullable private BannerAdViewModel boundViewModel;
+    @Nullable private AdData renderedAdData;
 
     private final AdStateObserver stateObserver;
     private boolean destroyed;
@@ -55,7 +59,7 @@ public class BannerAdView extends FrameLayout {
         stateObserver = state -> {
             if (state == AdState.EXPIRED) {
                 AdLog.d("BannerAdView: ad expired — clearing WebView");
-                webView.loadUrl("about:blank");
+                if (!destroyed) webView.loadUrl("about:blank");
             }
         };
         setupWebView();
@@ -63,6 +67,10 @@ public class BannerAdView extends FrameLayout {
     }
 
     public void bind(@NonNull BannerAdViewModel viewModel, @Nullable BannerAdListener adListener) {
+        if (destroyed) {
+            AdLog.w("BannerAdView: bind() ignored after destroy()");
+            return;
+        }
 
         if (boundViewModel != null) {
             boundViewModel.getStateObservable().removeObserver(stateObserver);
@@ -73,10 +81,17 @@ public class BannerAdView extends FrameLayout {
     }
 
     public void render(@NonNull AdData adData) {
+        if (destroyed) {
+            AdLog.w("BannerAdView: render() ignored after destroy()");
+            return;
+        }
+
         if (impressionTracker != null) {
             impressionTracker.detach();
         }
         impressionTracker = new ImpressionTracker(ApexAds.getNetworkClient());
+        renderedAdData = adData;
+        navigationGuard.reset(adData);
 
         String html = "<!DOCTYPE html><html><head>"
                 + "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1,maximum-scale=1\">"
@@ -104,9 +119,27 @@ public class BannerAdView extends FrameLayout {
     }
 
     @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        navigationGuard.recordTouchEvent(ev);
+        return super.dispatchTouchEvent(ev);
+    }
+
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        resumeOffscreenWork();
+    }
+
+    @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-        destroy();
+        pauseOffscreenWork();
+
+        if (AdViewLifecycle.isTerminalDetach(this)) {
+            destroy();
+        } else {
+            AdLog.d("BannerAdView: transient detach — retaining WebView state");
+        }
     }
 
     /** Full teardown: unbinds the ViewModel, tracker, listener and WebView. Idempotent. */
@@ -126,6 +159,7 @@ public class BannerAdView extends FrameLayout {
             impressionTracker.detach();
             impressionTracker = null;
         }
+        renderedAdData = null;
 
         listener = null;
 
@@ -139,6 +173,44 @@ public class BannerAdView extends FrameLayout {
         webView.removeAllViews();
         webView.destroy();
         mraidBridge = null;
+    }
+
+    private void pauseOffscreenWork() {
+        if (destroyed) return;
+
+        if (impressionTracker != null) {
+            impressionTracker.detach();
+        }
+        notifyMraidViewable(false);
+        try {
+            webView.onPause();
+        } catch (Exception e) {
+            AdLog.w(e, "BannerAdView: WebView onPause failed");
+        }
+    }
+
+    private void resumeOffscreenWork() {
+        if (destroyed) return;
+
+        try {
+            webView.onResume();
+        } catch (Exception e) {
+            AdLog.w(e, "BannerAdView: WebView onResume failed");
+        }
+
+        if (impressionTracker != null && renderedAdData != null && !renderedAdData.isExpired()) {
+            impressionTracker.attach(this, renderedAdData);
+        }
+        notifyMraidViewable(true);
+    }
+
+    private void notifyMraidViewable(boolean viewable) {
+        if (mraidBridge == null || destroyed) return;
+        try {
+            mraidBridge.notifyViewableChange(webView, viewable);
+        } catch (Exception e) {
+            AdLog.w(e, "BannerAdView: MRAID viewability update failed");
+        }
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -155,9 +227,12 @@ public class BannerAdView extends FrameLayout {
             @Override public void onClose() { notifyListener(BannerAdListener::onAdClosed); }
             @Override public void onExpand(String url) { notifyListener(BannerAdListener::onAdExpanded); }
             @Override public void onResize(int w, int h, int ox, int oy, boolean ao) {}
-            @Override public void onOpen(String url) { openUrl(url); }
+            @Override public void onOpen(String url) { openUrl(url, "mraid.open"); }
             @Override public void onLog(String m, String lvl) {}
             @Override public void onStateChange(MRAIDBridge.MRAIDState state) {}
+            @Override public void onNavigationAttempt(String type, String url) {
+                navigationGuard.reportJsNavigationAttempt(type, url);
+            }
         });
 
         webView.addJavascriptInterface(mraidBridge, "ApexMRAID");
@@ -165,8 +240,16 @@ public class BannerAdView extends FrameLayout {
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                openUrl(request.getUrl().toString());
-                notifyListener(BannerAdListener::onAdClicked);
+                if (request == null || !request.isForMainFrame()) {
+                    return true;
+                }
+                openUrl(request.getUrl().toString(), request, "webview-nav");
+                return true;
+            }
+
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                openUrl(url, "webview-nav-legacy");
                 return true;
             }
 
@@ -180,13 +263,22 @@ public class BannerAdView extends FrameLayout {
         webView.setWebChromeClient(new WebChromeClient());
     }
 
-    private void openUrl(String url) {
-        try {
-            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            getContext().startActivity(intent);
-        } catch (Exception e) {
-            AdLog.w(e, "BannerAdView: could not open URL: %s", url);
+    private void openUrl(String url, String trigger) {
+        AdNavigationGuard.Decision decision =
+                navigationGuard.evaluateNavigation(url, false, false, trigger);
+        openUrlIfAllowed(decision);
+    }
+
+    private void openUrl(String url, WebResourceRequest request, String trigger) {
+        AdNavigationGuard.Decision decision =
+                navigationGuard.evaluateNavigation(url, request, trigger);
+        openUrlIfAllowed(decision);
+    }
+
+    private void openUrlIfAllowed(AdNavigationGuard.Decision decision) {
+        if (decision.allowed && decision.safeUrl != null
+                && AdUrlHandler.openValidatedExternalUrl(getContext(), decision.safeUrl, "BannerAdView")) {
+            notifyListener(BannerAdListener::onAdClicked);
         }
     }
 

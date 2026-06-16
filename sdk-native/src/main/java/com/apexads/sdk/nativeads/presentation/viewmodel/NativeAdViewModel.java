@@ -32,24 +32,31 @@ public final class NativeAdViewModel extends AdViewModel {
 
     @Nullable
     public NativeAdPayload getNativePayload() {
-        return nativePayload;
+        synchronized (stateLock) {
+            return isDestroyedLocked() ? null : nativePayload;
+        }
     }
 
     @NonNull
     @Override
-    protected AdData onAdLoaded(@NonNull AdData adData) throws AdError {
+    protected LoadedAd onAdLoadedResult(@NonNull AdData adData) throws AdError {
         NativeAdPayload parsed = parser.parse(adData.adMarkup);
         if (parsed == null) {
             throw new AdError.InvalidMarkup("Native JSON parse failed");
         }
-        nativePayload = parsed;
-        AdLog.i(TAG + ": native parsed title='%s'", parsed.title);
-        return adData.withNativePayload(parsed);
+        return loadedAd(adData.withNativePayload(parsed), parsed);
     }
 
     @Override
-    public void destroy() {
+    protected void onAdLoadedCommittedLocked(@NonNull LoadedAd loadedAd) {
+        nativePayload = (NativeAdPayload) loadedAd.payload;
+        if (nativePayload != null) {
+            AdLog.i(TAG + ": native parsed title='%s'", nativePayload.title);
+        }
+    }
+
+    @Override
+    protected void onAdClearedLocked() {
         nativePayload = null;
-        super.destroy();
     }
 }

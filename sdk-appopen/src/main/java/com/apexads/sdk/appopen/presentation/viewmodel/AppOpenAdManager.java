@@ -22,7 +22,7 @@ final class AppOpenAdManager {
     private static final long DEFAULT_EXPIRY_MS = 30 * 60 * 1_000L;
 
     @SuppressLint("StaticFieldLeak")
-    private static AppOpenAdManager sInstance;
+    private static volatile AppOpenAdManager sInstance;
 
     private Application application;
     private String placementId;
@@ -46,16 +46,16 @@ final class AppOpenAdManager {
 
     private boolean appInBackground = false;
 
-    static AppOpenAdManager getInstance() {
+    static synchronized AppOpenAdManager getInstance() {
         if (sInstance == null) sInstance = new AppOpenAdManager();
         return sInstance;
     }
 
     private AppOpenAdManager() {}
 
-    void initialize(@NonNull Context context,
-                    @NonNull String placementId,
-                    @Nullable AppOpenAd.Listener listener) {
+    synchronized void initialize(@NonNull Context context,
+                                 @NonNull String placementId,
+                                 @Nullable AppOpenAd.Listener listener) {
         if (!(context.getApplicationContext() instanceof Application)) {
             if (listener != null) listener.onAppOpenAdFailedToLoad(
                     new AdError.Network("AppOpenAd requires an Application context", null));
@@ -63,6 +63,9 @@ final class AppOpenAdManager {
         }
         if (application != null) {
             application.unregisterActivityLifecycleCallbacks(lifecycleCallbacks);
+        }
+        if (currentAd != null) {
+            currentAd.destroy();
         }
         destroyed = false;
         appInBackground = false;
@@ -79,21 +82,24 @@ final class AppOpenAdManager {
         preload();
     }
 
-    void setEnabled(boolean enabled) { this.enabled = enabled; }
+    synchronized void setEnabled(boolean enabled) { this.enabled = enabled; }
 
-    void setExpiryMs(long ms) { this.expiryMs = ms; }
+    synchronized void setExpiryMs(long ms) { this.expiryMs = ms; }
 
-    void setFrequencyCapMs(long ms) { this.frequencyCapMs = Math.max(0, ms); }
+    synchronized void setFrequencyCapMs(long ms) { this.frequencyCapMs = Math.max(0, ms); }
 
-    boolean isAdReady() {
+    synchronized boolean isAdReady() {
         return currentAd != null && currentAd.isReady() && !isAdExpired();
     }
 
-    void destroy() {
+    synchronized void destroy() {
         destroyed = true;
         if (application != null) {
             application.unregisterActivityLifecycleCallbacks(lifecycleCallbacks);
             application = null;
+        }
+        if (currentAd != null) {
+            currentAd.destroy();
         }
         currentAd = null;
         currentActivityRef = null;
@@ -103,61 +109,74 @@ final class AppOpenAdManager {
         isPreloading = false;
     }
 
-    private void preload() {
+    private synchronized void preload() {
         if (destroyed || isPreloading || placementId == null) return;
         isPreloading = true;
         adLoadedAtMs = 0L;
+        if (currentAd != null) {
+            currentAd.destroy();
+        }
         currentAd = null;
 
         currentAd = new InterstitialAd.Builder(placementId)
                 .listener(new InterstitialAdListener() {
                     @Override
                     public void onInterstitialLoaded() {
-                        if (destroyed) return;
-                        isPreloading = false;
-                        adLoadedAtMs = System.currentTimeMillis();
-                        AdLog.i("AppOpenAdManager: ad preloaded for placement=%s", placementId);
-                        if (listener != null) listener.onAppOpenAdLoaded();
+                        synchronized (AppOpenAdManager.this) {
+                            if (destroyed) return;
+                            isPreloading = false;
+                            adLoadedAtMs = System.currentTimeMillis();
+                            AdLog.i("AppOpenAdManager: ad preloaded for placement=%s", placementId);
+                            if (listener != null) listener.onAppOpenAdLoaded();
+                        }
                     }
 
                     @Override
                     public void onInterstitialFailed(@NonNull AdError error) {
-                        if (destroyed) return;
-                        isPreloading = false;
-                        currentAd = null;
-                        AdLog.w("AppOpenAdManager: preload failed — %s", error.getMessage());
-                        if (listener != null) listener.onAppOpenAdFailedToLoad(error);
+                        synchronized (AppOpenAdManager.this) {
+                            if (destroyed) return;
+                            isPreloading = false;
+                            currentAd = null;
+                            AdLog.w("AppOpenAdManager: preload failed — %s", error.getMessage());
+                            if (listener != null) listener.onAppOpenAdFailedToLoad(error);
+                        }
                     }
 
                     @Override
                     public void onInterstitialShown() {
-                        if (destroyed) return;
-                        frequencyCap.record(application);
-                        AdLog.d("AppOpenAdManager: ad shown");
-                        if (listener != null) listener.onAppOpenAdImpression();
+                        synchronized (AppOpenAdManager.this) {
+                            if (destroyed || application == null) return;
+                            frequencyCap.record(application);
+                            AdLog.d("AppOpenAdManager: ad shown");
+                            if (listener != null) listener.onAppOpenAdImpression();
+                        }
                     }
 
                     @Override
                     public void onInterstitialClosed() {
-                        if (destroyed) return;
-                        isShowingAd = false;
-                        currentAd = null;
-                        AdLog.d("AppOpenAdManager: ad dismissed — preloading next");
-                        if (listener != null) listener.onAppOpenAdDismissed();
-                        preload();
+                        synchronized (AppOpenAdManager.this) {
+                            if (destroyed) return;
+                            isShowingAd = false;
+                            currentAd = null;
+                            AdLog.d("AppOpenAdManager: ad dismissed — preloading next");
+                            if (listener != null) listener.onAppOpenAdDismissed();
+                            preload();
+                        }
                     }
 
                     @Override
                     public void onInterstitialClicked() {
-                        if (destroyed) return;
-                        if (listener != null) listener.onAppOpenAdClicked();
+                        synchronized (AppOpenAdManager.this) {
+                            if (destroyed) return;
+                            if (listener != null) listener.onAppOpenAdClicked();
+                        }
                     }
                 })
                 .build();
         currentAd.load();
     }
 
-    private void onAppForegrounded() {
+    private synchronized void onAppForegrounded() {
         if (destroyed || !enabled || isShowingAd || isPreloading) return;
         if (!isAdReady()) {
             AdLog.d("AppOpenAdManager: foregrounded but no ready ad — skipping");
@@ -170,7 +189,7 @@ final class AppOpenAdManager {
         showAd();
     }
 
-    private void showAd() {
+    private synchronized void showAd() {
         Activity activity = currentActivityRef != null ? currentActivityRef.get() : null;
         if (activity == null || activity.isFinishing() || activity.isDestroyed()) return;
         if (currentAd == null || !currentAd.isReady()) return;
@@ -180,7 +199,7 @@ final class AppOpenAdManager {
         currentAd.show(activity);
     }
 
-    private boolean isAdExpired() {
+    private synchronized boolean isAdExpired() {
         if (expiryMs <= 0 || adLoadedAtMs == 0L) return false;
         return (System.currentTimeMillis() - adLoadedAtMs) >= expiryMs;
     }
@@ -190,24 +209,30 @@ final class AppOpenAdManager {
 
                 @Override
                 public void onActivityStarted(@NonNull Activity activity) {
-                    startedActivityCount++;
+                    synchronized (AppOpenAdManager.this) {
+                        startedActivityCount++;
+                    }
                 }
 
                 @Override
                 public void onActivityResumed(@NonNull Activity activity) {
-                    currentActivityRef = new WeakReference<>(activity);
-                    if (appInBackground) {
-                        appInBackground = false;
-                        onAppForegrounded();
+                    synchronized (AppOpenAdManager.this) {
+                        currentActivityRef = new WeakReference<>(activity);
+                        if (appInBackground) {
+                            appInBackground = false;
+                            onAppForegrounded();
+                        }
                     }
                 }
 
                 @Override
                 public void onActivityStopped(@NonNull Activity activity) {
-                    startedActivityCount = Math.max(0, startedActivityCount - 1);
-                    if (startedActivityCount == 0) {
-                        appInBackground = true;
-                        currentActivityRef = null;
+                    synchronized (AppOpenAdManager.this) {
+                        startedActivityCount = Math.max(0, startedActivityCount - 1);
+                        if (startedActivityCount == 0) {
+                            appInBackground = true;
+                            currentActivityRef = null;
+                        }
                     }
                 }
 

@@ -7,6 +7,12 @@ import org.junit.Test;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class AdStateObservableTest {
 
@@ -67,6 +73,36 @@ public class AdStateObservableTest {
         assertThat(observerRef.get()).isNull();
     }
 
+    @Test
+    public void observerMutation_isThreadSafeDuringConcurrentDispatch() throws Exception {
+        AdStateObservable observable = new AdStateObservable();
+        ExecutorService executor = Executors.newFixedThreadPool(6);
+        CountDownLatch start = new CountDownLatch(1);
+        List<Future<?>> futures = new ArrayList<>();
+
+        for (int i = 0; i < 6; i++) {
+            futures.add(executor.submit(() -> {
+                start.await();
+                for (int j = 0; j < 200; j++) {
+                    CountingObserver observer = new CountingObserver();
+                    observable.addObserver(observer);
+                    observable.setState((j % 2 == 0) ? AdState.LOADING : AdState.LOADED);
+                    observable.removeObserver(observer);
+                }
+                return null;
+            }));
+        }
+
+        start.countDown();
+        for (Future<?> future : futures) {
+            future.get(5, TimeUnit.SECONDS);
+        }
+        executor.shutdownNow();
+
+        observable.setState(AdState.FAILED);
+        assertThat(observable.getState()).isEqualTo(AdState.FAILED);
+    }
+
     private static WeakReference<RecordingObserver> addTemporaryObserver(AdStateObservable observable) {
         RecordingObserver observer = new RecordingObserver();
         observable.addObserver(observer);
@@ -79,6 +115,15 @@ public class AdStateObservableTest {
         @Override
         public void onAdStateChanged(AdState state) {
             states.add(state);
+        }
+    }
+
+    private static final class CountingObserver implements AdStateObserver {
+        final AtomicInteger count = new AtomicInteger();
+
+        @Override
+        public void onAdStateChanged(AdState state) {
+            count.incrementAndGet();
         }
     }
 }
