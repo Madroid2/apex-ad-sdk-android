@@ -189,8 +189,31 @@ final class BidRequestSerializer {
         o.putOpt("yob", u.yob);
         o.putOpt("gender", u.gender);
         o.putOpt("consent", u.consent);
+        if (u.data != null && !u.data.isEmpty()) {
+            JSONArray dataArr = new JSONArray();
+            for (BidRequest.Data d : u.data) dataArr.put(serData(d));
+            o.put("data", dataArr);
+        }
         if (u.ext != null) {
             o.put("ext", new JSONObject().putOpt("consent", u.ext.consent));
+        }
+        return o;
+    }
+
+    private static JSONObject serData(BidRequest.Data d) throws JSONException {
+        JSONObject o = new JSONObject();
+        o.putOpt("id", d.id);
+        o.putOpt("name", d.name);
+        if (d.segment != null && !d.segment.isEmpty()) {
+            JSONArray segs = new JSONArray();
+            for (BidRequest.Segment s : d.segment) {
+                JSONObject so = new JSONObject();
+                so.putOpt("id", s.id);
+                so.putOpt("name", s.name);
+                so.putOpt("value", s.value);
+                segs.put(so);
+            }
+            o.put("segment", segs);
         }
         return o;
     }

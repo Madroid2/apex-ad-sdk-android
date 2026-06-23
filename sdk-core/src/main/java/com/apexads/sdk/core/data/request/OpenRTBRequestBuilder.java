@@ -6,6 +6,9 @@ import androidx.annotation.Nullable;
 import com.apexads.sdk.ApexAds;
 import com.apexads.sdk.ApexAdsConfig;
 import com.apexads.sdk.BuildConfig;
+import com.apexads.sdk.core.audience.AudienceSignals;
+import com.apexads.sdk.core.audience.Cohort;
+import com.apexads.sdk.core.audience.CohortProvider;
 import com.apexads.sdk.core.consent.ConsentManager;
 import com.apexads.sdk.core.device.DeviceInfoProvider;
 import com.apexads.sdk.core.di.ServiceLocator;
@@ -14,6 +17,7 @@ import com.apexads.sdk.core.models.AdFormat;
 import com.apexads.sdk.core.models.AdSize;
 import com.apexads.sdk.core.models.openrtb.BidRequest;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -22,6 +26,9 @@ import java.util.Map;
 import java.util.UUID;
 
 public class OpenRTBRequestBuilder {
+
+    private static final String APEX_AUDIENCE_TAXONOMY_ID = "apex-audience";
+    private static final String APEX_AUDIENCE_TAXONOMY_NAME = "Apex First-Party Cohorts";
 
     private final DeviceInfoProvider deviceInfoProvider;
     private final ConsentManager consentManager;
@@ -193,7 +200,44 @@ public class OpenRTBRequestBuilder {
             user.ext = new BidRequest.UserExt();
             user.ext.consent = tcf;
         }
+        attachCohorts(user, device);
         return user;
+    }
+
+    /**
+     * Attaches first-party audience cohorts as OpenRTB {@code user.data[]} segments.
+     *
+     * <p>Strictly gated on IAB TCF Purpose 4 (personalised ads): without it we send a purely
+     * contextual request and the server-side pipeline takes over. Cohort resolution itself is a
+     * cheap, in-memory rule match over signals already in the bid request — no extra collection.</p>
+     */
+    private void attachCohorts(BidRequest.User user, DeviceInfoProvider.DeviceInfo device) {
+        if (!consentManager.hasPersonalizationConsent()) {
+            return;
+        }
+        if (!ServiceLocator.isRegistered(CohortProvider.class)) {
+            return;
+        }
+        CohortProvider provider = ServiceLocator.get(CohortProvider.class);
+        List<Cohort> cohorts = provider.resolve(AudienceSignals.from(device));
+        if (cohorts == null || cohorts.isEmpty()) {
+            return;
+        }
+
+        List<BidRequest.Segment> segments = new ArrayList<>(cohorts.size());
+        for (Cohort c : cohorts) {
+            BidRequest.Segment seg = new BidRequest.Segment();
+            seg.id = c.id();
+            seg.name = c.name();
+            seg.value = c.value();
+            segments.add(seg);
+        }
+
+        BidRequest.Data data = new BidRequest.Data();
+        data.id = APEX_AUDIENCE_TAXONOMY_ID;
+        data.name = APEX_AUDIENCE_TAXONOMY_NAME;
+        data.segment = segments;
+        user.data = Collections.singletonList(data);
     }
 
     private BidRequest.Regs buildRegs() {

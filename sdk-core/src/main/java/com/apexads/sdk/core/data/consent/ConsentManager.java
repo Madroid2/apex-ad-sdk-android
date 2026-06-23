@@ -19,6 +19,10 @@ public final class ConsentManager {
 
     public static final String KEY_US_PRIVACY = "IABUSPrivacy_String";
 
+    /** IAB TCF purpose numbers (1-based) we gate on. */
+    private static final int PURPOSE_STORAGE = 1;          // Store and/or access information on a device
+    private static final int PURPOSE_PERSONALISED_ADS = 4; // Select personalised ads
+
     private final SharedPreferences prefs;
 
     public ConsentManager(@NonNull Context context) {
@@ -41,8 +45,46 @@ public final class ConsentManager {
     }
 
     public boolean hasStorageConsent() {
+        return hasPurposeConsent(PURPOSE_STORAGE);
+    }
+
+    /**
+     * Whether the user consented to personalised advertising (IAB TCF Purpose 4 —
+     * "Select personalised ads"). Required before attaching first-party audience
+     * cohorts to the bid request.
+     *
+     * <p>Reads the CMP-decoded {@code IABTCF_PurposeConsents} bitfield straight from
+     * shared preferences — we never decode the raw TC string on-device, that work is
+     * already done by the CMP (and any deeper validation belongs server-side).</p>
+     */
+    public boolean hasPersonalizationConsent() {
+        // A US Privacy opt-out of sale/sharing forbids personalised targeting outright.
+        if (isCcpaOptOut()) {
+            return false;
+        }
+        // When GDPR does not apply there is nothing further to gate on.
+        return !isGdprApplicable() || hasPurposeConsent(PURPOSE_PERSONALISED_ADS);
+    }
+
+    /**
+     * @return true if the IAB US Privacy string signals an opt-out of sale/sharing.
+     *         Format: version char + 3 flag chars; index 2 ('Y'/'N') is the opt-out flag.
+     */
+    private boolean isCcpaOptOut() {
+        String usPrivacy = getUsPrivacyString();
+        return usPrivacy != null && usPrivacy.length() >= 3
+                && Character.toUpperCase(usPrivacy.charAt(2)) == 'Y';
+    }
+
+    /**
+     * @param purposeNumber 1-based IAB TCF purpose number.
+     * @return true if the purpose bit is set in {@code IABTCF_PurposeConsents}.
+     */
+    private boolean hasPurposeConsent(int purposeNumber) {
         String purposeConsents = prefs.getString(KEY_PURPOSE_CONSENTS, null);
-        return purposeConsents != null && !purposeConsents.isEmpty() && purposeConsents.charAt(0) == '1';
+        int index = purposeNumber - 1;
+        return purposeConsents != null && purposeConsents.length() > index
+                && purposeConsents.charAt(index) == '1';
     }
 
     public void setGdprConsent(boolean applies, @Nullable String consentString) {

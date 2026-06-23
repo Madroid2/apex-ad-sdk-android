@@ -5,6 +5,8 @@ import android.content.Context;
 
 import androidx.annotation.NonNull;
 
+import com.apexads.sdk.core.audience.CohortProvider;
+import com.apexads.sdk.core.audience.DeclarativeCohortProvider;
 import com.apexads.sdk.core.consent.ConsentManager;
 import com.apexads.sdk.core.crashreporter.CrashReporter;
 import com.apexads.sdk.core.device.DeviceInfoProvider;
@@ -77,6 +79,38 @@ public final class ApexAds {
     public static DeviceInfoProvider getDeviceInfoProvider() {
         checkInitialized();
         return ServiceLocator.get(DeviceInfoProvider.class);
+    }
+
+    /**
+     * Configures first-party audience cohorts from a declarative JSON rules document.
+     *
+     * <p>Cohorts are evaluated on-device against signals already in the bid request and attached
+     * as OpenRTB {@code user.data[]} segments — but only when the user has granted IAB TCF
+     * Purpose 4 consent. Rules are data, never executable code; see
+     * {@link DeclarativeCohortProvider} for the format. This is the hook a remote-config fetch
+     * (or the ad server) calls to push cohort definitions; passing {@code null}/empty disables
+     * audience targeting.</p>
+     *
+     * @param rulesJson the cohort rules document, or {@code null} to clear.
+     */
+    public static void setAudienceCohortRules(String rulesJson) {
+        checkInitialized();
+        if (rulesJson == null || rulesJson.trim().isEmpty()) {
+            ServiceLocator.register(CohortProvider.class, CohortProvider.NONE);
+            AdLog.i("ApexAds: audience cohorts cleared");
+            return;
+        }
+        DeclarativeCohortProvider provider = DeclarativeCohortProvider.fromJson(rulesJson);
+        ServiceLocator.register(CohortProvider.class, provider);
+        AdLog.i("ApexAds: %d audience cohort rule(s) active", provider.size());
+    }
+
+    @NonNull
+    public static CohortProvider getCohortProvider() {
+        checkInitialized();
+        return ServiceLocator.isRegistered(CohortProvider.class)
+                ? ServiceLocator.get(CohortProvider.class)
+                : CohortProvider.NONE;
     }
 
     public static synchronized void reset() {

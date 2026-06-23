@@ -79,6 +79,44 @@ public class BidRequestSerializerTest {
     }
 
     @Test
+    public void serialize_userData_writesOpenRtbSegments() throws Exception {
+        BidRequest request = new BidRequest();
+        request.id = "req-1";
+
+        BidRequest.User user = new BidRequest.User();
+        user.id = "u1";
+        BidRequest.Data data = new BidRequest.Data();
+        data.id = "apex-audience";
+        data.name = "Apex First-Party Cohorts";
+        BidRequest.Segment s1 = new BidRequest.Segment();
+        s1.id = "de_speakers";
+        s1.name = "German speakers";
+        BidRequest.Segment s2 = new BidRequest.Segment();
+        s2.id = "wifi_tablet";
+        data.segment = Arrays.asList(s1, s2);
+        user.data = Collections.singletonList(data);
+        request.user = user;
+
+        JSONObject json = new JSONObject(BidRequestSerializer.serialize(request));
+        JSONObject dataObj = json.getJSONObject("user").getJSONArray("data").getJSONObject(0);
+        assertThat(dataObj.getString("id")).isEqualTo("apex-audience");
+        assertThat(dataObj.getJSONArray("segment").getJSONObject(0).getString("id")).isEqualTo("de_speakers");
+        assertThat(dataObj.getJSONArray("segment").getJSONObject(1).getString("id")).isEqualTo("wifi_tablet");
+    }
+
+    @Test
+    public void serialize_userWithoutData_omitsDataArray() throws Exception {
+        BidRequest request = new BidRequest();
+        request.id = "req-1";
+        BidRequest.User user = new BidRequest.User();
+        user.id = "u1";
+        request.user = user;
+
+        JSONObject json = new JSONObject(BidRequestSerializer.serialize(request));
+        assertThat(json.getJSONObject("user").has("data")).isFalse();
+    }
+
+    @Test
     public void accessWrapper_wrapsSerialization() {
         BidRequest request = new BidRequest();
         request.id = "req-1";

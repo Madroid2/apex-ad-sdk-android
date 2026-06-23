@@ -85,6 +85,7 @@ Most ad SDKs (including major ones from Google, Meta, Unity) share a common set 
 | Feature | ApexAds | AdMob | MAX | IronSource / LevelPlay |
 |---|:---:|:---:|:---:|:---:|
 | **Google Wallet Pass Ads** | ✅ | ❌ | ❌ | ❌ |
+| **First-Party Audience Cohorts** (zero-dep, privacy-gated) | ✅ | ❌ | ❌ | ❌ |
 | App Open Ads (native SDK feature) | ✅ | ✅ | ❌ | ❌ |
 | In-App / Header Bidding | ✅ | ❌ | ✅ (MAX) | ✅ (LevelPlay) |
 | In-House Crash Reporting (no 3P SDK) | ✅ | ❌ | ❌ | ❌ |
@@ -551,6 +552,40 @@ Reads `IABTCF_TCString`, `IABTCF_gdprApplies`, and `IABUSPrivacy_String` from Sh
 
 ### Google Wallet Pass Ads (ext.wallet)
 Non-standard OpenRTB extension (`ext.wallet`) carries a signed Google Wallet pass JWT alongside the creative. The SDK parses this, presents a native "Save to Google Wallet" CTA, and invokes `PayClient.savePassesJwt()` — with result handling, tracking pixel, and publisher callbacks.
+
+---
+
+## First-Party Audience Targeting (Cohorts)
+
+Programmatic SDKs send mostly **contextual + device** signals, so advertisers have little first-party audience to bid on — which caps eCPM and forces generic targeting. The usual fixes make it worse: bundling on-device ML or scripting runtimes **bloats app size**, trips **Google's 16 KB page-size policy** at Play Store upload (native `.so` libraries), and drags in engines that **conflict with publisher Gradle/AGP versions**. And any audience data is a regulatory liability if it moves without consent.
+
+ApexAds adds an audience layer that avoids every one of those traps:
+
+- **Declarative, not executable.** Cohort definitions are **JSON rule data** interpreted by a tiny in-SDK matcher (`all`/`any`/`not` + `eq`/`in`/`prefix`/`gt`…). There is **no embedded JavaScript/scripting engine**, so nothing can conflict with a publisher's build.
+- **Zero added weight.** Pure JVM — **no ML runtime, no native libraries, no new dependencies.** No app-size bloat, no 16 KB page-size warnings, and the SDK's *zero runtime dependencies* guarantee is preserved.
+- **No new data collection.** Cohorts are evaluated against signals the SDK **already** gathers for the bid request (language, connection type, device type, locale, bundle). No sensors, no location polling, no new permissions.
+- **Standards-native carrier.** Matched cohorts ride as **OpenRTB 2.6 `user.data[].segment[]`** — every DSP already understands them; no proprietary plumbing.
+- **Privacy-gated by default.** Cohorts attach **only** when the user has granted IAB **TCF Purpose 4** (and has not signalled a US Privacy opt-out). Consent is read from the CMP-decoded `IABTCF_PurposeConsents` flag — no TC-string parsing on-device. With no consent the request is purely contextual; with no rules configured the feature is fully off (zero cost).
+
+**Advantages:** higher eCPM through audience-based bidding, cohort rules that are **remotely reconfigurable without an app update**, and heavy audience modelling kept server-side where it belongs.
+
+```kotlin
+// Push cohort rules — e.g. straight from your remote config. Pure JSON data, never code.
+ApexAds.setAudienceCohortRules(
+    """
+    { "cohorts": [
+        { "id": "apex_wifi_tablet", "name": "WiFi Tablet Users",
+          "match": { "all": [
+            { "field": "deviceType",     "op": "eq", "value": "tablet" },
+            { "field": "connectionType", "op": "eq", "value": 2 } ] } },
+        { "id": "apex_de_speakers", "name": "German speakers",
+          "match": { "field": "language", "op": "in", "values": ["de"] } }
+    ] }
+    """
+)
+// From here every bid request carries the matched cohorts as OpenRTB user.data[] —
+// but only when TCF Purpose 4 consent is present. No consent → contextual-only request.
+```
 
 ---
 

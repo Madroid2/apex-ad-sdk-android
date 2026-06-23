@@ -159,11 +159,27 @@ public class BidRequest {
         public Integer yob;
         public String gender;
         public String consent;
+        /** OpenRTB 2.6 §3.2.21 — first-party audience segments (Apex cohorts). */
+        public List<Data> data;
         public UserExt ext;
     }
 
     public static class UserExt {
         public String consent;
+    }
+
+    /** OpenRTB 2.6 §3.2.21 Data object — one segment source (taxonomy). */
+    public static class Data {
+        public String id;
+        public String name;
+        public List<Segment> segment;
+    }
+
+    /** OpenRTB 2.6 §3.2.22 Segment object — a single cohort membership. */
+    public static class Segment {
+        public String id;
+        public String name;
+        public String value;
     }
 
     public static class Regs {
