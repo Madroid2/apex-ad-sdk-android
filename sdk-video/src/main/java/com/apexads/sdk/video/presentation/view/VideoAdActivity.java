@@ -22,8 +22,8 @@ import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.ui.PlayerView;
 
 import com.apexads.sdk.core.utils.AdUrlHandler;
-import com.apexads.sdk.core.network.AdNetworkClient;
 import com.apexads.sdk.core.network.SdkExecutors;
+import com.apexads.sdk.core.tracking.TrackingClient;
 import com.apexads.sdk.video.VideoAdListener;
 import com.apexads.sdk.video.vast.VastParser;
 import com.apexads.sdk.video.vast.VastParser.TrackingEvent;
@@ -35,17 +35,17 @@ import com.apexads.sdk.core.utils.AdLog;
 
 public final class VideoAdActivity extends Activity {
 
-    private static volatile VastAd           pendingAd;
-    private static volatile AdNetworkClient  pendingNetworkClient;
-    private static volatile VideoAdListener  activeListener;
+    private static volatile VastAd          pendingAd;
+    private static volatile TrackingClient  pendingTrackingClient;
+    private static volatile VideoAdListener activeListener;
 
     public static void launch(@NonNull Context context,
                               @NonNull VastAd ad,
-                              @NonNull AdNetworkClient networkClient,
+                              @NonNull TrackingClient trackingClient,
                               @Nullable VideoAdListener listener) {
-        pendingAd            = ad;
-        pendingNetworkClient = networkClient;
-        activeListener       = listener;
+        pendingAd             = ad;
+        pendingTrackingClient = trackingClient;
+        activeListener        = listener;
         Intent intent = new Intent(context, VideoAdActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         context.startActivity(intent);
@@ -59,8 +59,8 @@ public final class VideoAdActivity extends Activity {
     private TextView     tvSkipTimer;
     private ImageButton  btnSkip;
 
-    private VastAd          vastAd;
-    private AdNetworkClient networkClient;
+    private VastAd vastAd;
+    private TrackingClient trackingClient;
     private VideoAdListener listener;
 
     @Nullable private Player.Listener playerListener;
@@ -100,11 +100,11 @@ public final class VideoAdActivity extends Activity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        vastAd        = pendingAd;
-        networkClient = pendingNetworkClient;
-        listener      = activeListener;
-        pendingAd            = null;
-        pendingNetworkClient = null;
+        vastAd         = pendingAd;
+        trackingClient = pendingTrackingClient;
+        listener       = activeListener;
+        pendingAd             = null;
+        pendingTrackingClient = null;
 
         if (vastAd == null) {
             AdLog.e("VideoAdActivity: launched with null VastAd — finishing");
@@ -351,7 +351,7 @@ public final class VideoAdActivity extends Activity {
 
     private void fireTrackingList(@NonNull List<String> urls) {
         for (String url : urls) {
-            SdkExecutors.IO.execute(() -> networkClient.fireTrackingUrl(url));
+            SdkExecutors.IO.execute(() -> trackingClient.fireTrackingUrl(url));
         }
     }
 

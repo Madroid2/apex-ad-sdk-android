@@ -11,8 +11,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.apexads.sdk.core.models.NativeAdPayload;
-import com.apexads.sdk.core.network.AdNetworkClient;
 import com.apexads.sdk.core.network.SdkExecutors;
+import com.apexads.sdk.core.tracking.TrackingClient;
 
 import com.apexads.sdk.core.utils.AdUrlHandler;
 import com.apexads.sdk.core.utils.AdViewLifecycle;
@@ -45,7 +45,7 @@ public class NativeAdView extends FrameLayout {
     public void setIconView(@NonNull ImageView view)       { iconView = view; }
     public void setMainImageView(@NonNull ImageView view)  { mainImageView = view; }
 
-    public void bind(@NonNull NativeAdPayload payload, @NonNull AdNetworkClient networkClient) {
+    public void bind(@NonNull NativeAdPayload payload, @NonNull TrackingClient trackingClient) {
         if (titleView != null)       titleView.setText(payload.title);
         if (descriptionView != null) descriptionView.setText(payload.description);
         if (ctaView != null)         ctaView.setText(payload.ctaText);
@@ -61,7 +61,7 @@ public class NativeAdView extends FrameLayout {
         }
 
         for (String url : payload.impressionTrackers) {
-            SdkExecutors.IO.execute(() -> networkClient.fireTrackingUrl(url));
+            SdkExecutors.IO.execute(() -> trackingClient.fireTrackingUrl(url));
         }
 
         AdLog.d("NativeAdView: bound payload title='%s'", payload.title);

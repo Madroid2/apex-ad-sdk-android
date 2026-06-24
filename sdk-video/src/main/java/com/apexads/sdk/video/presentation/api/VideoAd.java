@@ -5,7 +5,6 @@ import android.content.Context;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.apexads.sdk.ApexAds;
 import com.apexads.sdk.core.cache.AdCache;
 import com.apexads.sdk.core.error.AdError;
 import com.apexads.sdk.core.models.AdData;
@@ -15,6 +14,7 @@ import com.apexads.sdk.core.presentation.mvvm.AdStateObserver;
 import com.apexads.sdk.core.presentation.mvvm.AdViewModelListener;
 import com.apexads.sdk.core.data.repository.OpenRTBAdRepository;
 import com.apexads.sdk.core.request.OpenRTBRequestBuilder;
+import com.apexads.sdk.internal.ApexSdkRuntime;
 import com.apexads.sdk.video.vast.VastParser;
 
 public final class VideoAd {
@@ -24,17 +24,17 @@ public final class VideoAd {
 
     private VideoAd(Builder builder) {
         AdRepository repository = new OpenRTBAdRepository(
-                ApexAds.getNetworkClient(),
+                ApexSdkRuntime.getNetworkClient(),
                 new OpenRTBRequestBuilder(
-                        ApexAds.getDeviceInfoProvider(),
-                        ApexAds.getConsentManager()));
+                        ApexSdkRuntime.getDeviceInfoProvider(),
+                        ApexSdkRuntime.getConsentManager()));
 
         viewModel = new VideoAdViewModel(
                 repository,
                 new AdCache(),
                 builder.placementId != null ? builder.placementId : "",
                 new VastParser(),
-                ApexAds.getNetworkClient());
+                ApexSdkRuntime.getTrackingClient());
 
         this.listener = builder.listener;
 
@@ -96,7 +96,7 @@ public final class VideoAd {
 
         @NonNull
         public VideoAd build() {
-            if (!ApexAds.isInitialized()) {
+            if (!ApexSdkRuntime.isInitialized()) {
                 throw new IllegalStateException(
                         "Call ApexAds.init() before creating ad instances.");
             }

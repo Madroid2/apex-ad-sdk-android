@@ -12,7 +12,7 @@ import com.apexads.sdk.core.models.AdFormat;
 import com.apexads.sdk.core.models.AdSize;
 import com.apexads.sdk.core.domain.repository.AdRepository;
 import com.apexads.sdk.core.presentation.mvvm.AdViewModel;
-import com.apexads.sdk.core.network.AdNetworkClient;
+import com.apexads.sdk.core.tracking.TrackingClient;
 import com.apexads.sdk.core.utils.AdLog;
 import com.apexads.sdk.video.presentation.view.VideoAdActivity;
 import com.apexads.sdk.video.vast.VastParser;
@@ -22,7 +22,7 @@ public final class VideoAdViewModel extends AdViewModel {
     private static final String TAG = "VideoAdViewModel";
 
     private final VastParser vastParser;
-    private final AdNetworkClient networkClient;
+    private final TrackingClient trackingClient;
 
     @Nullable private VastParser.VastAd vastAd;
 
@@ -31,10 +31,10 @@ public final class VideoAdViewModel extends AdViewModel {
             @NonNull AdCache cache,
             @NonNull String placementId,
             @NonNull VastParser vastParser,
-            @NonNull AdNetworkClient networkClient) {
+            @NonNull TrackingClient trackingClient) {
         super(repository, cache, AdFormat.REWARDED_VIDEO, AdSize.INTERSTITIAL_FULL, placementId, 0.0);
         this.vastParser = vastParser;
-        this.networkClient = networkClient;
+        this.trackingClient = trackingClient;
     }
 
     @Nullable
@@ -57,7 +57,7 @@ public final class VideoAdViewModel extends AdViewModel {
             AdLog.w(TAG + ": show() called before ad was loaded — ignored");
             return;
         }
-        VideoAdActivity.launch(context, readyAd, networkClient, listener);
+        VideoAdActivity.launch(context, readyAd, trackingClient, listener);
         onDisplayed();
     }
 

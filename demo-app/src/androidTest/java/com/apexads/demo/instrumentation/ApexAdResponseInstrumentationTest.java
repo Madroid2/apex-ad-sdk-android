@@ -13,12 +13,12 @@ import com.apexads.sdk.ApexAdsConfig;
 import com.apexads.sdk.appopen.AppOpenAd;
 import com.apexads.sdk.banner.BannerAd;
 import com.apexads.sdk.banner.BannerAdListener;
-import com.apexads.sdk.core.di.ServiceLocator;
 import com.apexads.sdk.core.error.AdError;
 import com.apexads.sdk.core.models.AdSize;
 import com.apexads.sdk.core.models.openrtb.BidRequest;
 import com.apexads.sdk.core.models.openrtb.BidResponse;
 import com.apexads.sdk.core.network.AdNetworkClient;
+import com.apexads.sdk.internal.ApexSdkRuntime;
 import com.apexads.sdk.interstitial.InterstitialAd;
 import com.apexads.sdk.interstitial.InterstitialAdListener;
 import com.apexads.sdk.nativeads.NativeAd;
@@ -45,7 +45,7 @@ public class ApexAdResponseInstrumentationTest {
     public void setUp() {
         application = ApplicationProvider.getApplicationContext();
         AppOpenAd.destroy();
-        ApexAds.reset();
+        ApexSdkRuntime.reset();
         ApexAds.init(application, new ApexAdsConfig.Builder("instrumentation-token")
                 .testMode(true)
                 .debugLogging(false)
@@ -56,7 +56,7 @@ public class ApexAdResponseInstrumentationTest {
     @After
     public void tearDown() {
         AppOpenAd.destroy();
-        ApexAds.reset();
+        ApexSdkRuntime.reset();
     }
 
     @Test
@@ -238,7 +238,7 @@ public class ApexAdResponseInstrumentationTest {
     }
 
     private static void installFake(AdNetworkClient client) {
-        ServiceLocator.register(AdNetworkClient.class, client);
+        ApexSdkRuntime.setNetworkClientForTesting(client);
     }
 
     private static final class FakeClient implements AdNetworkClient {

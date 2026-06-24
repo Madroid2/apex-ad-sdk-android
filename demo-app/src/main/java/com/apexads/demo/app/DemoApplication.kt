@@ -4,10 +4,10 @@ import android.app.Application
 import com.apexads.sdk.ApexAds
 import com.apexads.sdk.ApexAdsConfig
 import com.apexads.sdk.appopen.AppOpenAd
-import com.apexads.sdk.core.di.ServiceLocator
 import com.apexads.sdk.core.error.AdError
 import com.apexads.sdk.core.network.MockAdExchange
 import com.apexads.sdk.core.utils.AdLog
+import com.apexads.sdk.internal.ApexSdkRuntime
 import com.apexads.sdk.wallet.WalletAdExtension
 
 class DemoApplication : Application() {
@@ -24,11 +24,10 @@ class DemoApplication : Application() {
 
         ApexAds.init(this, config)
 
-        // Swap in the mock exchange so the demo works without any live server.
-        ServiceLocator.register(
-            com.apexads.sdk.core.network.AdNetworkClient::class.java,
-            MockAdExchange()
-        )
+        // Swap in the mock exchange so the debug demo works without any live server.
+        if (BuildConfig.DEBUG) {
+            ApexSdkRuntime.setNetworkClientForTesting(MockAdExchange())
+        }
 
         // Activate the wallet CTA feature for Interstitial and MRECT Banner ads.
         // Without this line, ads load normally — the wallet panel is simply absent.

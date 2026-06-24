@@ -3,7 +3,6 @@ package com.apexads.sdk.inappbidding;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.apexads.sdk.ApexAds;
 import com.apexads.sdk.ApexAdsConfig;
 import com.apexads.sdk.BuildConfig;
 import com.apexads.sdk.core.error.AdError;
@@ -12,6 +11,7 @@ import com.apexads.sdk.core.models.openrtb.BidRequest;
 import com.apexads.sdk.core.network.SdkExecutors;
 import com.apexads.sdk.core.request.OpenRTBRequestBuilder;
 import com.apexads.sdk.core.utils.AdLog;
+import com.apexads.sdk.internal.ApexSdkRuntime;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -32,7 +32,7 @@ public final class ApexInAppBidder {
     public static void fetchBidToken(@NonNull String placementId,
                                      @NonNull AdFormat format,
                                      @NonNull InAppBidListener listener) {
-        if (!ApexAds.isInitialized()) {
+        if (!ApexSdkRuntime.isInitialized()) {
             SdkExecutors.MAIN.post(() ->
                     listener.onBidFailed(new AdError.Network("ApexAds SDK not initialized", null)));
             return;
@@ -59,14 +59,14 @@ public final class ApexInAppBidder {
     private static BidToken doFetch(String placementId, AdFormat format)
             throws IOException, JSONException {
 
-        ApexAdsConfig config = ApexAds.getConfig();
+        ApexAdsConfig config = ApexSdkRuntime.getConfig();
 
         String base = config.getAdServerUrl();
         int auctionIdx = base.indexOf("/openrtb/v1/auction");
         String signalUrl = (auctionIdx >= 0 ? base.substring(0, auctionIdx) : base) + SIGNAL_PATH;
 
         BidRequest req = new OpenRTBRequestBuilder(
-                ApexAds.getDeviceInfoProvider(), ApexAds.getConsentManager())
+                ApexSdkRuntime.getDeviceInfoProvider(), ApexSdkRuntime.getConsentManager())
                 .adFormat(format)
                 .placementId(placementId)
                 .build();

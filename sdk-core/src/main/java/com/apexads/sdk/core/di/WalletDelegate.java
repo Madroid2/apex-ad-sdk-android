@@ -9,7 +9,7 @@ import androidx.annotation.Nullable;
 
 import com.apexads.sdk.core.models.AdData;
 
-public interface WalletDelegate {
+public interface WalletDelegate extends SdkFeature {
 
     boolean isAvailable(@NonNull Context context);
 

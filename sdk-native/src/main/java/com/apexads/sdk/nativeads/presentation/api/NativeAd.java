@@ -3,7 +3,6 @@ package com.apexads.sdk.nativeads;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.apexads.sdk.ApexAds;
 import com.apexads.sdk.core.cache.AdCache;
 import com.apexads.sdk.core.error.AdError;
 import com.apexads.sdk.core.models.AdData;
@@ -15,6 +14,7 @@ import com.apexads.sdk.core.presentation.mvvm.AdViewModelListener;
 import com.apexads.sdk.core.data.repository.OpenRTBAdRepository;
 import com.apexads.sdk.core.request.OpenRTBRequestBuilder;
 import com.apexads.sdk.core.utils.AdLog;
+import com.apexads.sdk.internal.ApexSdkRuntime;
 
 public final class NativeAd {
 
@@ -23,10 +23,10 @@ public final class NativeAd {
 
     private NativeAd(Builder builder) {
         AdRepository repository = new OpenRTBAdRepository(
-                ApexAds.getNetworkClient(),
+                ApexSdkRuntime.getNetworkClient(),
                 new OpenRTBRequestBuilder(
-                        ApexAds.getDeviceInfoProvider(),
-                        ApexAds.getConsentManager()));
+                        ApexSdkRuntime.getDeviceInfoProvider(),
+                        ApexSdkRuntime.getConsentManager()));
 
         viewModel = new NativeAdViewModel(
                 repository,
@@ -65,7 +65,7 @@ public final class NativeAd {
             AdLog.w("NativeAd: bindTo() called before ad was loaded");
             return;
         }
-        view.bind(payload, ApexAds.getNetworkClient());
+        view.bind(payload, ApexSdkRuntime.getTrackingClient());
     }
 
     public boolean isReady() {
@@ -106,7 +106,7 @@ public final class NativeAd {
 
         @NonNull
         public NativeAd build() {
-            if (!ApexAds.isInitialized()) {
+            if (!ApexSdkRuntime.isInitialized()) {
                 throw new IllegalStateException(
                         "Call ApexAds.init() before creating ad instances.");
             }

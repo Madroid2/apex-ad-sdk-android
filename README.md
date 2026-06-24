@@ -110,7 +110,7 @@ No other Android ad SDK supports Google Wallet pass delivery as an ad outcome. A
 ```kotlin
 // Application.onCreate() — one line activates wallet CTAs across all eligible ads
 ApexAds.init(this, config)
-WalletAdExtension.install()  // registers WalletDelegate via ServiceLocator
+WalletAdExtension.install()  // registers WalletDelegate as an optional SDK feature
 
 // Interstitial — wallet CTA panel appears automatically if ext.wallet is in the bid
 val interstitial = InterstitialAd.Builder("placement-interstitial")
@@ -139,8 +139,8 @@ banner.load()
 ```
 Publisher App                  SDK Core                      SDK Wallet (optional)
 ─────────────                  ────────                      ─────────────────────
-WalletAdExtension.install() ──→ ServiceLocator.register
-                                  (WalletDelegate)
+WalletAdExtension.install() ──→ FeatureRegistry.register
+                                  (WalletDelegate feature)
 
 InterstitialAd.load()       ──→ OpenRTBRequestBuilder
                                   detects WalletDelegate
@@ -188,16 +188,12 @@ ApexAdsConfig.Builder("APP_TOKEN")
 ```
 
 #### 4. Custom DI — No Hilt, No Dagger, No Koin
-Annotation processors from DI frameworks conflict with host app DI graphs and slow incremental builds. `ServiceLocator` is a `ConcurrentHashMap<Class, Any>` — 40 lines of code, zero reflection at runtime, zero transitive deps.
+Annotation processors from DI frameworks conflict with host app DI graphs and slow incremental builds. Apex uses a tiny in-house container instead: `ApexServices` owns typed core services, while library-internal feature access is limited to optional `SdkFeature` contracts backed by a `ConcurrentHashMap<Class, SdkFeature>`. There is zero reflection at runtime and zero transitive DI dependency.
 
 ```kotlin
-// SDK registers its own services at init time:
-ServiceLocator.register(AdNetworkClient::class.java, HttpAdNetworkClient(config))
-// Any module resolves them without knowing the concrete class:
-val client = ServiceLocator.get(AdNetworkClient::class.java)
-// Test code swaps in a mock with one line:
-ServiceLocator.register(AdNetworkClient::class.java, MockAdExchange())
-// Optional feature modules register their implementations via the same mechanism:
+// Core services are typed and created once at init time:
+ApexAds.init(this, config)
+// Optional feature modules register only feature contracts through SDK internals:
 WalletAdExtension.install() // → ServiceLocator.register(WalletDelegate::class.java, …)
 ```
 
@@ -210,7 +206,7 @@ Every SDK imported into a publisher app risks version conflicts with the publish
 | Gson | `org.json.JSONObject` (built into Android) |
 | Timber | Custom `AdLog` over `android.util.Log` |
 | Sentry SDK | Raw HTTP envelope protocol over `HttpURLConnection` |
-| Hilt / Dagger | `ServiceLocator` (40-line `ConcurrentHashMap` wrapper) |
+| Hilt / Dagger | Typed `ApexServices` + feature-only `ServiceLocator` |
 
 Optional feature modules (`sdk-wallet`) bring their own scoped dependencies without leaking them into `sdk-core` or the publisher's compile classpath.
 
@@ -269,7 +265,7 @@ flowchart TD
             STATE["AdState\nIDLE·LOADING·LOADED\nDISPLAYED·EXPIRED·FAILED"]:::mvvm
         end
         ENTRY["ApexAds (init)"]:::core
-        DI["ServiceLocator (DI)\n+ WalletDelegate interface"]:::core
+        DI["ApexServices + FeatureRegistry\n+ WalletDelegate interface"]:::core
         NET["HttpAdNetworkClient\n(HttpURLConnection)"]:::core
         PARSE["BidRequestSerializer\nBidResponseParser\n(org.json)"]:::core
         CACHE["AdCache (TTL)"]:::core
@@ -569,23 +565,9 @@ ApexAds adds an audience layer that avoids every one of those traps:
 
 **Advantages:** higher eCPM through audience-based bidding, cohort rules that are **remotely reconfigurable without an app update**, and heavy audience modelling kept server-side where it belongs.
 
-```kotlin
-// Push cohort rules — e.g. straight from your remote config. Pure JSON data, never code.
-ApexAds.setAudienceCohortRules(
-    """
-    { "cohorts": [
-        { "id": "apex_wifi_tablet", "name": "WiFi Tablet Users",
-          "match": { "all": [
-            { "field": "deviceType",     "op": "eq", "value": "tablet" },
-            { "field": "connectionType", "op": "eq", "value": 2 } ] } },
-        { "id": "apex_de_speakers", "name": "German speakers",
-          "match": { "field": "language", "op": "in", "values": ["de"] } }
-    ] }
-    """
-)
-// From here every bid request carries the matched cohorts as OpenRTB user.data[] —
-// but only when TCF Purpose 4 consent is present. No consent → contextual-only request.
-```
+Remote cohort rules are pushed through SDK-internal runtime plumbing, not the
+publisher-facing `ApexAds` API. Publisher apps initialize the SDK once; Apex
+keeps audience rule delivery owned by the SDK/server pipeline.
 
 ---
 
@@ -598,6 +580,10 @@ apex-ad-sdk-android/
 │   └── com/apexads/sdk/
 │       ├── ApexAds.java               # SDK singleton entry point
 │       ├── ApexAdsConfig.java         # Immutable builder-pattern configuration
+│       ├── internal/
+│       │   ├── ApexSdkRuntime         # Library-internal runtime/service access
+│       │   ├── ApexServices           # Internal typed SDK component root
+│       │   └── ApexFeatureAccess      # Internal optional feature access
 │       └── core/
 │           ├── mvvm/                  # ◀ MVVM base layer (custom — no AndroidX dependency)
 │           │   ├── AdState            # 6-phase enum: IDLE·LOADING·LOADED·DISPLAYED·EXPIRED·FAILED
@@ -608,8 +594,10 @@ apex-ad-sdk-android/
 │           │   ├── OpenRTBAdRepository# Impl: IO-thread dispatch, main-thread callbacks
 │           │   └── AdViewModel        # Abstract base ViewModel (not AndroidX); load/show/destroy lifecycle
 │           ├── di/
-│           │   ├── ServiceLocator     # Lightweight ConcurrentHashMap DI (40 lines)
-│           │   └── WalletDelegate     # Interface — decouples sdk-core from sdk-wallet
+│           │   ├── FeatureRegistry    # ConcurrentHashMap-backed optional feature registry
+│           │   ├── ServiceLocator     # Feature-only facade for optional modules
+│           │   ├── SdkFeature         # Marker for installable feature contracts
+│           │   └── WalletDelegate     # Feature interface — decouples sdk-core from sdk-wallet
 │           ├── network/
 │           │   ├── AdNetworkClient    # Interface (2 methods)
 │           │   ├── HttpAdNetworkClient# HttpURLConnection impl (no OkHttp)
@@ -691,6 +679,8 @@ ApexAds.init(this, ApexAdsConfig.Builder("YOUR_APP_TOKEN")
     .sentryDsn("https://key@o123.ingest.sentry.io/project") // optional crash reporting
     .build())
 ```
+
+There is no publisher-facing global cleanup API. Ad objects and views own their lifecycle through their existing `destroy()` and view cleanup methods; test and demo re-initialization uses restricted SDK-internal runtime hooks.
 
 ### 2. Google Wallet Pass Ads
 

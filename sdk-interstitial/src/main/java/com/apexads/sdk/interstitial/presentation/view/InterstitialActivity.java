@@ -28,12 +28,12 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.apexads.sdk.banner.presentation.view.mraid.MRAIDBridge;
-import com.apexads.sdk.core.di.ServiceLocator;
 import com.apexads.sdk.core.di.WalletDelegate;
 import com.apexads.sdk.core.models.AdData;
 import com.apexads.sdk.core.utils.AdNavigationGuard;
 import com.apexads.sdk.core.utils.AdUrlHandler;
 import com.apexads.sdk.core.utils.AdLog;
+import com.apexads.sdk.internal.ApexFeatureAccess;
 import com.apexads.sdk.interstitial.InterstitialAdListener;
 
 public final class InterstitialActivity extends Activity {
@@ -156,8 +156,8 @@ public final class InterstitialActivity extends Activity {
         closeParams.setMargins(0, dp(10), dp(10), 0);
         root.addView(btnClose, closeParams);
 
-        if (adData.walletExtJson != null && ServiceLocator.isRegistered(WalletDelegate.class)) {
-            WalletDelegate delegate = ServiceLocator.get(WalletDelegate.class);
+        WalletDelegate delegate = ApexFeatureAccess.getFeature(WalletDelegate.class);
+        if (adData.walletExtJson != null && delegate != null) {
             delegate.attachToInterstitial(this, root, adData.walletExtJson,
                     new WalletDelegate.WalletEventCallback() {
                         @Override public void onPassSaved() {
@@ -188,8 +188,9 @@ public final class InterstitialActivity extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (ServiceLocator.isRegistered(WalletDelegate.class)) {
-            ServiceLocator.get(WalletDelegate.class).handleActivityResult(requestCode, resultCode);
+        WalletDelegate delegate = ApexFeatureAccess.getFeature(WalletDelegate.class);
+        if (delegate != null) {
+            delegate.handleActivityResult(requestCode, resultCode);
         }
     }
 

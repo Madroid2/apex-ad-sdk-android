@@ -3,7 +3,6 @@ package com.apexads.sdk.core.request;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.apexads.sdk.ApexAds;
 import com.apexads.sdk.ApexAdsConfig;
 import com.apexads.sdk.BuildConfig;
 import com.apexads.sdk.core.audience.AudienceSignals;
@@ -11,11 +10,12 @@ import com.apexads.sdk.core.audience.Cohort;
 import com.apexads.sdk.core.audience.CohortProvider;
 import com.apexads.sdk.core.consent.ConsentManager;
 import com.apexads.sdk.core.device.DeviceInfoProvider;
-import com.apexads.sdk.core.di.ServiceLocator;
 import com.apexads.sdk.core.di.WalletDelegate;
 import com.apexads.sdk.core.models.AdFormat;
 import com.apexads.sdk.core.models.AdSize;
 import com.apexads.sdk.core.models.openrtb.BidRequest;
+import com.apexads.sdk.internal.ApexFeatureAccess;
+import com.apexads.sdk.internal.ApexSdkRuntime;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -55,7 +55,7 @@ public class OpenRTBRequestBuilder {
 
     @NonNull
     public BidRequest build() {
-        ApexAdsConfig config = ApexAds.getConfig();
+        ApexAdsConfig config = ApexSdkRuntime.getConfig();
         DeviceInfoProvider.DeviceInfo device = deviceInfoProvider.getDeviceInfo();
 
         BidRequest request = new BidRequest();
@@ -86,7 +86,7 @@ public class OpenRTBRequestBuilder {
         imp.tagid = placementId;
         imp.api = Arrays.asList(3, 5, 6);
 
-        boolean walletRegistered = ServiceLocator.isRegistered(WalletDelegate.class);
+        boolean walletRegistered = ApexFeatureAccess.getFeature(WalletDelegate.class) != null;
 
         switch (adFormat) {
             case BANNER:
@@ -166,7 +166,7 @@ public class OpenRTBRequestBuilder {
         app.name = device.appName;
         app.ver = device.appVersion;
         BidRequest.Publisher pub = new BidRequest.Publisher();
-        pub.id = ApexAds.getConfig().getAppToken();
+        pub.id = ApexSdkRuntime.getConfig().getAppToken();
         app.publisher = pub;
         return app;
     }
@@ -215,10 +215,7 @@ public class OpenRTBRequestBuilder {
         if (!consentManager.hasPersonalizationConsent()) {
             return;
         }
-        if (!ServiceLocator.isRegistered(CohortProvider.class)) {
-            return;
-        }
-        CohortProvider provider = ServiceLocator.get(CohortProvider.class);
+        CohortProvider provider = ApexSdkRuntime.getCohortProvider();
         List<Cohort> cohorts = provider.resolve(AudienceSignals.from(device));
         if (cohorts == null || cohorts.isEmpty()) {
             return;
@@ -241,7 +238,7 @@ public class OpenRTBRequestBuilder {
     }
 
     private BidRequest.Regs buildRegs() {
-        ApexAdsConfig config = ApexAds.getConfig();
+        ApexAdsConfig config = ApexSdkRuntime.getConfig();
         BidRequest.Regs regs = new BidRequest.Regs();
         regs.coppa = config.getCoppa() > 0 ? 1 : null;
         regs.ext = new BidRequest.RegsExt();
@@ -253,7 +250,7 @@ public class OpenRTBRequestBuilder {
     }
 
     private BidRequest.ApexExt buildApexExt() {
-        ApexAdsConfig config = ApexAds.getConfig();
+        ApexAdsConfig config = ApexSdkRuntime.getConfig();
         BidRequest.ApexExt ext = new BidRequest.ApexExt();
         ext.testmode = config.isTestMode() ? 1 : 0;
         ext.gdpr = consentManager.isGdprApplicable() ? 1 : 0;

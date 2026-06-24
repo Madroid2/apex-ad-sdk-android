@@ -1,0 +1,141 @@
+package com.apexads.sdk.internal;
+
+import android.app.Application;
+import android.content.Context;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.RestrictTo;
+
+import com.apexads.sdk.ApexAdsConfig;
+import com.apexads.sdk.BuildConfig;
+import com.apexads.sdk.core.audience.CohortProvider;
+import com.apexads.sdk.core.consent.ConsentManager;
+import com.apexads.sdk.core.device.DeviceInfoProvider;
+import com.apexads.sdk.core.di.FeatureRegistry;
+import com.apexads.sdk.core.di.SdkFeature;
+import com.apexads.sdk.core.network.AdNetworkClient;
+import com.apexads.sdk.core.network.HttpAdNetworkClient;
+import com.apexads.sdk.core.network.MockAdExchange;
+import com.apexads.sdk.core.network.WaterfallAdNetworkClient;
+import com.apexads.sdk.core.tracking.TrackingClient;
+import com.apexads.sdk.core.utils.AdLog;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+public final class ApexServices {
+
+    private final Context appContext;
+    private final ApexAdsConfig config;
+    private final DeviceInfoProvider deviceInfoProvider;
+    private final ConsentManager consentManager;
+    private final FeatureRegistry features = new FeatureRegistry();
+
+    private volatile AdNetworkClient networkClient;
+    private volatile CohortProvider cohortProvider = CohortProvider.NONE;
+
+    private ApexServices(@NonNull Context appContext,
+                         @NonNull ApexAdsConfig config,
+                         @NonNull AdNetworkClient networkClient,
+                         @NonNull DeviceInfoProvider deviceInfoProvider,
+                         @NonNull ConsentManager consentManager) {
+        this.appContext = appContext;
+        this.config = config;
+        this.networkClient = networkClient;
+        this.deviceInfoProvider = deviceInfoProvider;
+        this.consentManager = consentManager;
+    }
+
+    @NonNull
+    public static ApexServices create(@NonNull Application application,
+                                      @NonNull ApexAdsConfig config) {
+        return new ApexServices(
+                application.getApplicationContext(),
+                config,
+                new WaterfallAdNetworkClient(buildDemandSources(config)),
+                new DeviceInfoProvider(application),
+                new ConsentManager(application));
+    }
+
+    @NonNull
+    private static List<AdNetworkClient> buildDemandSources(@NonNull ApexAdsConfig config) {
+        List<AdNetworkClient> demandSources = new ArrayList<>();
+        demandSources.add(new HttpAdNetworkClient(config));
+
+        if (config.isDebugFakeFill() && BuildConfig.DEBUG) {
+            demandSources.add(new MockAdExchange());
+            AdLog.w("ApexAds: debugFakeFill enabled - mock demand appended (DEV ONLY)");
+        } else if (config.isDebugFakeFill()) {
+            AdLog.w("ApexAds: debugFakeFill ignored in non-debug builds");
+        }
+
+        return demandSources;
+    }
+
+    @NonNull
+    public Context appContext() {
+        return appContext;
+    }
+
+    @NonNull
+    public ApexAdsConfig config() {
+        return config;
+    }
+
+    @NonNull
+    public AdNetworkClient networkClient() {
+        return networkClient;
+    }
+
+    @NonNull
+    public TrackingClient trackingClient() {
+        return url -> networkClient.fireTrackingUrl(url);
+    }
+
+    @NonNull
+    public DeviceInfoProvider deviceInfoProvider() {
+        return deviceInfoProvider;
+    }
+
+    @NonNull
+    public ConsentManager consentManager() {
+        return consentManager;
+    }
+
+    @NonNull
+    public CohortProvider cohortProvider() {
+        return cohortProvider;
+    }
+
+    public void setCohortProvider(@NonNull CohortProvider cohortProvider) {
+        this.cohortProvider = cohortProvider;
+    }
+
+    public void setNetworkClientForTesting(@NonNull AdNetworkClient networkClient) {
+        if (!BuildConfig.DEBUG) {
+            throw new IllegalStateException("Network client override is available only in debug builds.");
+        }
+        this.networkClient = networkClient;
+    }
+
+    public <T extends SdkFeature> void registerFeature(@NonNull Class<T> featureType,
+                                                       @NonNull T feature) {
+        features.register(featureType, feature);
+    }
+
+    @Nullable
+    public <T extends SdkFeature> T getFeature(@NonNull Class<T> featureType) {
+        return features.getOptional(featureType);
+    }
+
+    public void installFeaturesFrom(@NonNull FeatureRegistry registry) {
+        features.copyFrom(registry);
+    }
+
+    public void close() {
+        cohortProvider = CohortProvider.NONE;
+        features.clear();
+    }
+}

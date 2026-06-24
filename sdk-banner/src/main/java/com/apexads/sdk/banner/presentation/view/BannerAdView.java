@@ -14,12 +14,10 @@ import android.widget.FrameLayout;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.apexads.sdk.ApexAds;
 import com.apexads.sdk.banner.BannerAd;
 import com.apexads.sdk.banner.BannerAdListener;
 import com.apexads.sdk.banner.BannerAdViewModel;
 import com.apexads.sdk.banner.presentation.view.mraid.MRAIDBridge;
-import com.apexads.sdk.core.di.ServiceLocator;
 import com.apexads.sdk.core.di.WalletDelegate;
 import com.apexads.sdk.core.models.AdData;
 import com.apexads.sdk.core.presentation.mvvm.AdState;
@@ -29,6 +27,8 @@ import com.apexads.sdk.core.utils.AdNavigationGuard;
 import com.apexads.sdk.core.utils.AdUrlHandler;
 import com.apexads.sdk.core.utils.AdViewLifecycle;
 import com.apexads.sdk.core.utils.AdLog;
+import com.apexads.sdk.internal.ApexFeatureAccess;
+import com.apexads.sdk.internal.ApexSdkRuntime;
 
 public class BannerAdView extends FrameLayout {
 
@@ -89,7 +89,7 @@ public class BannerAdView extends FrameLayout {
         if (impressionTracker != null) {
             impressionTracker.detach();
         }
-        impressionTracker = new ImpressionTracker(ApexAds.getNetworkClient());
+        impressionTracker = new ImpressionTracker(ApexSdkRuntime.getTrackingClient());
         renderedAdData = adData;
         navigationGuard.reset(adData);
 
@@ -102,10 +102,10 @@ public class BannerAdView extends FrameLayout {
         webView.loadDataWithBaseURL("https://apexads.sdk", html, "text/html", "UTF-8", null);
         impressionTracker.attach(this, adData);
 
+        WalletDelegate delegate = ApexFeatureAccess.getFeature(WalletDelegate.class);
         if (adData.walletExtJson != null
                 && adData.width >= 300 && adData.height >= 250
-                && ServiceLocator.isRegistered(WalletDelegate.class)) {
-            WalletDelegate delegate = ServiceLocator.get(WalletDelegate.class);
+                && delegate != null) {
             delegate.attachToBanner(getContext(), this, adData,
                     new WalletDelegate.WalletEventCallback() {
                         @Override public void onPassSaved() { notifyListener(BannerAdListener::onWalletPassSaved); }

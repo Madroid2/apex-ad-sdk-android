@@ -8,8 +8,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.apexads.sdk.core.models.AdData;
-import com.apexads.sdk.core.network.AdNetworkClient;
 import com.apexads.sdk.core.network.SdkExecutors;
+import com.apexads.sdk.core.tracking.TrackingClient;
 
 import com.apexads.sdk.core.utils.AdLog;
 
@@ -19,7 +19,7 @@ public final class ImpressionTracker {
 
     public static final long   MRC_MIN_DURATION_MS   = 1_000L;
 
-    private final AdNetworkClient networkClient;
+    private final TrackingClient trackingClient;
     private final Rect checkRect = new Rect();
     private boolean fired = false;
     private long visibleStart = 0L;
@@ -28,8 +28,8 @@ public final class ImpressionTracker {
     @Nullable private View.OnAttachStateChangeListener attachStateListener;
     @Nullable private View attachedView;
 
-    public ImpressionTracker(@NonNull AdNetworkClient networkClient) {
-        this.networkClient = networkClient;
+    public ImpressionTracker(@NonNull TrackingClient trackingClient) {
+        this.trackingClient = trackingClient;
     }
 
     public void attach(@NonNull View view, @NonNull AdData adData) {
@@ -120,7 +120,7 @@ public final class ImpressionTracker {
         AdLog.d("ImpressionTracker: firing impression bid=%s", adData.bidId);
         final String winUrl = adData.winNoticeUrl;
         if (winUrl != null) {
-            SdkExecutors.IO.execute(() -> networkClient.fireTrackingUrl(winUrl));
+            SdkExecutors.IO.execute(() -> trackingClient.fireTrackingUrl(winUrl));
         }
     }
 

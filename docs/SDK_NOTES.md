@@ -24,8 +24,17 @@ implementation files terse; add ADR-style context here or in a more specific doc
 - Optional feature dependencies should stay scoped to their feature module.
   `play-services-wallet` belongs in `sdk-wallet`; apps that do not install
   wallet support should not receive wallet APIs transitively.
-- `ServiceLocator` is the cross-module bridge for optional features. This avoids
-  making format modules compile against optional implementation modules.
+- `ApexServices` owns typed core services. Feature lookup/registration stays
+  behind library-internal `ApexFeatureAccess`/`ServiceLocator` helpers, not on
+  the publisher-facing `ApexAds` singleton.
+- `ApexAds` is intentionally tiny: `init(...)` is the only public singleton API.
+  Runtime service access, test resets, network overrides, and cohort-rule
+  updates stay behind library-internal `ApexSdkRuntime`.
+- `ApexSdkRuntime` is the library-internal composition root. Public ad facades
+  may use it to assemble ViewModels and repositories, but ViewModels should not
+  call runtime singletons directly.
+- ViewModels depend on `AdRepository` and SDK/domain models. Concrete OpenRTB,
+  cache TTL, device, consent, and network details stay in the data/runtime layer.
 
 ## Build Configuration
 
@@ -41,15 +50,15 @@ implementation files terse; add ADR-style context here or in a more specific doc
 
 ## Demand and No-Fill Rules
 
-- `ApexAds.init()` registers real OpenRTB demand first through
+- `ApexAds.init()` delegates to `ApexSdkRuntime`, which registers real OpenRTB demand first through
   `HttpAdNetworkClient`.
 - `WaterfallAdNetworkClient` tries demand sources in priority order and returns
   the first genuine priced creative.
 - If every source fails or no-fills, the SDK returns an honest OpenRTB no-fill.
   Mock or house creatives must not be presented as paid demand.
 - `debugFakeFill` is for local development and CI only. It appends
-  `MockAdExchange` as a lowest-priority source so the SDK can render without a
-  live server.
+  `MockAdExchange` as a lowest-priority source in debug builds so the SDK can
+  render without a live server. Non-debug builds ignore this flag.
 - `FallbackAdNetworkClient` is deprecated. It no longer substitutes mock demand;
   it delegates to the live primary client and preserves no-fill responses.
 - `nbr = 2` is the SDK convention for OpenRTB no-bid/no-fill responses.
@@ -84,7 +93,7 @@ implementation files terse; add ADR-style context here or in a more specific doc
 ## Wallet Feature
 
 - Wallet support is activated by `WalletAdExtension.install()`, which registers
-  the wallet delegate through `ServiceLocator`.
+  the wallet delegate as an optional `SdkFeature`.
 - Interstitial wallet CTAs are handled inside the publisher activity, so result
   delivery is routed through the active wallet session.
 - MRECT banner wallet CTAs use `WalletResultActivity` as a short-lived proxy

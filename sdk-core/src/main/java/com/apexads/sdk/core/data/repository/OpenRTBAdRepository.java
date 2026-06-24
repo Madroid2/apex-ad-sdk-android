@@ -2,7 +2,6 @@ package com.apexads.sdk.core.data.repository;
 
 import androidx.annotation.NonNull;
 
-import com.apexads.sdk.ApexAds;
 import com.apexads.sdk.core.domain.repository.AdRepository;
 import com.apexads.sdk.core.error.AdError;
 import com.apexads.sdk.core.models.AdData;
@@ -12,9 +11,9 @@ import com.apexads.sdk.core.models.openrtb.BidRequest;
 import com.apexads.sdk.core.models.openrtb.BidResponse;
 import com.apexads.sdk.core.network.AdNetworkClient;
 import com.apexads.sdk.core.network.SdkExecutors;
-import com.apexads.sdk.core.presentation.mvvm.AdViewModel;
 import com.apexads.sdk.core.request.OpenRTBRequestBuilder;
 import com.apexads.sdk.core.utils.AdLog;
+import com.apexads.sdk.internal.ApexSdkRuntime;
 
 public final class OpenRTBAdRepository implements AdRepository {
 
@@ -58,7 +57,7 @@ public final class OpenRTBAdRepository implements AdRepository {
                 AdData data = AdData.fromBid(
                         request.id, bid, format,
                         response.cur != null ? response.cur : "USD",
-                        ApexAds.getConfig().getCacheTtlSeconds());
+                        ApexSdkRuntime.getConfig().getCacheTtlSeconds());
 
                 AdLog.i("OpenRTBAdRepository[%s]: loaded cpm=$%.2f crid=%s",
                         placementId, bid.price, bid.crid);

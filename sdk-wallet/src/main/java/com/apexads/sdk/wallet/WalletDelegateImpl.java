@@ -14,11 +14,11 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.apexads.sdk.ApexAds;
 import com.apexads.sdk.core.di.WalletDelegate;
 import com.apexads.sdk.core.models.AdData;
 import com.apexads.sdk.core.network.SdkExecutors;
 import com.apexads.sdk.core.utils.AdLog;
+import com.apexads.sdk.internal.ApexSdkRuntime;
 import com.apexads.sdk.wallet.presentation.view.WalletResultActivity;
 
 import java.lang.ref.WeakReference;
@@ -83,7 +83,7 @@ final class WalletDelegateImpl implements WalletDelegate {
             session.saveAttempted = true;
             tvBtn.setEnabled(false);
 
-            if (ApexAds.isInitialized() && ApexAds.getConfig().isTestMode()) {
+            if (ApexSdkRuntime.isInitialized() && ApexSdkRuntime.getConfig().isTestMode()) {
                 AdLog.d("WalletDelegateImpl: test mode — simulating wallet save for offer=%s",
                         passData.offerId);
                 showStatus(tvStatus, "✓ Saved to Google Wallet (test mode)", 0xFF1B5E20);
@@ -182,7 +182,7 @@ final class WalletDelegateImpl implements WalletDelegate {
         tvBtn.setOnClickListener(v -> {
             tvBtn.setEnabled(false);
 
-            if (ApexAds.isInitialized() && ApexAds.getConfig().isTestMode()) {
+            if (ApexSdkRuntime.isInitialized() && ApexSdkRuntime.getConfig().isTestMode()) {
                 AdLog.d("WalletDelegateImpl: test mode — simulating banner wallet save offer=%s",
                         passData.offerId);
                 tvBtn.setText("✓ Saved (test mode)");

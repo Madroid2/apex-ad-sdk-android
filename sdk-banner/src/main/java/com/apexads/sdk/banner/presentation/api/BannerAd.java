@@ -3,7 +3,6 @@ package com.apexads.sdk.banner;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.apexads.sdk.ApexAds;
 import com.apexads.sdk.core.cache.AdCache;
 import com.apexads.sdk.core.error.AdError;
 import com.apexads.sdk.core.models.AdData;
@@ -16,6 +15,7 @@ import com.apexads.sdk.core.presentation.mvvm.AdViewModelListener;
 import com.apexads.sdk.core.data.repository.OpenRTBAdRepository;
 import com.apexads.sdk.core.request.OpenRTBRequestBuilder;
 import com.apexads.sdk.core.utils.AdLog;
+import com.apexads.sdk.internal.ApexSdkRuntime;
 
 public final class BannerAd {
 
@@ -24,10 +24,10 @@ public final class BannerAd {
 
     private BannerAd(Builder builder) {
         AdRepository repository = new OpenRTBAdRepository(
-                ApexAds.getNetworkClient(),
+                ApexSdkRuntime.getNetworkClient(),
                 new OpenRTBRequestBuilder(
-                        ApexAds.getDeviceInfoProvider(),
-                        ApexAds.getConsentManager()));
+                        ApexSdkRuntime.getDeviceInfoProvider(),
+                        ApexSdkRuntime.getConsentManager()));
 
         viewModel = new BannerAdViewModel(
                 repository,
@@ -111,7 +111,7 @@ public final class BannerAd {
 
         @NonNull
         public BannerAd build() {
-            if (!ApexAds.isInitialized()) {
+            if (!ApexSdkRuntime.isInitialized()) {
                 throw new IllegalStateException(
                         "Call ApexAds.init() before creating ad instances.");
             }

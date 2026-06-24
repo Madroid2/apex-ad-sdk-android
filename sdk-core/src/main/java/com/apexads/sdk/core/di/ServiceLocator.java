@@ -1,36 +1,37 @@
 package com.apexads.sdk.core.di;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.RestrictTo;
 
-import java.util.concurrent.ConcurrentHashMap;
+import com.apexads.sdk.internal.ApexFeatureAccess;
 
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public final class ServiceLocator {
-
-    private static final ConcurrentHashMap<Class<?>, Object> registry = new ConcurrentHashMap<>();
 
     private ServiceLocator() {}
 
     @NonNull
-    @SuppressWarnings("unchecked")
-    public static <T> T get(@NonNull Class<T> clazz) {
-        Object instance = registry.get(clazz);
-        if (instance == null) {
-            throw new IllegalStateException(
-                    "No binding registered for " + clazz.getSimpleName() +
-                    ". Ensure ApexAds.init() was called before accessing SDK services.");
+    public static <T extends SdkFeature> T get(@NonNull Class<T> featureType) {
+        T feature = ApexFeatureAccess.getFeature(featureType);
+        if (feature == null) {
+            throw new IllegalStateException("No feature registered for "
+                    + featureType.getSimpleName() + ".");
         }
-        return (T) instance;
+        return feature;
     }
 
-    public static <T> void register(@NonNull Class<T> clazz, @NonNull T instance) {
-        registry.put(clazz, instance);
+    @Nullable
+    public static <T extends SdkFeature> T getOptional(@NonNull Class<T> featureType) {
+        return ApexFeatureAccess.getFeature(featureType);
     }
 
-    public static void reset() {
-        registry.clear();
+    public static <T extends SdkFeature> void register(@NonNull Class<T> featureType,
+                                                       @NonNull T feature) {
+        ApexFeatureAccess.registerFeature(featureType, feature);
     }
 
-    public static boolean isRegistered(@NonNull Class<?> clazz) {
-        return registry.containsKey(clazz);
+    public static boolean isRegistered(@NonNull Class<? extends SdkFeature> featureType) {
+        return ApexFeatureAccess.isFeatureRegistered(featureType);
     }
 }
