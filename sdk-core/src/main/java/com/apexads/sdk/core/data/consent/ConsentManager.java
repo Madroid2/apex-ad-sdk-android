@@ -10,6 +10,12 @@ import com.apexads.sdk.core.utils.AdLog;
 
 public final class ConsentManager {
 
+    // IAB TCF v2.x in-app keys, as defined by the "IAB Tech Lab - CMP API v2" spec
+    // (NSUserDefaults / SharedPreferences storage section). These are NOT the legacy
+    // TCF v1.1 mobile keys, which used the "IABConsent_" prefix and no per-purpose
+    // bitfield — do not cross-reference the v1.1 "consent string formats" doc here.
+    // IABTCF_PurposeConsents is a binary string, zero-indexed: char at position n is
+    // the consent status for purpose ID n+1 (so index 3 == Purpose 4).
     public static final String KEY_TCF_STRING = "IABTCF_TCString";
     public static final String KEY_GDPR_APPLIES = "IABTCF_gdprApplies";
     public static final String KEY_PURPOSE_CONSENTS = "IABTCF_PurposeConsents";
