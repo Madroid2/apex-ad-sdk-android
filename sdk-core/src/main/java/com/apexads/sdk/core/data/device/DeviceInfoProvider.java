@@ -8,13 +8,19 @@ import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.os.Build;
+import android.telephony.TelephonyManager;
 import android.util.DisplayMetrics;
 import android.view.WindowManager;
+import android.webkit.WebSettings;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
+
+import com.apexads.sdk.core.utils.AdLog;
 
 import java.util.Locale;
+import java.util.concurrent.Executor;
 
 public final class DeviceInfoProvider {
 
@@ -32,6 +38,7 @@ public final class DeviceInfoProvider {
         public final int    screenWidth;
         public final int    screenHeight;
         public final float  density;
+        public final int    ppi;
         public final boolean isTablet;
         public final int    connectionType;
         public final String packageName;
@@ -39,6 +46,9 @@ public final class DeviceInfoProvider {
         public final String appVersion;
         public final boolean limitAdTracking;
         @Nullable public final String advertisingId;
+        @Nullable public final String carrier;
+        @Nullable public final String mccmnc;
+        @Nullable public final String geoCountry;
 
         DeviceInfo(Builder b) {
             manufacturer  = b.manufacturer;
@@ -49,6 +59,7 @@ public final class DeviceInfoProvider {
             screenWidth   = b.screenWidth;
             screenHeight  = b.screenHeight;
             density       = b.density;
+            ppi           = b.ppi;
             isTablet      = b.isTablet;
             connectionType = b.connectionType;
             packageName   = b.packageName;
@@ -56,52 +67,116 @@ public final class DeviceInfoProvider {
             appVersion    = b.appVersion;
             limitAdTracking = b.limitAdTracking;
             advertisingId = b.advertisingId;
+            carrier       = b.carrier;
+            mccmnc        = b.mccmnc;
+            geoCountry    = b.geoCountry;
         }
 
         static final class Builder {
             String manufacturer, model, osVersion, userAgent, language;
-            int screenWidth, screenHeight, connectionType;
+            int screenWidth, screenHeight, connectionType, ppi;
             float density;
             boolean isTablet, limitAdTracking;
             String packageName, appName, appVersion;
-            String advertisingId;
+            String advertisingId, carrier, mccmnc, geoCountry;
         }
     }
 
     private final Context context;
+    private final AdvertisingIdProvider advertisingIdProvider;
+    private volatile String cachedUserAgent;
 
     public DeviceInfoProvider(@NonNull Context context) {
         this.context = context.getApplicationContext();
+        this.advertisingIdProvider = new AdvertisingIdProvider(this.context);
+    }
+
+    /**
+     * Pre-resolves the slow signals (advertising ID over IPC, WebView user agent) so
+     * the first bid request reads a warm cache instead of blocking on them.
+     */
+    public void warmUp(@NonNull Executor executor) {
+        advertisingIdProvider.refreshAsync(executor);
+        executor.execute(this::resolveUserAgent);
     }
 
     @NonNull
     public DeviceInfo getDeviceInfo() {
         DisplayMetrics metrics = getDisplayMetrics();
         String[] appInfo = getAppInfo();
+        AdvertisingIdProvider.Info adId = advertisingIdProvider.get();
 
         DeviceInfo.Builder b = new DeviceInfo.Builder();
         b.manufacturer  = Build.MANUFACTURER;
         b.model         = Build.MODEL;
         b.osVersion     = Build.VERSION.RELEASE;
-        b.userAgent     = buildUserAgent();
+        b.userAgent     = resolveUserAgent();
         b.language      = Locale.getDefault().getLanguage();
         b.screenWidth   = metrics.widthPixels;
         b.screenHeight  = metrics.heightPixels;
         b.density       = metrics.density;
+        b.ppi           = metrics.densityDpi;
         b.isTablet      = context.getResources().getConfiguration().smallestScreenWidthDp >= 600;
         b.connectionType = getConnectionType();
         b.packageName   = context.getPackageName();
         b.appName       = appInfo[0];
         b.appVersion    = appInfo[1];
-        b.limitAdTracking = false;
-        b.advertisingId = null;
+        b.limitAdTracking = adId.limitAdTracking;
+        b.advertisingId = adId.id;
+        fillTelephony(b);
         return new DeviceInfo(b);
     }
 
-    private String buildUserAgent() {
-        return "Mozilla/5.0 (Linux; Android " + Build.VERSION.RELEASE +
-               "; " + Build.MODEL + ") AppleWebKit/537.36 (KHTML, like Gecko) " +
-               "Chrome/120.0.0.0 Mobile Safari/537.36";
+    /**
+     * The real WebView UA — the one ad creatives will actually render under. A
+     * fabricated UA that mismatches the device is a standard IVT flag at exchanges.
+     * Falls back to the HTTP-stack UA, then a minimal platform string, when no
+     * WebView is installed.
+     */
+    private String resolveUserAgent() {
+        String ua = cachedUserAgent;
+        if (ua != null) return ua;
+        try {
+            ua = WebSettings.getDefaultUserAgent(context);
+        } catch (Throwable t) {
+            AdLog.d("DeviceInfoProvider: WebView UA unavailable — %s", t.getMessage());
+            ua = null;
+        }
+        if (ua == null || ua.isEmpty()) ua = System.getProperty("http.agent");
+        if (ua == null || ua.isEmpty()) {
+            ua = "Mozilla/5.0 (Linux; Android " + Build.VERSION.RELEASE + "; " + Build.MODEL + ")";
+        }
+        cachedUserAgent = ua;
+        return ua;
+    }
+
+    private void fillTelephony(DeviceInfo.Builder b) {
+        TelephonyManager tm = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+        String localeCountry = Locale.getDefault().getCountry();
+        if (tm == null) {
+            b.geoCountry = emptyToNull(localeCountry != null ? localeCountry.toUpperCase(Locale.US) : null);
+            return;
+        }
+        b.carrier = emptyToNull(tm.getNetworkOperatorName());
+        b.mccmnc = formatMccMnc(tm.getNetworkOperator());
+
+        String country = emptyToNull(tm.getNetworkCountryIso());
+        if (country == null) country = emptyToNull(tm.getSimCountryIso());
+        if (country == null) country = emptyToNull(localeCountry);
+        b.geoCountry = country != null ? country.toUpperCase(Locale.US) : null;
+    }
+
+    /** OpenRTB {@code device.mccmnc} wants "mcc-mnc"; TelephonyManager returns "mccmnc". */
+    @VisibleForTesting
+    @Nullable
+    static String formatMccMnc(@Nullable String operator) {
+        if (operator == null || operator.length() < 5 || !operator.matches("\\d+")) return null;
+        return operator.substring(0, 3) + "-" + operator.substring(3);
+    }
+
+    @Nullable
+    private static String emptyToNull(@Nullable String s) {
+        return s == null || s.isEmpty() ? null : s;
     }
 
     @SuppressWarnings("deprecation")

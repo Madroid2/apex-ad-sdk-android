@@ -45,6 +45,7 @@ final class BidRequestSerializer {
         if (req.device != null) o.put("device", serDevice(req.device));
         if (req.user != null) o.put("user", serUser(req.user));
         if (req.regs != null) o.put("regs", serRegs(req.regs));
+        if (req.source != null) o.put("source", serSource(req.source));
         return o.toString();
     }
 
@@ -161,10 +162,12 @@ final class BidRequestSerializer {
         o.putOpt("osv", d.osv);
         o.putOpt("h", d.h);
         o.putOpt("w", d.w);
+        o.putOpt("ppi", d.ppi);
         o.putOpt("pxratio", d.pxratio);
         o.putOpt("js", d.js);
         o.putOpt("language", d.language);
         o.putOpt("carrier", d.carrier);
+        o.putOpt("mccmnc", d.mccmnc);
         o.putOpt("connectiontype", d.connectiontype);
         o.putOpt("ifa", d.ifa);
         if (d.geo != null) o.put("geo", serGeo(d.geo));
@@ -215,6 +218,40 @@ final class BidRequestSerializer {
             }
             o.put("segment", segs);
         }
+        return o;
+    }
+
+    private static JSONObject serSource(BidRequest.Source s) throws JSONException {
+        JSONObject o = new JSONObject();
+        o.putOpt("fd", s.fd);
+        o.putOpt("tid", s.tid);
+        if (s.schain != null) {
+            JSONObject schain = serSupplyChain(s.schain);
+            // OpenRTB 2.6 carries schain first-class; 2.5-era exchanges read source.ext.schain.
+            o.put("schain", schain);
+            o.put("ext", new JSONObject().put("schain", schain));
+        }
+        return o;
+    }
+
+    private static JSONObject serSupplyChain(BidRequest.SupplyChain sc) throws JSONException {
+        JSONObject o = new JSONObject();
+        o.put("complete", sc.complete);
+        o.put("ver", sc.ver);
+        JSONArray nodes = new JSONArray();
+        if (sc.nodes != null) {
+            for (BidRequest.SupplyChainNode n : sc.nodes) {
+                JSONObject node = new JSONObject();
+                node.putOpt("asi", n.asi);
+                node.putOpt("sid", n.sid);
+                node.putOpt("hp", n.hp);
+                node.putOpt("rid", n.rid);
+                node.putOpt("name", n.name);
+                node.putOpt("domain", n.domain);
+                nodes.put(node);
+            }
+        }
+        o.put("nodes", nodes);
         return o;
     }
 

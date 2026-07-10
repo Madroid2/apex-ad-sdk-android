@@ -119,3 +119,35 @@ implementation files terse; add ADR-style context here or in a more specific doc
 - Keep OpenRTB field names aligned with the OpenRTB 2.6 model classes.
 - Request `ext` may include caller-provided fields plus Apex-specific extension
   values under the same `ext` object.
+
+## Device Identity (Trust Layer)
+
+- `AdvertisingIdProvider` resolves GAID without any Play Services library: it
+  binds the GMS advertising-ID service and speaks its AIDL wire protocol over a
+  raw `IBinder`, with an Amazon Fire OS `Settings.Secure` fallback. This keeps
+  the zero-runtime-dependency guarantee.
+- A zeroed GAID (`00000000-…`) means the user opted out. It is normalized to
+  `null` + `limitAdTracking=true` and must never be sent as a live `ifa`.
+- Identity resolution is IPC and must never block a bid request. The provider
+  caches a volatile snapshot; `DeviceInfoProvider.warmUp()` refreshes it on the
+  IO executor at SDK init.
+- The bid-request `ifa`/`user.id` are gated on: no LAT, COPPA off, and (under
+  GDPR) TCF Purpose 1 via `ConsentManager.canShareDeviceIdentifiers()`.
+- The device user agent is the real WebView UA
+  (`WebSettings.getDefaultUserAgent`), cached after first resolution. A
+  fabricated UA that mismatches the device is an IVT flag at exchanges — do not
+  reintroduce a hardcoded UA string.
+
+## Supply Chain & Event Notices (Trust Layer)
+
+- Every bid request carries a complete single-node SupplyChain object
+  (`source.schain` for OpenRTB 2.6 plus a `source.ext.schain` mirror for
+  2.5-era exchanges). Node `asi`/`sid` come from `ApexAdsConfig`
+  (`supplyChainDomain`, `sellerId`, defaulting to the app token).
+- `AuctionMacros` expands OpenRTB substitution macros (`${AUCTION_PRICE}`,
+  `${AUCTION_ID}`, …) in notice URLs. Expansion happens in `AdData.fromBid`
+  where the settlement price is known. A notice fired with the literal macro is
+  a dropped event on the bidder side.
+- Notice semantics: `nurl` (win) fires as before; `burl` (billing) fires at the
+  MRC-viewable impression in `ImpressionTracker`; `lurl` (loss, reason 102)
+  fires for losing bids in `OpenRTBAdRepository` after the winner is chosen.

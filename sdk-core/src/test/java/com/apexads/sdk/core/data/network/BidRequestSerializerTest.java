@@ -117,6 +117,59 @@ public class BidRequestSerializerTest {
     }
 
     @Test
+    public void serialize_source_writesSupplyChainInBothLocations() throws Exception {
+        BidRequest request = new BidRequest();
+        request.id = "req-1";
+        BidRequest.SupplyChainNode node = new BidRequest.SupplyChainNode();
+        node.asi = "apexads.net";
+        node.sid = "seller-1";
+        node.hp = 1;
+        node.rid = "req-1";
+        BidRequest.SupplyChain schain = new BidRequest.SupplyChain();
+        schain.complete = 1;
+        schain.ver = "1.0";
+        schain.nodes = Collections.singletonList(node);
+        request.source = new BidRequest.Source();
+        request.source.schain = schain;
+
+        JSONObject json = new JSONObject(BidRequestSerializer.serialize(request));
+        JSONObject source = json.getJSONObject("source");
+
+        // OpenRTB 2.6 first-class location.
+        JSONObject sc = source.getJSONObject("schain");
+        assertThat(sc.getInt("complete")).isEqualTo(1);
+        assertThat(sc.getString("ver")).isEqualTo("1.0");
+        JSONObject n = sc.getJSONArray("nodes").getJSONObject(0);
+        assertThat(n.getString("asi")).isEqualTo("apexads.net");
+        assertThat(n.getString("sid")).isEqualTo("seller-1");
+        assertThat(n.getInt("hp")).isEqualTo(1);
+        assertThat(n.getString("rid")).isEqualTo("req-1");
+
+        // 2.5-compat mirror.
+        assertThat(source.getJSONObject("ext").getJSONObject("schain")
+                .getJSONArray("nodes").getJSONObject(0).getString("asi"))
+                .isEqualTo("apexads.net");
+    }
+
+    @Test
+    public void serialize_deviceCarrierFields_written() throws Exception {
+        BidRequest request = new BidRequest();
+        request.id = "req-1";
+        BidRequest.Device device = new BidRequest.Device();
+        device.carrier = "TestCarrier";
+        device.mccmnc = "310-260";
+        device.ppi = 420;
+        request.device = device;
+
+        JSONObject json = new JSONObject(BidRequestSerializer.serialize(request));
+        JSONObject deviceJson = json.getJSONObject("device");
+
+        assertThat(deviceJson.getString("carrier")).isEqualTo("TestCarrier");
+        assertThat(deviceJson.getString("mccmnc")).isEqualTo("310-260");
+        assertThat(deviceJson.getInt("ppi")).isEqualTo(420);
+    }
+
+    @Test
     public void accessWrapper_wrapsSerialization() {
         BidRequest request = new BidRequest();
         request.id = "req-1";

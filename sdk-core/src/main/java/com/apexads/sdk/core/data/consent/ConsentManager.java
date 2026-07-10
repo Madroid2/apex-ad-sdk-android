@@ -73,6 +73,16 @@ public final class ConsentManager {
     }
 
     /**
+     * Whether device identifiers (GAID) may leave the device in the bid request.
+     * Under GDPR this requires IAB TCF Purpose 1 ("Store and/or access information
+     * on a device"); outside GDPR jurisdictions no purpose gate applies. LAT and
+     * COPPA suppression are enforced separately by the request builder.
+     */
+    public boolean canShareDeviceIdentifiers() {
+        return !isGdprApplicable() || hasPurposeConsent(PURPOSE_STORAGE);
+    }
+
+    /**
      * @return true if the IAB US Privacy string signals an opt-out of sale/sharing.
      *         Format: version char + 3 flag chars; index 2 ('Y'/'N') is the opt-out flag.
      */
