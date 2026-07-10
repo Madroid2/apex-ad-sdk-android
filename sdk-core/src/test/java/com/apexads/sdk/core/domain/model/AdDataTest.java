@@ -71,6 +71,34 @@ public class AdDataTest {
     }
 
     @Test
+    public void fromBid_expandsAuctionMacrosInNoticeUrls() {
+        BidResponse.Bid bid = new BidResponse.Bid();
+        bid.id = "bid-1";
+        bid.impid = "imp-1";
+        bid.adm = "<html/>";
+        bid.price = 2.5;
+        bid.nurl = "https://x.example/win?p=${AUCTION_PRICE}&id=${AUCTION_ID}";
+        bid.burl = "https://x.example/bill?p=${AUCTION_PRICE}&b=${AUCTION_BID_ID}";
+
+        AdData data = AdData.fromBid("request-1", bid, AdFormat.BANNER, "USD", 60);
+
+        assertThat(data.winNoticeUrl).isEqualTo("https://x.example/win?p=2.5&id=request-1");
+        assertThat(data.billingUrl).isEqualTo("https://x.example/bill?p=2.5&b=bid-1");
+    }
+
+    @Test
+    public void fromBid_withoutBurl_billingUrlIsNull() {
+        BidResponse.Bid bid = new BidResponse.Bid();
+        bid.id = "bid-1";
+        bid.impid = "imp-1";
+        bid.adm = "<html/>";
+
+        AdData data = AdData.fromBid("request-1", bid, AdFormat.BANNER, "USD", 60);
+
+        assertThat(data.billingUrl).isNull();
+    }
+
+    @Test
     public void withNativePayload_copiesOriginalFieldsAndAddsPayload() {
         AdData original = new AdData.Builder()
                 .requestId("req")
@@ -78,6 +106,7 @@ public class AdDataTest {
                 .bidId("bid")
                 .adMarkup("{}")
                 .winNoticeUrl("https://win")
+                .billingUrl("https://bill")
                 .creativeId("cr")
                 .adFormat(AdFormat.NATIVE)
                 .width(1)
@@ -97,6 +126,7 @@ public class AdDataTest {
         assertThat(next.requestId).isEqualTo("req");
         assertThat(next.nativePayload).isEqualTo(payload);
         assertThat(next.walletExtJson).isEqualTo("{wallet}");
+        assertThat(next.billingUrl).isEqualTo("https://bill");
     }
 
     @Test

@@ -17,6 +17,7 @@ import com.apexads.sdk.core.di.SdkFeature;
 import com.apexads.sdk.core.network.AdNetworkClient;
 import com.apexads.sdk.core.network.HttpAdNetworkClient;
 import com.apexads.sdk.core.network.MockAdExchange;
+import com.apexads.sdk.core.network.SdkExecutors;
 import com.apexads.sdk.core.network.WaterfallAdNetworkClient;
 import com.apexads.sdk.core.tracking.TrackingClient;
 import com.apexads.sdk.core.utils.AdLog;
@@ -51,11 +52,15 @@ public final class ApexServices {
     @NonNull
     public static ApexServices create(@NonNull Application application,
                                       @NonNull ApexAdsConfig config) {
+        DeviceInfoProvider deviceInfoProvider = new DeviceInfoProvider(application);
+        // Advertising ID (IPC) and WebView UA are slow to resolve; warm them now so
+        // the first bid request carries real identity instead of a cold cache.
+        deviceInfoProvider.warmUp(SdkExecutors.IO);
         return new ApexServices(
                 application.getApplicationContext(),
                 config,
                 new WaterfallAdNetworkClient(buildDemandSources(config)),
-                new DeviceInfoProvider(application),
+                deviceInfoProvider,
                 new ConsentManager(application));
     }
 
