@@ -69,8 +69,6 @@ public final class AdData {
                 .adMarkup(bid.adm != null ? bid.adm : "")
                 .winNoticeUrl(nurl)
                 .billingUrl(burl)
-                .winNoticeUrl(bid.nurl)
-                .billingNoticeUrl(bid.burl)
                 .creativeId(bid.crid)
                 .adFormat(format)
                 .width(bid.w != null ? bid.w : 0)
