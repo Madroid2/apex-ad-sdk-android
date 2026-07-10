@@ -58,13 +58,18 @@ public class OpenRTBRequestBuilder {
         ApexAdsConfig config = ApexSdkRuntime.getConfig();
         DeviceInfoProvider.DeviceInfo device = deviceInfoProvider.getDeviceInfo();
 
+        boolean identityAllowed = !device.limitAdTracking
+                && config.getCoppa() == 0
+                && consentManager.canShareDeviceIdentifiers();
+
         BidRequest request = new BidRequest();
         request.id = UUID.randomUUID().toString();
         request.imp = Collections.singletonList(buildImpression());
         request.app = buildApp(device);
-        request.device = buildDevice(device);
-        request.user = buildUser(device);
+        request.device = buildDevice(device, identityAllowed);
+        request.user = buildUser(device, identityAllowed);
         request.regs = buildRegs();
+        request.source = buildSource(request.id, config);
         request.at = BidRequest.AUCTION_FIRST_PRICE;
         request.tmax = (int) config.getRequestTimeoutMs();
         request.test = config.isTestMode() ? 1 : 0;
@@ -171,7 +176,8 @@ public class OpenRTBRequestBuilder {
         return app;
     }
 
-    private BidRequest.Device buildDevice(DeviceInfoProvider.DeviceInfo device) {
+    private BidRequest.Device buildDevice(DeviceInfoProvider.DeviceInfo device,
+                                          boolean identityAllowed) {
         BidRequest.Device d = new BidRequest.Device();
         d.ua = device.userAgent;
         d.make = device.manufacturer;
@@ -180,20 +186,28 @@ public class OpenRTBRequestBuilder {
         d.osv = device.osVersion;
         d.h = device.screenHeight;
         d.w = device.screenWidth;
+        d.ppi = device.ppi > 0 ? device.ppi : null;
         d.pxratio = (double) device.density;
         d.language = device.language;
+        d.carrier = device.carrier;
+        d.mccmnc = device.mccmnc;
         d.connectiontype = device.connectionType;
         d.js = 1;
         d.devicetype = device.isTablet ? 5 : 4;
-        if (!device.limitAdTracking) d.ifa = device.advertisingId;
+        if (identityAllowed) d.ifa = device.advertisingId;
         d.lmt = device.limitAdTracking ? 1 : 0;
         d.dnt = device.limitAdTracking ? 1 : 0;
+        if (device.geoCountry != null) {
+            d.geo = new BidRequest.Geo();
+            d.geo.country = device.geoCountry;
+        }
         return d;
     }
 
-    private BidRequest.User buildUser(DeviceInfoProvider.DeviceInfo device) {
+    private BidRequest.User buildUser(DeviceInfoProvider.DeviceInfo device,
+                                      boolean identityAllowed) {
         BidRequest.User user = new BidRequest.User();
-        user.id = device.advertisingId;
+        user.id = identityAllowed ? device.advertisingId : null;
         String tcf = consentManager.getTcfConsentString();
         user.consent = tcf;
         if (tcf != null) {
@@ -235,6 +249,28 @@ public class OpenRTBRequestBuilder {
         data.name = APEX_AUDIENCE_TAXONOMY_NAME;
         data.segment = segments;
         user.data = Collections.singletonList(data);
+    }
+
+    /**
+     * SupplyChain (schain 1.0): the SDK is the first, and for direct app inventory the
+     * only, hop between the publisher and the exchange. DSPs filter unauthorized supply
+     * on this object, so every request declares a complete single-node chain.
+     */
+    private BidRequest.Source buildSource(String requestId, ApexAdsConfig config) {
+        BidRequest.SupplyChainNode node = new BidRequest.SupplyChainNode();
+        node.asi = config.getSupplyChainDomain();
+        node.sid = config.getSellerId();
+        node.hp = 1;
+        node.rid = requestId;
+
+        BidRequest.SupplyChain schain = new BidRequest.SupplyChain();
+        schain.complete = 1;
+        schain.ver = "1.0";
+        schain.nodes = Collections.singletonList(node);
+
+        BidRequest.Source source = new BidRequest.Source();
+        source.schain = schain;
+        return source;
     }
 
     private BidRequest.Regs buildRegs() {

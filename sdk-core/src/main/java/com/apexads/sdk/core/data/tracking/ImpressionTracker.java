@@ -122,6 +122,12 @@ public final class ImpressionTracker {
         if (winUrl != null) {
             SdkExecutors.IO.execute(() -> trackingClient.fireTrackingUrl(winUrl));
         }
+        // burl is the billable event and must fire at the MRC-viewable impression,
+        // separately from the win notice — exchanges reconcile billing off it.
+        final String billingUrl = adData.billingUrl;
+        if (billingUrl != null) {
+            SdkExecutors.IO.execute(() -> trackingClient.fireTrackingUrl(billingUrl));
+        }
     }
 
     public void reset() {

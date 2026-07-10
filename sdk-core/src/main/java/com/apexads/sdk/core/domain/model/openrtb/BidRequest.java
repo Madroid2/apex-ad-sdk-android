@@ -15,6 +15,7 @@ public class BidRequest {
     public Device device;
     public User user;
     public Regs regs;
+    public Source source;
     public int at = AUCTION_FIRST_PRICE;
     public int tmax = 500;
     public List<String> cur;
@@ -136,12 +137,37 @@ public class BidRequest {
         public String osv;
         public Integer h;
         public Integer w;
+        public Integer ppi;
         public Double pxratio;
         public Integer js;
         public String language;
         public String carrier;
+        public String mccmnc;
         public Integer connectiontype;
         public String ifa;
+    }
+
+    /** OpenRTB 2.6 §3.2.2 Source object — inventory-source and supply-chain metadata. */
+    public static class Source {
+        public Integer fd;
+        public String tid;
+        public SupplyChain schain;
+    }
+
+    /** IAB SupplyChain object 1.0 — carried as {@code source.schain} (2.6) and {@code source.ext.schain} (2.5 compat). */
+    public static class SupplyChain {
+        public int complete;
+        public String ver = "1.0";
+        public List<SupplyChainNode> nodes;
+    }
+
+    public static class SupplyChainNode {
+        public String asi;
+        public String sid;
+        public Integer hp;
+        public String rid;
+        public String name;
+        public String domain;
     }
 
     public static class Geo {

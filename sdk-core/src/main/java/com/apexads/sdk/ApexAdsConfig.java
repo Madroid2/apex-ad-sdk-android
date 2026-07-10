@@ -24,6 +24,8 @@ public final class ApexAdsConfig {
     private final boolean testMode;
     private final boolean debugFakeFill;
     private final String sentryDsn;
+    private final String supplyChainDomain;
+    private final String sellerId;
 
     private ApexAdsConfig(Builder builder) {
         this.appToken = builder.appToken;
@@ -38,6 +40,8 @@ public final class ApexAdsConfig {
         this.testMode = builder.testMode;
         this.debugFakeFill = builder.debugFakeFill;
         this.sentryDsn = builder.sentryDsn;
+        this.supplyChainDomain = builder.supplyChainDomain;
+        this.sellerId = builder.sellerId;
     }
 
     @NonNull public String getAppToken() { return appToken; }
@@ -53,6 +57,8 @@ public final class ApexAdsConfig {
 
     public boolean isDebugFakeFill() { return debugFakeFill; }
     @Nullable public String getSentryDsn() { return sentryDsn; }
+    @NonNull public String getSupplyChainDomain() { return supplyChainDomain; }
+    @NonNull public String getSellerId() { return sellerId != null ? sellerId : appToken; }
 
     public static final class Builder {
         private final String appToken;
@@ -67,6 +73,8 @@ public final class ApexAdsConfig {
         private boolean testMode = false;
         private boolean debugFakeFill = false;
         private String sentryDsn = null;
+        private String supplyChainDomain = "apexads.net";
+        private String sellerId = null;
 
         public Builder(@NonNull String appToken) {
             if (appToken.trim().isEmpty()) throw new IllegalArgumentException("appToken must not be blank");
@@ -85,6 +93,11 @@ public final class ApexAdsConfig {
 
         public Builder debugFakeFill(boolean enabled) { debugFakeFill = enabled; return this; }
         public Builder sentryDsn(@Nullable String dsn) { sentryDsn = dsn; return this; }
+
+        /** Advertising system domain used as the SDK's SupplyChain node ({@code schain.nodes[].asi}). */
+        public Builder supplyChainDomain(@NonNull String domain) { supplyChainDomain = domain; return this; }
+        /** Seller identifier for the SupplyChain node ({@code sid}); defaults to the app token. */
+        public Builder sellerId(@Nullable String id) { sellerId = id; return this; }
 
         @NonNull
         public ApexAdsConfig build() {
