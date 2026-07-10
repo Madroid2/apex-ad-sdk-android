@@ -19,11 +19,17 @@ public final class ImpressionTracker {
 
     public static final long   MRC_MIN_DURATION_MS   = 1_000L;
 
+    /** Notified at most once, on the main thread, when the MRC-viewable impression fires. */
+    public interface Listener {
+        void onImpressionFired();
+    }
+
     private final TrackingClient trackingClient;
     private final Rect checkRect = new Rect();
     private boolean fired = false;
     private long visibleStart = 0L;
 
+    @Nullable private Listener listener;
     @Nullable private ViewTreeObserver.OnPreDrawListener preDrawListener;
     @Nullable private View.OnAttachStateChangeListener attachStateListener;
     @Nullable private View attachedView;
@@ -33,10 +39,16 @@ public final class ImpressionTracker {
     }
 
     public void attach(@NonNull View view, @NonNull AdData adData) {
+        attach(view, adData, null);
+    }
+
+    public void attach(@NonNull View view, @NonNull AdData adData,
+                       @Nullable Listener impressionListener) {
         if (fired) return;
 
         detach(); // release any previous attachment first
 
+        listener = impressionListener;
         attachedView = view;
 
         preDrawListener = new ViewTreeObserver.OnPreDrawListener() {
@@ -127,6 +139,9 @@ public final class ImpressionTracker {
         final String billingUrl = adData.billingUrl;
         if (billingUrl != null) {
             SdkExecutors.IO.execute(() -> trackingClient.fireTrackingUrl(billingUrl));
+        }
+        if (listener != null) {
+            listener.onImpressionFired();
         }
     }
 
