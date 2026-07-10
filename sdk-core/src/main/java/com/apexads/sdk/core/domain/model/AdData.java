@@ -12,6 +12,7 @@ public final class AdData {
     public final String bidId;
     public final String adMarkup;
     @Nullable public final String winNoticeUrl;
+    @Nullable public final String billingNoticeUrl;
     @Nullable public final String creativeId;
     public final AdFormat adFormat;
     public final int width;
@@ -30,6 +31,7 @@ public final class AdData {
         bidId = b.bidId;
         adMarkup = b.adMarkup;
         winNoticeUrl = b.winNoticeUrl;
+        billingNoticeUrl = b.billingNoticeUrl;
         creativeId = b.creativeId;
         adFormat = b.adFormat;
         width = b.width;
@@ -59,6 +61,7 @@ public final class AdData {
                 .bidId(bid.id)
                 .adMarkup(bid.adm != null ? bid.adm : "")
                 .winNoticeUrl(bid.nurl)
+                .billingNoticeUrl(bid.burl)
                 .creativeId(bid.crid)
                 .adFormat(format)
                 .width(bid.w != null ? bid.w : 0)
@@ -74,7 +77,8 @@ public final class AdData {
     public AdData withNativePayload(@NonNull NativeAdPayload payload) {
         return new Builder()
                 .requestId(requestId).impressionId(impressionId).bidId(bidId)
-                .adMarkup(adMarkup).winNoticeUrl(winNoticeUrl).creativeId(creativeId)
+                .adMarkup(adMarkup).winNoticeUrl(winNoticeUrl).billingNoticeUrl(billingNoticeUrl)
+                .creativeId(creativeId)
                 .adFormat(adFormat).width(width).height(height).cpm(cpm)
                 .currency(currency).expiresAt(expiresAt).vastXml(vastXml)
                 .walletExtJson(walletExtJson)
@@ -84,7 +88,7 @@ public final class AdData {
 
     public static final class Builder {
         String requestId, impressionId, bidId, adMarkup = "", currency = "USD";
-        String winNoticeUrl, creativeId, vastXml, walletExtJson;
+        String winNoticeUrl, billingNoticeUrl, creativeId, vastXml, walletExtJson;
         AdFormat adFormat;
         int width, height;
         double cpm;
@@ -96,6 +100,7 @@ public final class AdData {
         public Builder bidId(String v) { bidId = v; return this; }
         public Builder adMarkup(String v) { adMarkup = v; return this; }
         public Builder winNoticeUrl(String v) { winNoticeUrl = v; return this; }
+        public Builder billingNoticeUrl(String v) { billingNoticeUrl = v; return this; }
         public Builder creativeId(String v) { creativeId = v; return this; }
         public Builder adFormat(AdFormat v) { adFormat = v; return this; }
         public Builder width(int v) { width = v; return this; }

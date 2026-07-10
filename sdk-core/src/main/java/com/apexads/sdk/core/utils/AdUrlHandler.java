@@ -8,6 +8,8 @@ import android.net.Uri;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.apexads.sdk.BuildConfig;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Locale;
@@ -16,6 +18,12 @@ public final class AdUrlHandler {
 
     private static final String SCHEME_HTTP = "http";
     private static final String SCHEME_HTTPS = "https";
+
+    // Local/private hosts are blocked (SSRF / local-network protection) except in
+    // debug builds, where the local demand platform serves click-tracking
+    // redirects from a private LAN IP. Package-visible so tests can pin the
+    // production-strict path regardless of the build variant they run under.
+    static boolean allowLocalHosts = BuildConfig.DEBUG;
 
     private AdUrlHandler() {}
 
@@ -89,7 +97,11 @@ public final class AdUrlHandler {
         if (uri.isOpaque() || uri.getHost() == null || uri.getHost().isEmpty()) {
             return null;
         }
-        if (isLocalOrPrivateHost(uri.getHost())) {
+        // Reject local/private hosts (SSRF / local-network protection). Exempt in
+        // debug (see allowLocalHosts): the local demand platform serves click
+        // redirects from a private LAN IP (e.g. 192.168.x:3000), so blocking it
+        // there would make every ad's CTA dead. Enforced in release builds.
+        if (isLocalOrPrivateHost(uri.getHost()) && !allowLocalHosts) {
             return null;
         }
 

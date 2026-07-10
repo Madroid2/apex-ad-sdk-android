@@ -24,6 +24,7 @@ public final class ImpressionTracker {
     private boolean fired = false;
     private long visibleStart = 0L;
 
+    @Nullable private Runnable onFiredCallback;
     @Nullable private ViewTreeObserver.OnPreDrawListener preDrawListener;
     @Nullable private View.OnAttachStateChangeListener attachStateListener;
     @Nullable private View attachedView;
@@ -33,8 +34,13 @@ public final class ImpressionTracker {
     }
 
     public void attach(@NonNull View view, @NonNull AdData adData) {
+        attach(view, adData, null);
+    }
+
+    public void attach(@NonNull View view, @NonNull AdData adData, @Nullable Runnable onFired) {
         if (fired) return;
 
+        this.onFiredCallback = onFired;
         detach(); // release any previous attachment first
 
         attachedView = view;
@@ -118,9 +124,19 @@ public final class ImpressionTracker {
         if (fired) return;
         fired = true;
         AdLog.d("ImpressionTracker: firing impression bid=%s", adData.bidId);
+        if (onFiredCallback != null) {
+            onFiredCallback.run();
+        }
         final String winUrl = adData.winNoticeUrl;
         if (winUrl != null) {
             SdkExecutors.IO.execute(() -> trackingClient.fireTrackingUrl(winUrl));
+        }
+        // OpenRTB burl — the billable-impression notice. Fired at the same
+        // MRC-viewable moment as nurl; DSPs that bill on burl (rather than on
+        // win) depend on this, and DSPs that bill on either de-duplicate.
+        final String billingUrl = adData.billingNoticeUrl;
+        if (billingUrl != null) {
+            SdkExecutors.IO.execute(() -> trackingClient.fireTrackingUrl(billingUrl));
         }
     }
 

@@ -2,8 +2,11 @@ package com.apexads.demo.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.apexads.sdk.banner.BannerAd
+import com.apexads.sdk.banner.BannerAdListener
 import com.apexads.sdk.core.error.AdError
 import com.apexads.sdk.core.models.AdFormat
+import com.apexads.sdk.core.models.AdSize
 import com.apexads.sdk.inappbidding.ApexInAppBidder
 import com.apexads.sdk.inappbidding.BidToken
 import com.apexads.sdk.inappbidding.InAppBidListener
@@ -71,10 +74,45 @@ class AdViewModel : ViewModel() {
 
     // ── Banner ─────────────────────────────────────────────────────────────────
 
+    // Held here so the loaded ad survives Activity recreation on rotation.
+    private var _bannerAd: BannerAd? = null
+    val bannerAd: BannerAd? get() = _bannerAd
+
+    fun loadBanner() {
+        if (_bannerAd == null) {
+            _bannerAd = BannerAd.Builder("demo-banner-placement")
+                .adSize(AdSize.BANNER_320x50)
+                .listener(object : BannerAdListener {
+                    override fun onAdLoaded() {
+                        onBannerLoaded()
+                        log("Banner", "onAdLoaded ✓")
+                    }
+                    override fun onAdFailed(error: AdError) {
+                        onBannerError(error)
+                        log("Banner", "onAdFailed: ${error.message}")
+                    }
+                    override fun onAdClicked() = log("Banner", "onAdClicked")
+                    override fun onAdImpression() {
+                        onBannerShown()
+                        log("Banner", "onAdImpression (MRC threshold met)")
+                    }
+                })
+                .build()
+        }
+        onBannerLoading()
+        log("Banner", "Loading 320×50 banner ad…")
+        _bannerAd!!.load()
+    }
+
     fun onBannerLoading() { _bannerState.value = AdState.Loading }
     fun onBannerLoaded() { _bannerState.value = AdState.Loaded }
     fun onBannerError(error: AdError) { _bannerState.value = AdState.Error(error) }
     fun onBannerShown() { _bannerState.value = AdState.Shown }
+
+    override fun onCleared() {
+        _bannerAd?.destroy()
+        _bannerAd = null
+    }
 
     // ── Interstitial ───────────────────────────────────────────────────────────
 

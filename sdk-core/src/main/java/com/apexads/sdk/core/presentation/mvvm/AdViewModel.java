@@ -128,13 +128,24 @@ public abstract class AdViewModel {
     public void onDisplayed() {
         synchronized (stateLock) {
             if (destroyed) return;
-            adData = null;
             loadInProgress = false;
-            onAdClearedLocked();
+            if (!shouldRetainAdDataOnDisplay()) {
+                adData = null;
+                onAdClearedLocked();
+            }
             cache.remove(format, placementId);
             transitionToLocked(AdState.DISPLAYED);
             if (viewListener != null) viewListener.onAdDisplayed();
         }
+    }
+
+    /**
+     * Return true to keep {@code adData} alive after {@link #onDisplayed()} so the creative
+     * markup can be re-rendered into a new view after a configuration change (e.g. rotation)
+     * without a new network request.  Subclasses override to opt in; default is false (one-shot).
+     */
+    protected boolean shouldRetainAdDataOnDisplay() {
+        return false;
     }
 
     public boolean checkAndMarkExpired() {

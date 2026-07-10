@@ -5,9 +5,7 @@ import com.apexads.sdk.ApexAds
 import com.apexads.sdk.ApexAdsConfig
 import com.apexads.sdk.appopen.AppOpenAd
 import com.apexads.sdk.core.error.AdError
-import com.apexads.sdk.core.network.MockAdExchange
 import com.apexads.sdk.core.utils.AdLog
-import com.apexads.sdk.internal.ApexSdkRuntime
 import com.apexads.sdk.wallet.WalletAdExtension
 
 class DemoApplication : Application() {
@@ -19,15 +17,18 @@ class DemoApplication : Application() {
             .debugLogging(true)
             .testMode(true)
             .cacheTtlSeconds(120)
+            // No hardcoded ad-server URL: the debug build auto-targets this
+            // machine's current LAN IP (see sdk-core/build.gradle.kts →
+            // resolveDebugAdServerHost), so a DHCP renewal can't silently pin
+            // the app to a dead address. Override per-machine with
+            // `apex.adServerHost=<ip>` in local.properties if needed.
+            // Real demand first; mock creatives are a debug-only FALLBACK that
+            // only renders when the live auction returns no fill.
+            .debugFakeFill(true)
             .sentryDsn(SENTRY_DSN)
             .build()
 
         ApexAds.init(this, config)
-
-        // Swap in the mock exchange so the debug demo works without any live server.
-        if (BuildConfig.DEBUG) {
-            ApexSdkRuntime.setNetworkClientForTesting(MockAdExchange())
-        }
 
         // Activate the wallet CTA feature for Interstitial and MRECT Banner ads.
         // Without this line, ads load normally — the wallet panel is simply absent.

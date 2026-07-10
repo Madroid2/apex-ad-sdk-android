@@ -11,6 +11,8 @@ import com.apexads.sdk.core.presentation.mvvm.AdViewModel;
 
 public final class BannerAdViewModel extends AdViewModel {
 
+    private volatile boolean impressionFired = false;
+
     BannerAdViewModel(
             @NonNull AdRepository repository,
             @NonNull AdCache cache,
@@ -24,5 +26,23 @@ public final class BannerAdViewModel extends AdViewModel {
     @Override
     protected AdData onAdLoaded(@NonNull AdData adData) {
         return adData;
+    }
+
+    @Override
+    protected boolean shouldRetainAdDataOnDisplay() {
+        return true;
+    }
+
+    @Override
+    protected void onAdClearedLocked() {
+        impressionFired = false;
+    }
+
+    public void markImpressionFired() {
+        impressionFired = true;
+    }
+
+    public boolean hasImpressionFired() {
+        return impressionFired;
     }
 }

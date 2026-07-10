@@ -11,6 +11,7 @@ import com.apexads.sdk.core.models.AdSize;
 import com.apexads.sdk.core.domain.repository.AdRepository;
 import com.apexads.sdk.core.presentation.mvvm.AdState;
 import com.apexads.sdk.core.presentation.mvvm.AdStateObserver;
+
 import com.apexads.sdk.core.presentation.mvvm.AdViewModelListener;
 import com.apexads.sdk.core.data.repository.OpenRTBAdRepository;
 import com.apexads.sdk.core.request.OpenRTBRequestBuilder;
@@ -74,8 +75,12 @@ public final class BannerAd {
 
         view.bind(viewModel, listener);
 
-        view.render(data);
-        viewModel.onDisplayed();
+        // After a configuration change (rotation) the ViewModel is already in DISPLAYED state
+        // and bind() has re-rendered the retained creative — skip the first-show steps.
+        if (viewModel.getState() != AdState.DISPLAYED) {
+            view.render(data);
+            viewModel.onDisplayed();
+        }
     }
 
     @NonNull

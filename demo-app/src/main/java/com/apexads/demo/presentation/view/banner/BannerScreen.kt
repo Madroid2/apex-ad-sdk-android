@@ -15,39 +15,40 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.apexads.demo.viewmodel.AdViewModel
-import com.apexads.sdk.banner.BannerAd
-import com.apexads.sdk.banner.BannerAdListener
 import com.apexads.sdk.banner.BannerAdView
-import com.apexads.sdk.core.error.AdError
-import com.apexads.sdk.core.models.AdSize
 
 @Composable
 fun BannerScreen(viewModel: AdViewModel) {
     val state by viewModel.bannerState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    // BannerAdView is a real Android View (WebView-based). Persist it across recompositions
-    // so the rendered creative survives state changes.
+    // BannerAdView is a real Android View (WebView-based). A new instance is needed after
+    // Activity recreation (rotation), but the BannerAd itself lives in the ViewModel and
+    // survives — so show() re-renders the retained creative without a network round-trip.
     val bannerView = remember { BannerAdView(context) }
-    var bannerAd by remember { mutableStateOf<BannerAd?>(null) }
 
-    // Show the ad exactly once per Loaded transition.
+    // First-show: fires when the ad transitions to Loaded.
     LaunchedEffect(state) {
         if (state is AdViewModel.AdState.Loaded) {
-            bannerAd?.show(bannerView)
+            viewModel.bannerAd?.show(bannerView)
         }
     }
 
-    // Destroy the WebView when the screen leaves the composition.
+    // Rotation re-attach: fires whenever bannerView is (re-)created. show() is a no-op if
+    // no ad is loaded yet; if the ViewModel is already DISPLAYED it re-renders into the new view.
+    LaunchedEffect(bannerView) {
+        viewModel.bannerAd?.show(bannerView)
+    }
+
+    // Destroy the WebView when the screen leaves the composition permanently.
+    // BannerAd itself is destroyed in AdViewModel.onCleared().
     DisposableEffect(Unit) {
         onDispose { bannerView.destroy() }
     }
@@ -81,29 +82,7 @@ fun BannerScreen(viewModel: AdViewModel) {
         )
 
         Button(
-            onClick = {
-                viewModel.onBannerLoading()
-                viewModel.log("Banner", "Loading 320×50 banner ad…")
-                bannerAd = BannerAd.Builder("demo-banner-placement")
-                    .adSize(AdSize.BANNER_320x50)
-                    .listener(object : BannerAdListener {
-                        override fun onAdLoaded() {
-                            viewModel.onBannerLoaded()
-                            viewModel.log("Banner", "onAdLoaded ✓")
-                        }
-                        override fun onAdFailed(error: AdError) {
-                            viewModel.onBannerError(error)
-                            viewModel.log("Banner", "onAdFailed: ${error.message}")
-                        }
-                        override fun onAdClicked() = viewModel.log("Banner", "onAdClicked")
-                        override fun onAdImpression() {
-                            viewModel.onBannerShown()
-                            viewModel.log("Banner", "onAdImpression (MRC threshold met)")
-                        }
-                    })
-                    .build()
-                    .also { it.load() }
-            },
+            onClick = { viewModel.loadBanner() },
             enabled = state !is AdViewModel.AdState.Loading,
         ) {
             Text("Load Banner")

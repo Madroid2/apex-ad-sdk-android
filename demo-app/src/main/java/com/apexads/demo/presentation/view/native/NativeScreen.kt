@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -146,7 +147,12 @@ private fun NativeAdCard(ad: NativeAd, context: android.content.Context) {
     val iconBitmap by rememberBitmapFromUrl(ad.iconUrl)
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        // Whole-card tap navigates, matching native-ad UX and the SDK's
+        // NativeAdView behaviour. Clicks route through the SDK so tracking +
+        // the onNativeAdClicked callback fire.
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { ad.handleClick(context) },
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
     ) {
         Column {
@@ -197,7 +203,7 @@ private fun NativeAdCard(ad: NativeAd, context: android.content.Context) {
                 )
 
                 Button(
-                    onClick = { /* handled by SDK via NativeAdView binding below */ },
+                    onClick = { ad.handleClick(context) },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                     ),
@@ -208,8 +214,9 @@ private fun NativeAdCard(ad: NativeAd, context: android.content.Context) {
         }
     }
 
-    // Zero-size AndroidView that binds the NativeAdView for SDK click/impression tracking.
-    // The Compose card above handles display; the SDK view handles event registration.
+    // Zero-size AndroidView that binds the NativeAdView to fire impression
+    // trackers. The Compose card above handles display and routes clicks through
+    // ad.handleClick(); this view only registers the impression.
     val trackingView = remember(ad) {
         NativeAdView(context).also { nv -> ad.bindTo(nv) }
     }

@@ -27,6 +27,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.apexads.sdk.BuildConfig;
 import com.apexads.sdk.banner.presentation.view.mraid.MRAIDBridge;
 import com.apexads.sdk.core.di.WalletDelegate;
 import com.apexads.sdk.core.models.AdData;
@@ -82,7 +83,12 @@ public final class InterstitialActivity extends Activity {
         webView.getSettings().setJavaScriptEnabled(true);
         webView.getSettings().setDomStorageEnabled(true);
         webView.getSettings().setMediaPlaybackRequiresUserGesture(false);
-        webView.getSettings().setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
+        // Debug serves http creative assets from the local demand platform into
+        // an https-base document (mixed content); production is https end-to-end.
+        webView.getSettings().setMixedContentMode(
+                BuildConfig.DEBUG
+                        ? WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                        : WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
         root.addView(webView, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
@@ -127,7 +133,10 @@ public final class InterstitialActivity extends Activity {
             "<style>html,body{margin:0;padding:0;overflow:hidden;}</style>" +
             "<script>" + MRAIDBridge.getMRAIDScript() + "</script>" +
             "</head><body>" + adData.adMarkup + "</body></html>";
-        webView.loadDataWithBaseURL("https://apexads.sdk", html, "text/html", "UTF-8", null);
+        // Debug: http base to stay same-scheme with local http creative assets
+        // (avoids the Chromium mixed-content block); release: https.
+        String baseUrl = BuildConfig.DEBUG ? "http://apexads.sdk" : "https://apexads.sdk";
+        webView.loadDataWithBaseURL(baseUrl, html, "text/html", "UTF-8", null);
 
         tvCountdown = new TextView(this);
         tvCountdown.setTextColor(Color.WHITE);

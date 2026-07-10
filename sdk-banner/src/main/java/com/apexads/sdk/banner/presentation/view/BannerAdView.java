@@ -14,6 +14,7 @@ import android.widget.FrameLayout;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.apexads.sdk.BuildConfig;
 import com.apexads.sdk.banner.BannerAd;
 import com.apexads.sdk.banner.BannerAdListener;
 import com.apexads.sdk.banner.BannerAdViewModel;
@@ -31,6 +32,12 @@ import com.apexads.sdk.internal.ApexFeatureAccess;
 import com.apexads.sdk.internal.ApexSdkRuntime;
 
 public class BannerAdView extends FrameLayout {
+
+    // Synthetic base origin for the MRAID document. Debug uses http so it is
+    // same-scheme with the local demand platform's http creative assets (no
+    // mixed-content block); release uses https to match production assets.
+    private static final String MRAID_BASE_URL =
+            BuildConfig.DEBUG ? "http://apexads.sdk" : "https://apexads.sdk";
 
     private final WebView webView;
     private final AdNavigationGuard navigationGuard = new AdNavigationGuard("BannerAdView");
@@ -55,7 +62,6 @@ public class BannerAdView extends FrameLayout {
     public BannerAdView(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         webView = new WebView(context);
-
         stateObserver = state -> {
             if (state == AdState.EXPIRED) {
                 AdLog.d("BannerAdView: ad expired — clearing WebView");
@@ -78,9 +84,23 @@ public class BannerAdView extends FrameLayout {
         boundViewModel = viewModel;
         listener = adListener;
         viewModel.getStateObservable().addObserver(stateObserver);
+
+        // Re-render retained creative after a configuration change (e.g. rotation).
+        // The ViewModel stays DISPLAYED across rotation; the view is new and needs re-populating.
+        if (viewModel.getState() == AdState.DISPLAYED) {
+            AdData retained = viewModel.getAdData();
+            if (retained != null && !retained.isExpired()) {
+                AdLog.d("BannerAdView: re-rendering retained creative after config change");
+                renderInternal(retained, viewModel.hasImpressionFired());
+            }
+        }
     }
 
     public void render(@NonNull AdData adData) {
+        renderInternal(adData, false);
+    }
+
+    private void renderInternal(@NonNull AdData adData, boolean skipImpression) {
         if (destroyed) {
             AdLog.w("BannerAdView: render() ignored after destroy()");
             return;
@@ -88,8 +108,8 @@ public class BannerAdView extends FrameLayout {
 
         if (impressionTracker != null) {
             impressionTracker.detach();
+            impressionTracker = null;
         }
-        impressionTracker = new ImpressionTracker(ApexSdkRuntime.getTrackingClient());
         renderedAdData = adData;
         navigationGuard.reset(adData);
 
@@ -99,8 +119,18 @@ public class BannerAdView extends FrameLayout {
                 + "<script>" + MRAIDBridge.getMRAIDScript() + "</script>"
                 + "</head><body>" + adData.adMarkup + "</body></html>";
 
-        webView.loadDataWithBaseURL("https://apexads.sdk", html, "text/html", "UTF-8", null);
-        impressionTracker.attach(this, adData);
+        // Base origin scheme must match the creative asset scheme or the assets
+        // are "mixed content" and Chromium blocks them (even with ALWAYS_ALLOW,
+        // which is unreliable for loadDataWithBaseURL). Debug creatives load http
+        // assets from the local demand platform; production loads https. Matching
+        // the scheme eliminates mixed content entirely.
+        webView.loadDataWithBaseURL(MRAID_BASE_URL, html, "text/html", "UTF-8", null);
+
+        if (!skipImpression) {
+            impressionTracker = new ImpressionTracker(ApexSdkRuntime.getTrackingClient());
+            BannerAdViewModel vm = boundViewModel;
+            impressionTracker.attach(this, adData, vm != null ? vm::markImpressionFired : null);
+        }
 
         WalletDelegate delegate = ApexFeatureAccess.getFeature(WalletDelegate.class);
         if (adData.walletExtJson != null
@@ -114,8 +144,8 @@ public class BannerAdView extends FrameLayout {
                     });
         }
 
-        AdLog.d("BannerAdView: rendering cpm=$%.2f wallet=%s",
-                adData.cpm, adData.walletExtJson != null ? "yes" : "no");
+        AdLog.d("BannerAdView: rendering cpm=$%.2f wallet=%s skip_impression=%b",
+                adData.cpm, adData.walletExtJson != null ? "yes" : "no", skipImpression);
     }
 
     @Override
@@ -142,16 +172,20 @@ public class BannerAdView extends FrameLayout {
         }
     }
 
-    /** Full teardown: unbinds the ViewModel, tracker, listener and WebView. Idempotent. */
+    /**
+     * Tears down this view's resources (WebView, impression tracker, listener).  The bound
+     * ViewModel is intentionally NOT destroyed here — it may survive a configuration change
+     * to allow re-rendering the creative into a new view without a fresh network request.
+     * The publisher is responsible for calling {@link BannerAd#destroy()} when the placement
+     * is permanently removed (e.g. in {@code ViewModel.onCleared()}).
+     */
     public void destroy() {
         // WebView throws if touched again after destroy() — make re-entry a no-op.
         if (destroyed) return;
         destroyed = true;
 
-        // Detach from the ViewModel; this also cancels any in-flight load callbacks.
         if (boundViewModel != null) {
             boundViewModel.getStateObservable().removeObserver(stateObserver);
-            boundViewModel.destroy();
             boundViewModel = null;
         }
 
@@ -199,7 +233,8 @@ public class BannerAdView extends FrameLayout {
         }
 
         if (impressionTracker != null && renderedAdData != null && !renderedAdData.isExpired()) {
-            impressionTracker.attach(this, renderedAdData);
+            BannerAdViewModel vm = boundViewModel;
+            impressionTracker.attach(this, renderedAdData, vm != null ? vm::markImpressionFired : null);
         }
         notifyMraidViewable(true);
     }
@@ -219,7 +254,15 @@ public class BannerAdView extends FrameLayout {
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setMediaPlaybackRequiresUserGesture(false);
-        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
+        // The ad document is loaded with an https base origin (apexads.sdk), so
+        // http creative assets are "mixed content". In production, creatives are
+        // served over https and COMPATIBILITY_MODE is correct. In debug the local
+        // demand platform serves assets over plain http on the LAN, so allow
+        // mixed content there or product images render broken.
+        settings.setMixedContentMode(
+                BuildConfig.DEBUG
+                        ? WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                        : WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
         settings.setUseWideViewPort(true);
         settings.setLoadWithOverviewMode(true);
 

@@ -2,9 +2,15 @@ package com.apexads.sdk.core.utils;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import org.junit.After;
 import org.junit.Test;
 
 public class AdUrlHandlerTest {
+
+    @After
+    public void restoreLocalHostPolicy() {
+        AdUrlHandler.allowLocalHosts = com.apexads.sdk.BuildConfig.DEBUG;
+    }
 
     @Test
     public void normalizeExternalWebUrl_allowsHttpAndHttpsWithHost() {
@@ -37,6 +43,9 @@ public class AdUrlHandlerTest {
 
     @Test
     public void normalizeExternalWebUrl_rejectsLocalAndPrivateHosts() {
+        // This asserts the production (release) SSRF protection; debug builds
+        // intentionally relax it, so pin strict mode for this test.
+        AdUrlHandler.allowLocalHosts = false;
         assertThat(AdUrlHandler.normalizeExternalWebUrl("https://localhost/click")).isNull();
         assertThat(AdUrlHandler.normalizeExternalWebUrl("https://ad.local/click")).isNull();
         assertThat(AdUrlHandler.normalizeExternalWebUrl("http://127.0.0.1/click")).isNull();
@@ -47,5 +56,16 @@ public class AdUrlHandlerTest {
         assertThat(AdUrlHandler.normalizeExternalWebUrl("http://2130706433/click")).isNull();
         assertThat(AdUrlHandler.normalizeExternalWebUrl("http://0177.0.0.1/click")).isNull();
         assertThat(AdUrlHandler.normalizeExternalWebUrl("http://[::ffff:127.0.0.1]/click")).isNull();
+    }
+
+    @Test
+    public void normalizeExternalWebUrl_allowsPrivateHostsWhenDebugRelaxationOn() {
+        // Debug builds relax the private-host block so the local demand platform's
+        // click-tracking redirects (private LAN IP) work end-to-end.
+        AdUrlHandler.allowLocalHosts = true;
+        assertThat(AdUrlHandler.normalizeExternalWebUrl("http://192.168.2.108:3000/api/track/click?redirect=x"))
+                .isEqualTo("http://192.168.2.108:3000/api/track/click?redirect=x");
+        // Scheme / malformed checks still apply even with the relaxation on.
+        assertThat(AdUrlHandler.normalizeExternalWebUrl("javascript:alert(1)")).isNull();
     }
 }

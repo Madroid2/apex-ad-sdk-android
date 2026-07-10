@@ -1,5 +1,7 @@
 package com.apexads.sdk.nativeads;
 
+import android.content.Context;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -14,6 +16,7 @@ import com.apexads.sdk.core.presentation.mvvm.AdViewModelListener;
 import com.apexads.sdk.core.data.repository.OpenRTBAdRepository;
 import com.apexads.sdk.core.request.OpenRTBRequestBuilder;
 import com.apexads.sdk.core.utils.AdLog;
+import com.apexads.sdk.core.utils.AdUrlHandler;
 import com.apexads.sdk.internal.ApexSdkRuntime;
 
 public final class NativeAd {
@@ -66,6 +69,28 @@ public final class NativeAd {
             return;
         }
         view.bind(payload, ApexSdkRuntime.getTrackingClient());
+    }
+
+    /**
+     * Triggers the ad's click-through for a custom-rendered native layout
+     * (e.g. Jetpack Compose), where the publisher draws the assets themselves
+     * instead of binding a {@link NativeAdView}. Opens the click URL in the
+     * browser and notifies {@code onNativeAdClicked}. Wire this to the
+     * onClick of your CTA (and/or the whole ad card).
+     *
+     * @return true if a click-through was opened.
+     */
+    public boolean handleClick(@NonNull Context context) {
+        NativeAdPayload payload = viewModel.getNativePayload();
+        if (payload == null || payload.clickUrl == null) {
+            AdLog.w("NativeAd: handleClick() before load, or ad has no click URL");
+            return false;
+        }
+        boolean opened = AdUrlHandler.openExternalUrl(context, payload.clickUrl, "NativeAd");
+        if (opened && listener != null) {
+            listener.onNativeAdClicked();
+        }
+        return opened;
     }
 
     public boolean isReady() {
