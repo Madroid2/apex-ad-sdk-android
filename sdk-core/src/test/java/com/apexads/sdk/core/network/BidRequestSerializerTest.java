@@ -152,6 +152,35 @@ public class BidRequestSerializerTest {
     }
 
     @Test
+    public void serialize_sourceOmidIdentifiers_writtenUnderExt() throws Exception {
+        BidRequest request = new BidRequest();
+        request.id = "req-1";
+        request.source = new BidRequest.Source();
+        request.source.omidpn = "Apexads";
+        request.source.omidpv = "1.5.0";
+
+        JSONObject json = new JSONObject(BidRequestSerializer.serialize(request));
+        JSONObject ext = json.getJSONObject("source").getJSONObject("ext");
+
+        assertThat(ext.getString("omidpn")).isEqualTo("Apexads");
+        assertThat(ext.getString("omidpv")).isEqualTo("1.5.0");
+        assertThat(json.getJSONObject("source").has("schain")).isFalse();
+    }
+
+    @Test
+    public void serialize_sourceWithoutOmidOrSchain_omitsExt() throws Exception {
+        BidRequest request = new BidRequest();
+        request.id = "req-1";
+        request.source = new BidRequest.Source();
+        request.source.tid = "t-1";
+
+        JSONObject json = new JSONObject(BidRequestSerializer.serialize(request));
+
+        assertThat(json.getJSONObject("source").getString("tid")).isEqualTo("t-1");
+        assertThat(json.getJSONObject("source").has("ext")).isFalse();
+    }
+
+    @Test
     public void serialize_deviceCarrierFields_written() throws Exception {
         BidRequest request = new BidRequest();
         request.id = "req-1";

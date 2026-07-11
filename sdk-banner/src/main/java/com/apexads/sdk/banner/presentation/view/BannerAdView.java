@@ -19,6 +19,7 @@ import com.apexads.sdk.banner.BannerAd;
 import com.apexads.sdk.banner.BannerAdListener;
 import com.apexads.sdk.banner.BannerAdViewModel;
 import com.apexads.sdk.banner.presentation.view.mraid.MRAIDBridge;
+import com.apexads.sdk.core.di.MeasurementDelegate;
 import com.apexads.sdk.core.di.WalletDelegate;
 import com.apexads.sdk.core.models.AdData;
 import com.apexads.sdk.core.presentation.mvvm.AdState;
@@ -47,6 +48,7 @@ public class BannerAdView extends FrameLayout {
     @Nullable private BannerAdListener listener;
     @Nullable private BannerAdViewModel boundViewModel;
     @Nullable private AdData renderedAdData;
+    @Nullable private MeasurementDelegate.AdSession measurementSession;
 
     private final AdStateObserver stateObserver;
     private boolean destroyed;
@@ -119,6 +121,18 @@ public class BannerAdView extends FrameLayout {
                 + "<script>" + MRAIDBridge.getMRAIDScript() + "</script>"
                 + "</head><body>" + adData.adMarkup + "</body></html>";
 
+        // OMID: one measurement session per rendered creative. The delegate injects
+        // the OMID JS service into the document so DSP-side verification scripts
+        // (DV360 Active View, IAS, DV) can observe this WebView.
+        if (measurementSession != null) {
+            measurementSession.finish();
+            measurementSession = null;
+        }
+        MeasurementDelegate measurement = ApexFeatureAccess.getFeature(MeasurementDelegate.class);
+        if (measurement != null) {
+            html = measurement.enrichHtml(html);
+        }
+
         // Base origin scheme must match the creative asset scheme or the assets
         // are "mixed content" and Chromium blocks them (even with ALWAYS_ALLOW,
         // which is unreliable for loadDataWithBaseURL). Debug creatives load http
@@ -126,10 +140,13 @@ public class BannerAdView extends FrameLayout {
         // the scheme eliminates mixed content entirely.
         webView.loadDataWithBaseURL(MRAID_BASE_URL, html, "text/html", "UTF-8", null);
 
+        if (measurement != null) {
+            measurementSession = measurement.startDisplaySession(this, webView);
+        }
+
         if (!skipImpression) {
             impressionTracker = new ImpressionTracker(ApexSdkRuntime.getTrackingClient());
-            BannerAdViewModel vm = boundViewModel;
-            impressionTracker.attach(this, adData, vm != null ? vm::markImpressionFired : null);
+            impressionTracker.attach(this, adData, this::onViewableImpression);
         }
 
         WalletDelegate delegate = ApexFeatureAccess.getFeature(WalletDelegate.class);
@@ -195,6 +212,11 @@ public class BannerAdView extends FrameLayout {
         }
         renderedAdData = null;
 
+        if (measurementSession != null) {
+            measurementSession.finish();
+            measurementSession = null;
+        }
+
         listener = null;
 
         // Tear down the WebView, including the MRAID JS bridge.
@@ -233,10 +255,17 @@ public class BannerAdView extends FrameLayout {
         }
 
         if (impressionTracker != null && renderedAdData != null && !renderedAdData.isExpired()) {
-            BannerAdViewModel vm = boundViewModel;
-            impressionTracker.attach(this, renderedAdData, vm != null ? vm::markImpressionFired : null);
+            impressionTracker.attach(this, renderedAdData, this::onViewableImpression);
         }
         notifyMraidViewable(true);
+    }
+
+    /** Single MRC-viewable impression sink: ViewModel state + OMID measurement event. */
+    private void onViewableImpression() {
+        BannerAdViewModel vm = boundViewModel;
+        if (vm != null) vm.markImpressionFired();
+        MeasurementDelegate.AdSession session = measurementSession;
+        if (session != null) session.impressionOccurred();
     }
 
     private void notifyMraidViewable(boolean viewable) {
