@@ -10,6 +10,7 @@ import com.apexads.sdk.core.audience.Cohort;
 import com.apexads.sdk.core.audience.CohortProvider;
 import com.apexads.sdk.core.consent.ConsentManager;
 import com.apexads.sdk.core.device.DeviceInfoProvider;
+import com.apexads.sdk.core.di.MeasurementDelegate;
 import com.apexads.sdk.core.di.WalletDelegate;
 import com.apexads.sdk.core.models.AdFormat;
 import com.apexads.sdk.core.models.AdSize;
@@ -26,6 +27,9 @@ import java.util.Map;
 import java.util.UUID;
 
 public class OpenRTBRequestBuilder {
+
+    /** OpenRTB API framework 7 — OMID-1 (Open Measurement). */
+    private static final int API_FRAMEWORK_OMID_1 = 7;
 
     private static final String APEX_AUDIENCE_TAXONOMY_ID = "apex-audience";
     private static final String APEX_AUDIENCE_TAXONOMY_NAME = "Apex First-Party Cohorts";
@@ -89,7 +93,7 @@ public class OpenRTBRequestBuilder {
         imp.bidfloorcur = "USD";
         imp.secure = 1;
         imp.tagid = placementId;
-        imp.api = Arrays.asList(3, 5, 6);
+        imp.api = supportedApiFrameworks();
 
         boolean walletRegistered = ApexFeatureAccess.getFeature(WalletDelegate.class) != null;
 
@@ -127,7 +131,7 @@ public class OpenRTBRequestBuilder {
             banner.w = adSize.width;
             banner.h = adSize.height;
         }
-        banner.api = Arrays.asList(3, 5, 6);
+        banner.api = supportedApiFrameworks();
         banner.mimes = Arrays.asList("text/html", "text/javascript");
         return banner;
     }
@@ -143,7 +147,28 @@ public class OpenRTBRequestBuilder {
         video.startdelay = 0;
         video.linearity = 1;
         video.playbackmethod = Collections.singletonList(1);
+        if (omidDelegate() != null) {
+            video.api = Collections.singletonList(API_FRAMEWORK_OMID_1);
+        }
         return video;
+    }
+
+    /**
+     * Declared API frameworks: MRAID 1/2/3 always; OMID-1 (7) only while a
+     * certified measurement module is installed and ready — declaring OMID
+     * without live measurement is misrepresentation toward buyers.
+     */
+    private List<Integer> supportedApiFrameworks() {
+        if (omidDelegate() != null) {
+            return Arrays.asList(3, 5, 6, API_FRAMEWORK_OMID_1);
+        }
+        return Arrays.asList(3, 5, 6);
+    }
+
+    @Nullable
+    private MeasurementDelegate omidDelegate() {
+        MeasurementDelegate delegate = ApexFeatureAccess.getFeature(MeasurementDelegate.class);
+        return delegate != null && delegate.isReady() ? delegate : null;
     }
 
     private static Map<String, Object> walletSupportedExt() {
@@ -270,6 +295,11 @@ public class OpenRTBRequestBuilder {
 
         BidRequest.Source source = new BidRequest.Source();
         source.schain = schain;
+        MeasurementDelegate omid = omidDelegate();
+        if (omid != null) {
+            source.omidpn = omid.partnerName();
+            source.omidpv = omid.partnerVersion();
+        }
         return source;
     }
 

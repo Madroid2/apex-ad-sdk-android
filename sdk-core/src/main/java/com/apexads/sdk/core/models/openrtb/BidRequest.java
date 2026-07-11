@@ -152,6 +152,9 @@ public class BidRequest {
         public Integer fd;
         public String tid;
         public SupplyChain schain;
+        /** OMID partner identifiers, serialized under {@code source.ext} per the OM SDK onboarding guide. */
+        public String omidpn;
+        public String omidpv;
     }
 
     /** IAB SupplyChain object 1.0 — carried as {@code source.schain} (2.6) and {@code source.ext.schain} (2.5 compat). */

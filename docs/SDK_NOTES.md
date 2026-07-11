@@ -151,3 +151,23 @@ implementation files terse; add ADR-style context here or in a more specific doc
 - Notice semantics: `nurl` (win) fires as before; `burl` (billing) fires at the
   MRC-viewable impression in `ImpressionTracker`; `lurl` (loss, reason 102)
   fires for losing bids in `OpenRTBAdRepository` after the winner is chosen.
+
+## Open Measurement (OMID) Scaffolding
+
+- `MeasurementDelegate` (sdk-core `di/`) is the optional-feature contract for
+  buyer-verifiable viewability; `sdk-measurement` installs it via
+  `MeasurementExtension.install()` — same pattern as wallet.
+- The in-house `ImpressionTracker` stays the billing trigger; the OMID session
+  exists so DSP-side measurement (DV360 Active View, IAS/DV/Moat) can verify
+  the same impression. `BannerAdView` funnels the MRC-viewable event to both
+  through one `onViewableImpression()` sink.
+- **Signaling is honesty-gated**: `api=7` (OMID-1) and
+  `source.ext.omidpn/omidpv` are added to bid requests only while
+  `MeasurementDelegate.isReady()` is true. The scaffold delegate reports
+  not-ready until the IAB Tech Lab OM SDK AAR is bundled (portal-distributed
+  after partner registration — not on Maven Central) and `OMID_ACTIVE` is
+  flipped. Never signal OMID without live measurement.
+- Remaining steps to production are enumerated on `OmidMeasurementDelegate`:
+  partner registration → bundle AAR → Omid.activate/Partner → script
+  injection → HTML session wiring → certification → video (VAST
+  AdVerifications) sessions.

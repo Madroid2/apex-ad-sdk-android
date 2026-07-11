@@ -225,12 +225,16 @@ final class BidRequestSerializer {
         JSONObject o = new JSONObject();
         o.putOpt("fd", s.fd);
         o.putOpt("tid", s.tid);
+        JSONObject ext = new JSONObject();
         if (s.schain != null) {
             JSONObject schain = serSupplyChain(s.schain);
             // OpenRTB 2.6 carries schain first-class; 2.5-era exchanges read source.ext.schain.
             o.put("schain", schain);
-            o.put("ext", new JSONObject().put("schain", schain));
+            ext.put("schain", schain);
         }
+        ext.putOpt("omidpn", s.omidpn);
+        ext.putOpt("omidpv", s.omidpv);
+        if (ext.length() > 0) o.put("ext", ext);
         return o;
     }
 
