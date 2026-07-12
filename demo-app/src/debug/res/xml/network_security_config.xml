@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- DEBUG builds only. Overrides the strict main config so cleartext HTTP to
+     ANY host is permitted — the local ad server / demand platform run over
+     plain http on whatever LAN IP this machine currently holds, and that IP
+     changes with DHCP. Permitting all cleartext in debug removes the per-IP
+     fragility entirely. Release builds keep src/main's strict config (HTTPS
+     only). This file never ships in a release APK. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>
