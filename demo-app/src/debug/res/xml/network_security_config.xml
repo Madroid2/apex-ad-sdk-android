@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug overlay: the debug AD_SERVER_URL targets a local ad server over
+     plain HTTP at 10.0.2.2 (emulator) or this machine's site-local LAN IP,
+     which changes with DHCP — so cleartext must be permitted broadly here.
+     Release builds use the main config, which blocks all cleartext. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>
