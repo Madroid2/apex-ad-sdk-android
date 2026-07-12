@@ -18,6 +18,7 @@ val publishableArtifacts = mapOf(
     "sdk-inappbidding" to "apex-sdk-inappbidding",
     "sdk-appopen" to "apex-sdk-appopen",
     "sdk-wallet" to "apex-sdk-wallet",
+    "sdk-measurement" to "apex-sdk-measurement",
     "adapters-admob" to "apex-adapter-admob"
 )
 
