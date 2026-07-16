@@ -11,6 +11,7 @@ import androidx.annotation.Nullable;
 import com.apexads.sdk.core.di.WalletDelegate;
 import com.apexads.sdk.core.network.SdkExecutors;
 import com.apexads.sdk.core.utils.AdLog;
+import com.apexads.sdk.internal.ApexSdkRuntime;
 import com.apexads.sdk.wallet.WalletPassManager;
 
 public final class WalletResultActivity extends Activity {
@@ -94,13 +95,7 @@ public final class WalletResultActivity extends Activity {
         if (url == null) return;
         SdkExecutors.IO.execute(() -> {
             try {
-                java.net.HttpURLConnection conn =
-                        (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
-                conn.setConnectTimeout(10_000);
-                conn.setReadTimeout(10_000);
-                conn.setRequestMethod("GET");
-                conn.getResponseCode();
-                conn.disconnect();
+                ApexSdkRuntime.getTrackingClient().fireTrackingUrl(url);
             } catch (Exception ignored) {}
         });
     }

@@ -14,6 +14,7 @@ import com.apexads.sdk.core.consent.ConsentManager;
 import com.apexads.sdk.core.device.DeviceInfoProvider;
 import com.apexads.sdk.core.di.FeatureRegistry;
 import com.apexads.sdk.core.di.SdkFeature;
+import com.apexads.sdk.core.di.TrustDelegate;
 import com.apexads.sdk.core.network.AdNetworkClient;
 import com.apexads.sdk.core.network.HttpAdNetworkClient;
 import com.apexads.sdk.core.network.MockAdExchange;
@@ -141,6 +142,8 @@ public final class ApexServices {
 
     public void close() {
         cohortProvider = CohortProvider.NONE;
+        TrustDelegate trust = features.getOptional(TrustDelegate.class);
+        if (trust != null) trust.close();
         features.clear();
     }
 }

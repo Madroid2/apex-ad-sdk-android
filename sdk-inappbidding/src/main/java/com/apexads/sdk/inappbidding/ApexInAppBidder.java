@@ -9,6 +9,7 @@ import com.apexads.sdk.core.error.AdError;
 import com.apexads.sdk.core.models.AdFormat;
 import com.apexads.sdk.core.models.openrtb.BidRequest;
 import com.apexads.sdk.core.network.SdkExecutors;
+import com.apexads.sdk.core.network.TrustRequestHeaders;
 import com.apexads.sdk.core.request.OpenRTBRequestBuilder;
 import com.apexads.sdk.core.utils.AdLog;
 import com.apexads.sdk.internal.ApexSdkRuntime;
@@ -73,6 +74,7 @@ public final class ApexInAppBidder {
 
         String body = com.apexads.sdk.core.network.BidRequestSerializerAccess.serialize(req);
 
+        byte[] bodyBytes = body.getBytes(StandardCharsets.UTF_8);
         HttpURLConnection conn = (HttpURLConnection) new URL(signalUrl).openConnection();
         conn.setRequestMethod("POST");
         conn.setRequestProperty("Content-Type", "application/json");
@@ -81,9 +83,10 @@ public final class ApexInAppBidder {
         conn.setConnectTimeout((int) config.getRequestTimeoutMs());
         conn.setReadTimeout((int) config.getRequestTimeoutMs());
         conn.setDoOutput(true);
+        TrustRequestHeaders.apply(conn, "POST", signalUrl, bodyBytes);
 
         try (OutputStream os = conn.getOutputStream()) {
-            os.write(body.getBytes(StandardCharsets.UTF_8));
+            os.write(bodyBytes);
         }
 
         int status = conn.getResponseCode();

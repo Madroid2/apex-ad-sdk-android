@@ -13,6 +13,7 @@ import com.apexads.sdk.core.audience.DeclarativeCohortProvider;
 import com.apexads.sdk.core.consent.ConsentManager;
 import com.apexads.sdk.core.crashreporter.CrashReporter;
 import com.apexads.sdk.core.device.DeviceInfoProvider;
+import com.apexads.sdk.core.di.TrustDelegate;
 import com.apexads.sdk.core.network.AdNetworkClient;
 import com.apexads.sdk.core.tracking.TrackingClient;
 import com.apexads.sdk.core.utils.AdLog;
@@ -36,6 +37,17 @@ public final class ApexSdkRuntime {
         ApexServices created = ApexServices.create(application, cfg);
         ApexFeatureAccess.attach(created);
         services = created;
+
+        TrustDelegate trust = created.getFeature(TrustDelegate.class);
+        if (trust != null) {
+            try {
+                trust.initialize(application.getApplicationContext(), cfg);
+            } catch (RuntimeException e) {
+                // Optional trust initialization degrades to T1/house inventory;
+                // it must not make Application.onCreate() fail.
+                AdLog.w("Apex trust initialization failed: %s", e.getMessage());
+            }
+        }
 
         AdLog.i("ApexAds SDK v%s initialized [appToken=%s...]",
                 BuildConfig.SDK_VERSION,
