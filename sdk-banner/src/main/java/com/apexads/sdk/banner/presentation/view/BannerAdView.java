@@ -348,8 +348,18 @@ public class BannerAdView extends FrameLayout {
     }
 
     private void openUrlIfAllowed(AdNavigationGuard.Decision decision) {
-        if (decision.allowed && decision.safeUrl != null
-                && AdUrlHandler.openValidatedExternalUrl(getContext(), decision.safeUrl, "BannerAdView")) {
+        if (!decision.allowed) return;
+        boolean opened;
+        if (decision.deeplink != null) {
+            // App deep link from the creative — launch it (market:// falls back
+            // to the Play Store web page when no store app is present).
+            opened = AdUrlHandler.openClickThrough(
+                    getContext(), decision.deeplink, null, "BannerAdView") != AdUrlHandler.OPEN_FAILED;
+        } else {
+            opened = decision.safeUrl != null
+                    && AdUrlHandler.openValidatedExternalUrl(getContext(), decision.safeUrl, "BannerAdView");
+        }
+        if (opened) {
             notifyListener(BannerAdListener::onAdClicked);
         }
     }

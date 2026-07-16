@@ -31,6 +31,42 @@ public class AdNavigationGuardTest {
     }
 
     @Test
+    public void evaluateNavigation_allowsDeeplinkWithGesture() {
+        AdNavigationGuard guard = new AdNavigationGuard("test");
+        guard.reset(null);
+
+        AdNavigationGuard.Decision decision =
+                guard.evaluateNavigation("myapp://product/42", true, true, "test");
+
+        assertThat(decision.allowed).isTrue();
+        assertThat(decision.safeUrl).isNull();
+        assertThat(decision.deeplink).isEqualTo("myapp://product/42");
+    }
+
+    @Test
+    public void evaluateNavigation_blocksDeeplinkWithoutGesture() {
+        AdNavigationGuard guard = new AdNavigationGuard("test");
+        guard.reset(null);
+
+        AdNavigationGuard.Decision decision =
+                guard.evaluateNavigation("myapp://product/42", false, true, "test");
+
+        assertThat(decision.allowed).isFalse();
+    }
+
+    @Test
+    public void evaluateNavigation_stillBlocksDangerousSchemesWithGesture() {
+        AdNavigationGuard guard = new AdNavigationGuard("test");
+        guard.reset(null);
+
+        AdNavigationGuard.Decision decision =
+                guard.evaluateNavigation("intent://scan/#Intent;scheme=zxing;end", true, true, "test");
+
+        assertThat(decision.allowed).isFalse();
+        assertThat(decision.reason).contains("unsafe_url");
+    }
+
+    @Test
     public void evaluateNavigation_allowsRecentTouchFallback() {
         AdNavigationGuard guard = new AdNavigationGuard("test");
         long now = System.currentTimeMillis();

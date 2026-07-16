@@ -1,7 +1,7 @@
 # ApexAd SDK — Android
 
 > A production-grade programmatic advertising SDK demonstrating full-stack ad-tech engineering:
-> OpenRTB 2.6 · VAST 4.0 · MRAID 3.0 · IAB Native 1.2 · IAB TCF 2.0 · App Open Ads · In-App Bidding · AdMob Mediation · Google Wallet Pass Ads · In-House Crash Reporting · Custom DI · MRC Viewability
+> OpenRTB 2.6 · VAST 4.0 · MRAID 3.0 · IAB Native 1.2 · IAB TCF 2.0 + GPP · App Open Ads · In-App Bidding · AdMob Mediation · Google Wallet Pass Ads · In-House Crash Reporting · Custom DI · MRC Viewability · Apex Trust Layer
 
 [![API](https://img.shields.io/badge/API-21%2B-brightgreen)](https://android-arsenal.com/api?level=21)
 [![OpenRTB](https://img.shields.io/badge/OpenRTB-2.6-orange)](https://www.iab.com/guidelines/openrtb/)
@@ -77,6 +77,24 @@ Apex is not only an Android SDK. The demo shows the full ad-tech loop from creat
 4. The review agent classifies each creative as `APPROVED`, `REJECTED`, or still `PENDING_REVIEW`.
 5. The approved creative becomes eligible for bidding through Apex Ad Server.
 6. The SDK receives only approved OpenRTB markup and renders it using the existing banner, interstitial, native, video, or wallet modules.
+
+## Apex Trust Layer
+
+The SDK now emits privacy-aware device trust telemetry that the Apex Ad Server and
+Apex Demand Platform can evaluate together. It is deliberately a layered fraud signal,
+not a client-side claim that a device is guaranteed to be genuine.
+
+| Control | SDK behavior |
+|---|---|
+| **Device risk telemetry** | Classifies common emulator and synthetic-device indicators as `LOW`, `MEDIUM`, or `HIGH` risk and sends `device_risk`, `emulator_suspected`, and a signal version in `device.ext.apex`. |
+| **No SDK-only blocking** | The app still makes the request; server-side policy combines the signal with authentication, replay protection, supply-chain data, and event history before acting. |
+| **Privacy propagation** | Reads both IAB TCF and GPP values from the platform consent store and serializes `regs.gpp` and `regs.gpp_sid` when present. |
+| **Viewable native impressions** | Native impression trackers fire only after at least 50% of the registered view remains visible for one continuous second. |
+| **Versioned signals** | `trust_signals_version` lets the server measure changes and roll out stronger attestations without silently changing the meaning of existing telemetry. |
+
+This closes the easiest impression-farming path while avoiding the false promise that an
+emulator heuristic can replace server-side validation or platform attestation. The next
+hardening step is an optional Play Integrity-backed challenge for high-risk traffic.
 
 ## What Sets This SDK Apart
 

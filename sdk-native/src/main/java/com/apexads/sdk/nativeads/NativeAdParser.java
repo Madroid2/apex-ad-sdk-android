@@ -31,6 +31,18 @@ final class NativeAdParser {
             JSONObject link   = native_.optJSONObject("link");
             String clickUrl   = link != null ? link.optString("url", null) : null;
             if (clickUrl != null && clickUrl.isEmpty()) clickUrl = null;
+            // OpenRTB Native 1.2 link.fallback: web landing used when link.url is
+            // an app deep link that cannot resolve on this device.
+            String fallbackUrl = link != null ? link.optString("fallback", null) : null;
+            if (fallbackUrl != null && fallbackUrl.isEmpty()) fallbackUrl = null;
+
+            List<String> clickTrackers = new ArrayList<>();
+            JSONArray clickArr = link != null ? link.optJSONArray("clicktrackers") : null;
+            if (clickArr != null) {
+                for (int i = 0; i < clickArr.length(); i++) {
+                    clickTrackers.add(clickArr.getString(i));
+                }
+            }
 
             List<String> impTrackers = new ArrayList<>();
             JSONArray impArr = native_.optJSONArray("imptrackers");
@@ -97,7 +109,9 @@ final class NativeAdParser {
                     ctaText,
                     advertiserName,
                     clickUrl,
-                    Collections.unmodifiableList(impTrackers));
+                    fallbackUrl,
+                    Collections.unmodifiableList(impTrackers),
+                    Collections.unmodifiableList(clickTrackers));
 
         } catch (Exception e) {
             AdLog.e(e, "NativeAdParser: failed to parse native JSON");

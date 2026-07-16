@@ -8,6 +8,11 @@ import androidx.annotation.Nullable;
 
 import com.apexads.sdk.core.utils.AdLog;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+
 public final class ConsentManager {
 
     // IAB TCF v2.x in-app keys, as defined by the "IAB Tech Lab - CMP API v2" spec
@@ -24,6 +29,9 @@ public final class ConsentManager {
     public static final String KEY_CMP_SDK_VERSION = "IABTCF_CmpSdkVersion";
 
     public static final String KEY_US_PRIVACY = "IABUSPrivacy_String";
+    public static final String KEY_GPP_STRING = "IABGPP_GppString";
+    public static final String KEY_GPP_STRING_HEADER = "IABGPP_HDR_GppString";
+    public static final String KEY_GPP_SECTION_IDS = "IABGPP_GppSID";
 
     /** IAB TCF purpose numbers (1-based) we gate on. */
     private static final int PURPOSE_STORAGE = 1;          // Store and/or access information on a device
@@ -48,6 +56,52 @@ public final class ConsentManager {
     @Nullable
     public String getUsPrivacyString() {
         return prefs.getString(KEY_US_PRIVACY, null);
+    }
+
+    /** Returns the encoded IAB Global Privacy Platform string, when supplied by the CMP. */
+    @Nullable
+    public String getGppString() {
+        Object value = prefs.getAll().get(KEY_GPP_STRING);
+        if (!(value instanceof String) || ((String) value).trim().isEmpty()) {
+            value = prefs.getAll().get(KEY_GPP_STRING_HEADER);
+        }
+        return value instanceof String && !((String) value).trim().isEmpty()
+                ? ((String) value).trim()
+                : null;
+    }
+
+    /**
+     * Applicable GPP section IDs. CMPs store these as an underscore/comma-delimited
+     * SharedPreferences string; malformed tokens are ignored rather than fabricated.
+     */
+    @NonNull
+    public List<Integer> getGppSectionIds() {
+        Object raw = prefs.getAll().get(KEY_GPP_SECTION_IDS);
+        if (raw == null) return Collections.emptyList();
+        if (raw instanceof Number) {
+            int id = ((Number) raw).intValue();
+            return id > 0 ? Collections.singletonList(id) : Collections.emptyList();
+        }
+        if (raw instanceof Set<?>) {
+            List<Integer> ids = new ArrayList<>();
+            for (Object value : (Set<?>) raw) addGppSectionId(ids, String.valueOf(value));
+            return Collections.unmodifiableList(ids);
+        }
+        String encoded = String.valueOf(raw).trim();
+        if (encoded.isEmpty()) return Collections.emptyList();
+        List<Integer> ids = new ArrayList<>();
+        for (String token : encoded.split("[,_\\s]+")) {
+            addGppSectionId(ids, token);
+        }
+        return Collections.unmodifiableList(ids);
+    }
+
+    private static void addGppSectionId(List<Integer> ids, String token) {
+        try {
+            int id = Integer.parseInt(token.trim());
+            if (id > 0 && !ids.contains(id)) ids.add(id);
+        } catch (NumberFormatException ignored) {
+        }
     }
 
     public boolean hasStorageConsent() {

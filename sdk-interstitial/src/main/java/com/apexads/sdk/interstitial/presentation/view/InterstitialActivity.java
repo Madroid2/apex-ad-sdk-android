@@ -253,9 +253,18 @@ public final class InterstitialActivity extends Activity {
     }
 
     private void openUrlIfAllowed(AdNavigationGuard.Decision decision) {
-        if (decision.allowed && decision.safeUrl != null
-                && AdUrlHandler.openValidatedExternalUrl(this, decision.safeUrl, "InterstitialActivity")
-                && activeListener != null) {
+        if (!decision.allowed) return;
+        boolean opened;
+        if (decision.deeplink != null) {
+            // App deep link from the creative — launch it (market:// falls back
+            // to the Play Store web page when no store app is present).
+            opened = AdUrlHandler.openClickThrough(
+                    this, decision.deeplink, null, "InterstitialActivity") != AdUrlHandler.OPEN_FAILED;
+        } else {
+            opened = decision.safeUrl != null
+                    && AdUrlHandler.openValidatedExternalUrl(this, decision.safeUrl, "InterstitialActivity");
+        }
+        if (opened && activeListener != null) {
             activeListener.onInterstitialClicked();
         }
     }

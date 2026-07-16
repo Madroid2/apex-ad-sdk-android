@@ -49,6 +49,9 @@ public final class DeviceInfoProvider {
         @Nullable public final String carrier;
         @Nullable public final String mccmnc;
         @Nullable public final String geoCountry;
+        @NonNull public final String deviceRisk;
+        public final boolean emulatorSuspected;
+        public final int trustSignalsVersion;
 
         DeviceInfo(Builder b) {
             manufacturer  = b.manufacturer;
@@ -70,6 +73,9 @@ public final class DeviceInfoProvider {
             carrier       = b.carrier;
             mccmnc        = b.mccmnc;
             geoCountry    = b.geoCountry;
+            deviceRisk    = b.deviceRisk;
+            emulatorSuspected = b.emulatorSuspected;
+            trustSignalsVersion = b.trustSignalsVersion;
         }
 
         static final class Builder {
@@ -79,6 +85,9 @@ public final class DeviceInfoProvider {
             boolean isTablet, limitAdTracking;
             String packageName, appName, appVersion;
             String advertisingId, carrier, mccmnc, geoCountry;
+            String deviceRisk;
+            boolean emulatorSuspected;
+            int trustSignalsVersion;
         }
     }
 
@@ -123,6 +132,10 @@ public final class DeviceInfoProvider {
         b.appVersion    = appInfo[1];
         b.limitAdTracking = adId.limitAdTracking;
         b.advertisingId = adId.id;
+        DeviceTrustSignals.Result trust = DeviceTrustSignals.evaluate();
+        b.deviceRisk = trust.risk;
+        b.emulatorSuspected = trust.emulatorSuspected;
+        b.trustSignalsVersion = DeviceTrustSignals.VERSION;
         fillTelephony(b);
         return new DeviceInfo(b);
     }

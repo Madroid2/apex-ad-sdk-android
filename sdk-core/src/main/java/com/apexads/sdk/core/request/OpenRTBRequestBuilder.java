@@ -80,7 +80,7 @@ public class OpenRTBRequestBuilder {
         request.cur = Collections.singletonList("USD");
         request.bcat = blockedCategories;
         request.badv = blockedDomains;
-        request.apexExt = buildApexExt();
+        request.apexExt = buildApexExt(device);
         return request;
     }
 
@@ -307,6 +307,8 @@ public class OpenRTBRequestBuilder {
         ApexAdsConfig config = ApexSdkRuntime.getConfig();
         BidRequest.Regs regs = new BidRequest.Regs();
         regs.coppa = config.getCoppa() > 0 ? 1 : null;
+        regs.gpp = consentManager.getGppString();
+        regs.gpp_sid = consentManager.getGppSectionIds();
         regs.ext = new BidRequest.RegsExt();
         regs.ext.gdpr = consentManager.isGdprApplicable() ? 1 : 0;
 
@@ -315,7 +317,7 @@ public class OpenRTBRequestBuilder {
         return regs;
     }
 
-    private BidRequest.ApexExt buildApexExt() {
+    private BidRequest.ApexExt buildApexExt(DeviceInfoProvider.DeviceInfo device) {
         ApexAdsConfig config = ApexSdkRuntime.getConfig();
         BidRequest.ApexExt ext = new BidRequest.ApexExt();
         ext.testmode = config.isTestMode() ? 1 : 0;
@@ -324,6 +326,9 @@ public class OpenRTBRequestBuilder {
 
         String usPrivacy = config.getUsPrivacyString();
         ext.ccpa = usPrivacy != null ? usPrivacy : consentManager.getUsPrivacyString();
+        ext.deviceRisk = device.deviceRisk;
+        ext.emulatorSuspected = device.emulatorSuspected;
+        ext.trustSignalsVersion = device.trustSignalsVersion;
         return ext;
     }
 }

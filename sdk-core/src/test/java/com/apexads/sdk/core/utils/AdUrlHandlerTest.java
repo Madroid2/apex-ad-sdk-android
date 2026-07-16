@@ -32,6 +32,58 @@ public class AdUrlHandlerTest {
     }
 
     @Test
+    public void normalizeDeeplink_allowsCustomSchemesAndMarket() {
+        assertThat(AdUrlHandler.normalizeDeeplink("myapp://product/42"))
+                .isEqualTo("myapp://product/42");
+        assertThat(AdUrlHandler.normalizeDeeplink("  market://details?id=com.example.app  "))
+                .isEqualTo("market://details?id=com.example.app");
+        assertThat(AdUrlHandler.normalizeDeeplink("fb://profile/12345"))
+                .isEqualTo("fb://profile/12345");
+    }
+
+    @Test
+    public void normalizeDeeplink_rejectsWebAndDangerousSchemes() {
+        // Web URLs take the normalizeExternalWebUrl path, not the deep-link path.
+        assertThat(AdUrlHandler.normalizeDeeplink("https://example.com")).isNull();
+        assertThat(AdUrlHandler.normalizeDeeplink("http://example.com")).isNull();
+        // Dangerous schemes are blocked outright.
+        assertThat(AdUrlHandler.normalizeDeeplink("intent://scan/#Intent;scheme=zxing;end")).isNull();
+        assertThat(AdUrlHandler.normalizeDeeplink("javascript:alert(1)")).isNull();
+        assertThat(AdUrlHandler.normalizeDeeplink("file:///sdcard/private.txt")).isNull();
+        assertThat(AdUrlHandler.normalizeDeeplink("content://com.example/private")).isNull();
+        assertThat(AdUrlHandler.normalizeDeeplink("data:text/html,x")).isNull();
+        assertThat(AdUrlHandler.normalizeDeeplink("android-app://com.example")).isNull();
+        // Scheme casing must not bypass the block list.
+        assertThat(AdUrlHandler.normalizeDeeplink("INTENT://scan/#Intent;end")).isNull();
+        assertThat(AdUrlHandler.normalizeDeeplink("JavaScript:alert(1)")).isNull();
+    }
+
+    @Test
+    public void normalizeDeeplink_rejectsMalformedOrEmptyDestinations() {
+        assertThat(AdUrlHandler.normalizeDeeplink(null)).isNull();
+        assertThat(AdUrlHandler.normalizeDeeplink("")).isNull();
+        assertThat(AdUrlHandler.normalizeDeeplink("myapp://")).isNull();
+        assertThat(AdUrlHandler.normalizeDeeplink("noscheme/path")).isNull();
+        assertThat(AdUrlHandler.normalizeDeeplink("myapp://line\nbreak")).isNull();
+    }
+
+    @Test
+    public void marketToPlayStoreWebUrl_convertsMarketLinks() {
+        assertThat(AdUrlHandler.marketToPlayStoreWebUrl("market://details?id=com.example.app"))
+                .isEqualTo("https://play.google.com/store/apps/details?id=com.example.app");
+        assertThat(AdUrlHandler.marketToPlayStoreWebUrl(
+                "market://details?id=com.example.app&referrer=utm_source%3Dapex"))
+                .isEqualTo("https://play.google.com/store/apps/details?id=com.example.app&referrer=utm_source%3Dapex");
+    }
+
+    @Test
+    public void marketToPlayStoreWebUrl_rejectsNonMarketOrQuerylessLinks() {
+        assertThat(AdUrlHandler.marketToPlayStoreWebUrl("myapp://details?id=x")).isNull();
+        assertThat(AdUrlHandler.marketToPlayStoreWebUrl("market://details")).isNull();
+        assertThat(AdUrlHandler.marketToPlayStoreWebUrl(null)).isNull();
+    }
+
+    @Test
     public void normalizeExternalWebUrl_rejectsMalformedAndHostlessUrls() {
         assertThat(AdUrlHandler.normalizeExternalWebUrl(null)).isNull();
         assertThat(AdUrlHandler.normalizeExternalWebUrl("")).isNull();
