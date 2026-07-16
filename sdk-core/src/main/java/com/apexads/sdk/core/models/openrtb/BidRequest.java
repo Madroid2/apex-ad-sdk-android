@@ -35,6 +35,12 @@ public class BidRequest {
         public String tcf;
 
         public String ccpa;
+
+        public String deviceRisk;
+
+        public Boolean emulatorSuspected;
+
+        public Integer trustSignalsVersion;
     }
 
     public static class Impression {
@@ -213,6 +219,8 @@ public class BidRequest {
 
     public static class Regs {
         public Integer coppa;
+        public String gpp;
+        public List<Integer> gpp_sid;
         public RegsExt ext;
     }
 

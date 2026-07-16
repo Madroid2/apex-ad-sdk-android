@@ -32,6 +32,9 @@ public class BidRequestSerializerTest {
         request.apexExt.gdpr = 1;
         request.apexExt.tcf = "TCF";
         request.apexExt.ccpa = "1YNN";
+        request.apexExt.deviceRisk = "HIGH";
+        request.apexExt.emulatorSuspected = true;
+        request.apexExt.trustSignalsVersion = 1;
         request.imp = Collections.singletonList(impression());
         request.app = app();
         request.device = device();
@@ -49,6 +52,7 @@ public class BidRequestSerializerTest {
         assertThat(json.getJSONArray("badv").getString(0)).isEqualTo("blocked.example");
         assertThat(json.getJSONObject("ext").getBoolean("debug")).isTrue();
         assertThat(json.getJSONObject("ext").getJSONObject("apex").getString("tcf")).isEqualTo("TCF");
+        assertThat(json.getJSONObject("ext").getJSONObject("apex").getBoolean("emulator_suspected")).isTrue();
 
         JSONObject imp = json.getJSONArray("imp").getJSONObject(0);
         assertThat(imp.getString("id")).isEqualTo("imp-1");
@@ -61,6 +65,8 @@ public class BidRequestSerializerTest {
         assertThat(json.getJSONObject("device").getString("ifa")).isEqualTo("gaid");
         assertThat(json.getJSONObject("user").getJSONObject("ext").getString("consent")).isEqualTo("TCF");
         assertThat(json.getJSONObject("regs").getJSONObject("ext").getString("us_privacy")).isEqualTo("1YNN");
+        assertThat(json.getJSONObject("regs").getString("gpp")).isEqualTo("DBABMA~CPXxRfAPXxRfAAfKABENB-CgAAAAAAAAAAYgAAAAAAAA");
+        assertThat(json.getJSONObject("regs").getJSONArray("gpp_sid").getInt(0)).isEqualTo(7);
     }
 
     @Test
@@ -273,6 +279,8 @@ public class BidRequestSerializerTest {
     private static BidRequest.Regs regs() {
         BidRequest.Regs regs = new BidRequest.Regs();
         regs.coppa = 1;
+        regs.gpp = "DBABMA~CPXxRfAPXxRfAAfKABENB-CgAAAAAAAAAAYgAAAAAAAA";
+        regs.gpp_sid = Arrays.asList(7, 8);
         regs.ext = new BidRequest.RegsExt();
         regs.ext.gdpr = 1;
         regs.ext.us_privacy = "1YNN";

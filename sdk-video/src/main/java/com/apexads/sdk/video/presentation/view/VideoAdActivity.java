@@ -224,7 +224,10 @@ public final class VideoAdActivity extends Activity {
             String clickUrl = vastAd.clickThroughUrl;
             playerView.setOnClickListener(v -> {
                 fireTrackingList(vastAd.clickTrackingUrls);
-                if (AdUrlHandler.openExternalUrl(this, clickUrl, "VideoAdActivity")) {
+                // Deep-link aware: a VAST ClickThrough may be an app deep link
+                // (custom scheme / market://) as well as a web URL.
+                if (AdUrlHandler.openClickThrough(this, clickUrl, null, "VideoAdActivity")
+                        != AdUrlHandler.OPEN_FAILED) {
                     notifyListener(VideoAdListener::onVideoAdClicked);
                 }
             });

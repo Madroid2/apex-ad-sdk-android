@@ -16,7 +16,6 @@ import com.apexads.sdk.core.presentation.mvvm.AdViewModelListener;
 import com.apexads.sdk.core.data.repository.OpenRTBAdRepository;
 import com.apexads.sdk.core.request.OpenRTBRequestBuilder;
 import com.apexads.sdk.core.utils.AdLog;
-import com.apexads.sdk.core.utils.AdUrlHandler;
 import com.apexads.sdk.internal.ApexSdkRuntime;
 
 public final class NativeAd {
@@ -86,7 +85,11 @@ public final class NativeAd {
             AdLog.w("NativeAd: handleClick() before load, or ad has no click URL");
             return false;
         }
-        boolean opened = AdUrlHandler.openExternalUrl(context, payload.clickUrl, "NativeAd");
+        // Deep-link aware: web URLs open as before; app deep links (custom
+        // scheme / market://) launch the app, with link.fallback as the web
+        // fallback and client-side click-tracker firing (see NativeAdClicks).
+        boolean opened = NativeAdClicks.open(
+                context, payload, ApexSdkRuntime.getTrackingClient(), "NativeAd");
         if (opened && listener != null) {
             listener.onNativeAdClicked();
         }

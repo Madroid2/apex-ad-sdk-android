@@ -118,7 +118,9 @@ public class AdDataTest {
                 .build();
         NativeAdPayload payload = new NativeAdPayload(
                 "Title", "Body", null, "https://image", "Install", "Brand", "https://click",
-                Collections.singletonList("https://imp"));
+                null,
+                Collections.singletonList("https://imp"),
+                Collections.<String>emptyList());
 
         AdData next = original.withNativePayload(payload);
 

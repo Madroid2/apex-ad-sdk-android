@@ -262,6 +262,12 @@ final class BidRequestSerializer {
     private static JSONObject serRegs(BidRequest.Regs r) throws JSONException {
         JSONObject o = new JSONObject();
         o.putOpt("coppa", r.coppa);
+        o.putOpt("gpp", r.gpp);
+        if (r.gpp_sid != null && !r.gpp_sid.isEmpty()) {
+            JSONArray sectionIds = new JSONArray();
+            for (Integer id : r.gpp_sid) sectionIds.put(id);
+            o.put("gpp_sid", sectionIds);
+        }
         if (r.ext != null) {
             JSONObject ext = new JSONObject();
             ext.putOpt("gdpr", r.ext.gdpr);
@@ -293,6 +299,9 @@ final class BidRequestSerializer {
         o.putOpt("gdpr", ext.gdpr);
         o.putOpt("tcf", ext.tcf);
         o.putOpt("ccpa", ext.ccpa);
+        o.putOpt("device_risk", ext.deviceRisk);
+        o.putOpt("emulator_suspected", ext.emulatorSuspected);
+        o.putOpt("trust_signals_version", ext.trustSignalsVersion);
         return o;
     }
 

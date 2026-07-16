@@ -44,6 +44,16 @@ public final class ImpressionTracker {
 
     public void attach(@NonNull View view, @NonNull AdData adData,
                        @Nullable Listener impressionListener) {
+        attach(view, () -> fireTrackingUrls(adData), impressionListener);
+    }
+
+    /**
+     * Attaches the shared MRC visibility gate to an arbitrary impression action.
+     * Native rendering uses this overload so imptrackers fire only after the same
+     * 50%-for-one-second condition as banners.
+     */
+    public void attach(@NonNull View view, @NonNull Runnable impressionAction,
+                       @Nullable Listener impressionListener) {
         if (fired) return;
 
         detach(); // release any previous attachment first
@@ -55,7 +65,7 @@ public final class ImpressionTracker {
             @Override
             public boolean onPreDraw() {
                 if (!fired) {
-                    checkVisibility(view, adData);
+                    checkVisibility(view, impressionAction);
                 }
                 if (fired) {
                     detach();
@@ -93,7 +103,7 @@ public final class ImpressionTracker {
         attachedView = null;
     }
 
-    private void checkVisibility(View view, AdData adData) {
+    private void checkVisibility(View view, Runnable impressionAction) {
         if (!view.isShown()) {
             visibleStart = 0;
             return;
@@ -122,13 +132,20 @@ public final class ImpressionTracker {
         }
 
         if (now - visibleStart >= MRC_MIN_DURATION_MS) {
-            fireImpression(adData);
+            fireImpression(impressionAction);
         }
     }
 
-    private void fireImpression(AdData adData) {
+    private void fireImpression(Runnable impressionAction) {
         if (fired) return;
         fired = true;
+        impressionAction.run();
+        if (listener != null) {
+            listener.onImpressionFired();
+        }
+    }
+
+    private void fireTrackingUrls(AdData adData) {
         AdLog.d("ImpressionTracker: firing impression bid=%s", adData.bidId);
         final String winUrl = adData.winNoticeUrl;
         if (winUrl != null) {
@@ -139,9 +156,6 @@ public final class ImpressionTracker {
         final String billingUrl = adData.billingUrl;
         if (billingUrl != null) {
             SdkExecutors.IO.execute(() -> trackingClient.fireTrackingUrl(billingUrl));
-        }
-        if (listener != null) {
-            listener.onImpressionFired();
         }
     }
 

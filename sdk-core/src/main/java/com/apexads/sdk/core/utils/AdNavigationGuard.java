@@ -76,13 +76,17 @@ public final class AdNavigationGuard {
         navigationAttemptCount++;
 
         String safeUrl = AdUrlHandler.normalizeExternalWebUrl(rawUrl);
+        // A creative may click through to an app deep link (custom scheme or
+        // market://). Those are legitimate destinations — validated separately,
+        // still subject to the user-gesture scoring below.
+        String deeplink = safeUrl == null ? AdUrlHandler.normalizeDeeplink(rawUrl) : null;
         boolean recentTouch = isRecentTouch(now);
         boolean userInitiated = hasRequestGesture || recentTouch;
 
         int score = 0;
         String reason = null;
 
-        if (safeUrl == null) {
+        if (safeUrl == null && deeplink == null) {
             score += 100;
             reason = "unsafe_url";
         }
@@ -109,7 +113,8 @@ public final class AdNavigationGuard {
                     hasRequestGesture, recentTouch, now);
             return Decision.block(reason, score);
         }
-        return Decision.allow(safeUrl, score);
+        return deeplink != null ? Decision.allowDeeplink(deeplink, score)
+                                : Decision.allow(safeUrl, score);
     }
 
     public void reportJsNavigationAttempt(@NonNull String type, @Nullable String rawUrl) {
@@ -177,27 +182,36 @@ public final class AdNavigationGuard {
     public static final class Decision {
         public final boolean allowed;
         @Nullable public final String safeUrl;
+        /** Validated app deep link (custom scheme / market://); null for web URLs. */
+        @Nullable public final String deeplink;
         @NonNull public final String reason;
         public final int score;
 
         private Decision(boolean allowed,
                          @Nullable String safeUrl,
+                         @Nullable String deeplink,
                          @NonNull String reason,
                          int score) {
             this.allowed = allowed;
             this.safeUrl = safeUrl;
+            this.deeplink = deeplink;
             this.reason = reason;
             this.score = score;
         }
 
         @NonNull
         static Decision allow(@NonNull String safeUrl, int score) {
-            return new Decision(true, safeUrl, "allowed", score);
+            return new Decision(true, safeUrl, null, "allowed", score);
+        }
+
+        @NonNull
+        static Decision allowDeeplink(@NonNull String deeplink, int score) {
+            return new Decision(true, null, deeplink, "allowed_deeplink", score);
         }
 
         @NonNull
         static Decision block(@NonNull String reason, int score) {
-            return new Decision(false, null, reason, score);
+            return new Decision(false, null, null, reason, score);
         }
     }
 }

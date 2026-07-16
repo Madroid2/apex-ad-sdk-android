@@ -13,11 +13,12 @@ import androidx.annotation.Nullable;
 import com.apexads.sdk.core.models.NativeAdPayload;
 import com.apexads.sdk.core.network.SdkExecutors;
 import com.apexads.sdk.core.tracking.TrackingClient;
+import com.apexads.sdk.core.tracking.ImpressionTracker;
 
-import com.apexads.sdk.core.utils.AdUrlHandler;
 import com.apexads.sdk.core.utils.AdViewLifecycle;
 import com.apexads.sdk.core.utils.AdLog;
 import com.apexads.sdk.nativeads.NativeAd;
+import com.apexads.sdk.nativeads.NativeAdClicks;
 
 public class NativeAdView extends FrameLayout {
 
@@ -27,6 +28,9 @@ public class NativeAdView extends FrameLayout {
     private TextView advertiserView;
     private ImageView iconView;
     private ImageView mainImageView;
+    @Nullable private NativeAdPayload boundPayload;
+    @Nullable private TrackingClient boundTrackingClient;
+    @Nullable private ImpressionTracker impressionTracker;
 
     public NativeAdView(@NonNull Context context) { this(context, null); }
 
@@ -46,6 +50,9 @@ public class NativeAdView extends FrameLayout {
     public void setMainImageView(@NonNull ImageView view)  { mainImageView = view; }
 
     public void bind(@NonNull NativeAdPayload payload, @NonNull TrackingClient trackingClient) {
+        if (impressionTracker != null) impressionTracker.detach();
+        this.boundPayload = payload;
+        this.boundTrackingClient = trackingClient;
         if (titleView != null)       titleView.setText(payload.title);
         if (descriptionView != null) descriptionView.setText(payload.description);
         if (ctaView != null)         ctaView.setText(payload.ctaText);
@@ -54,23 +61,29 @@ public class NativeAdView extends FrameLayout {
         if (iconView != null)      iconView.setTag(payload.iconUrl);
         if (mainImageView != null) mainImageView.setTag(payload.imageUrl);
 
-        String clickUrl = payload.clickUrl;
-        if (clickUrl != null) {
-            setOnClickListener(v -> openUrl(clickUrl));
-            if (ctaView != null) ctaView.setOnClickListener(v -> openUrl(clickUrl));
+        if (payload.clickUrl != null) {
+            setOnClickListener(v -> openClickThrough());
+            if (ctaView != null) ctaView.setOnClickListener(v -> openClickThrough());
         }
 
-        for (String url : payload.impressionTrackers) {
-            SdkExecutors.IO.execute(() -> trackingClient.fireTrackingUrl(url));
-        }
+        impressionTracker = new ImpressionTracker(trackingClient);
+        impressionTracker.attach(this, () -> {
+            for (String url : payload.impressionTrackers) {
+                SdkExecutors.IO.execute(() -> trackingClient.fireTrackingUrl(url));
+            }
+        }, null);
 
         AdLog.d("NativeAdView: bound payload title='%s'", payload.title);
     }
 
     /** Clears click listeners and asset-view refs set up by {@link #bind}. Idempotent. */
     public void destroy() {
+        if (impressionTracker != null) impressionTracker.detach();
+        impressionTracker = null;
         setOnClickListener(null);
         if (ctaView != null) ctaView.setOnClickListener(null);
+        boundPayload = null;
+        boundTrackingClient = null;
 
         titleView = null;
         descriptionView = null;
@@ -90,7 +103,12 @@ public class NativeAdView extends FrameLayout {
         }
     }
 
-    private void openUrl(String url) {
-        AdUrlHandler.openExternalUrl(getContext(), url, "NativeAdView");
+    private void openClickThrough() {
+        NativeAdPayload payload = boundPayload;
+        TrackingClient trackingClient = boundTrackingClient;
+        if (payload == null || trackingClient == null) return;
+        // Deep-link aware: web URLs open as before; app deep links launch the
+        // app with link.fallback as the web fallback (see NativeAdClicks).
+        NativeAdClicks.open(getContext(), payload, trackingClient, "NativeAdView");
     }
 }

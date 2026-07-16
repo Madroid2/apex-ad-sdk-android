@@ -41,6 +41,34 @@ public class NativeAdParserTest {
         assertThat(payload.ctaText).isEqualTo("Shop Now");
         assertThat(payload.clickUrl).isEqualTo("https://click");
         assertThat(payload.impressionTrackers).containsExactly("https://imp1", "https://imp2").inOrder();
+        // No deep-link fields in this markup.
+        assertThat(payload.fallbackUrl).isNull();
+        assertThat(payload.clickTrackers).isEmpty();
+    }
+
+    @Test
+    public void parse_linkWithDeeplinkFallbackAndClicktrackers_extractsAll() {
+        NativeAdPayload payload = parser.parse("{\"native\":{\"link\":{"
+                + "\"url\":\"myapp://product/42\","
+                + "\"fallback\":\"https://example.com/landing\","
+                + "\"clicktrackers\":[\"https://track/click1\",\"https://track/click2\"]},"
+                + "\"assets\":[{\"id\":1,\"title\":{\"text\":\"T\"}}]}}");
+
+        assertThat(payload).isNotNull();
+        assertThat(payload.clickUrl).isEqualTo("myapp://product/42");
+        assertThat(payload.fallbackUrl).isEqualTo("https://example.com/landing");
+        assertThat(payload.clickTrackers)
+                .containsExactly("https://track/click1", "https://track/click2").inOrder();
+    }
+
+    @Test
+    public void parse_emptyFallback_normalizesToNull() {
+        NativeAdPayload payload = parser.parse("{\"native\":{\"link\":{"
+                + "\"url\":\"https://click\",\"fallback\":\"\"},"
+                + "\"assets\":[{\"id\":1,\"title\":{\"text\":\"T\"}}]}}");
+
+        assertThat(payload).isNotNull();
+        assertThat(payload.fallbackUrl).isNull();
     }
 
     @Test
