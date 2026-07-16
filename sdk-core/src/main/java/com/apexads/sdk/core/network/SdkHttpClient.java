@@ -30,6 +30,7 @@ final class SdkHttpClient {
             conn.setDoOutput(true);
 
             byte[] body = jsonBody.getBytes(StandardCharsets.UTF_8);
+            TrustRequestHeaders.apply(conn, "POST", urlStr, body);
             conn.setFixedLengthStreamingMode(body.length);
 
             try (OutputStream os = conn.getOutputStream()) {
@@ -51,6 +52,7 @@ final class SdkHttpClient {
             HttpURLConnection conn = open(urlStr, READ_TIMEOUT);
             try {
                 conn.setRequestMethod("GET");
+                TrustRequestHeaders.apply(conn, "GET", urlStr, new byte[0]);
                 conn.getResponseCode();
             } finally {
                 conn.disconnect();

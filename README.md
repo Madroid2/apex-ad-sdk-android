@@ -86,15 +86,18 @@ not a client-side claim that a device is guaranteed to be genuine.
 
 | Control | SDK behavior |
 |---|---|
-| **Device risk telemetry** | Classifies common emulator and synthetic-device indicators as `LOW`, `MEDIUM`, or `HIGH` risk and sends `device_risk`, `emulator_suspected`, and a signal version in `device.ext.apex`. |
+| **Play Integrity lease (optional)** | `sdk-integrity` warms the Standard Play Integrity API, binds its `requestHash` to an Apex challenge and per-install P-256 public key, then receives a short-lived T1/T2/T3 server lease. |
+| **Hardware-backed request signing** | An Android Keystore key prefers StrongBox, falls back to TEE/software when necessary, and signs the method, exact path/query, timestamp, nonce, sequence, and body hash of auction and SDK tracking calls. |
+| **Device risk telemetry** | Classifies common emulator and synthetic-device indicators as `LOW`, `MEDIUM`, or `HIGH` risk and sends `device_risk`, `emulator_suspected`, and a signal version in the Apex OpenRTB extension. |
 | **No SDK-only blocking** | The app still makes the request; server-side policy combines the signal with authentication, replay protection, supply-chain data, and event history before acting. |
+| **Safe warm-up behavior** | Until a valid lease exists, requests remain unsigned T1 traffic; the server can limit them to house demand/no-fill without crashing or blocking the publisher app. |
 | **Privacy propagation** | Reads both IAB TCF and GPP values from the platform consent store and serializes `regs.gpp` and `regs.gpp_sid` when present. |
 | **Viewable native impressions** | Native impression trackers fire only after at least 50% of the registered view remains visible for one continuous second. |
 | **Versioned signals** | `trust_signals_version` lets the server measure changes and roll out stronger attestations without silently changing the meaning of existing telemetry. |
 
-This closes the easiest impression-farming path while avoiding the false promise that an
-emulator heuristic can replace server-side validation or platform attestation. The next
-hardening step is an optional Play Integrity-backed challenge for high-risk traffic.
+The emulator heuristic remains advisory. A T2 lease requires `PLAY_RECOGNIZED` plus
+`MEETS_DEVICE_INTEGRITY`; T3 also requires `MEETS_STRONG_INTEGRITY`. Leases are short-lived,
+and every signed request is freshness-checked and replay-protected by the server.
 
 ## What Sets This SDK Apart
 
@@ -460,6 +463,7 @@ graph LR
 | `sdk-video` | `sdk-core` | `VideoAd` facade + `VideoAdViewModel` (VAST 4.0 XML parsing hook); ExoPlayer rewarded video; quartile tracking |
 | `sdk-appopen` | `sdk-interstitial` | App Open Ads — foreground detection, frequency cap, auto-preload; delegates lifecycle to `InterstitialAdViewModel` |
 | `sdk-inappbidding` | `sdk-core` | Header bidding price signals via `ApexInAppBidder`; MAX/LevelPlay mock simulation |
+| `sdk-integrity` | `sdk-core` | Optional Play Integrity 1.6.0 + Android Keystore trust leases and APEX1 request signing; API 23+ only |
 | `sdk-wallet` | `sdk-core` | Google Wallet pass delivery; `play-services-wallet` scoped here only — zero leakage |
 | `adapters-admob` | `sdk-banner`, `sdk-interstitial`, `sdk-video` | AdMob mediation adapter (Banner, Interstitial, Rewarded) |
 | `demo-app` | all modules | MVVM showcase app, MockAdExchange integration |
@@ -673,6 +677,9 @@ apex-ad-sdk-android/
 │   └── ApexInAppBidder / BidToken / InAppBidListener
 │   └── mock/MockMediationPlatform     # Simulates MAX/LevelPlay waterfall
 │
+├── sdk-integrity/                     # Optional Play Integrity trust (API 23+)
+│   └── ApexIntegrityExtension # install() — Keystore key + short-lived trust leases
+│
 ├── adapters-admob/                    # AdMob mediation adapters
 │   └── ApexAdsAdMobAdapter    # Main entry point (extends Adapter)
 │   └── ApexAdsBannerAdapter / ApexAdsInterstitialAdapter / ApexAdsRewardedAdapter
@@ -700,7 +707,25 @@ ApexAds.init(this, ApexAdsConfig.Builder("YOUR_APP_TOKEN")
 
 There is no publisher-facing global cleanup API. Ad objects and views own their lifecycle through their existing `destroy()` and view cleanup methods; test and demo re-initialization uses restricted SDK-internal runtime hooks.
 
-### 2. Google Wallet Pass Ads
+### 2. Enable Play Integrity trust (recommended for production)
+
+Add `sdk-integrity`, link the Android app to a Google Cloud project in Play Console (or
+Play SDK Console), and install the extension with that numeric project number:
+
+```kotlin
+// build.gradle.kts
+implementation(project(":sdk-integrity"))
+
+// Application.onCreate() — install before init so the first auction can warm the provider
+ApexIntegrityExtension.install(123456789012L)
+ApexAds.init(this, config)
+```
+
+The optional module has `minSdk 23`; `sdk-core` remains API 21 compatible. Configure the
+same package name and SHA-256 signing certificates on Apex Ad Server. Play Integrity
+failures degrade to unsigned T1 requests; they never crash the host application.
+
+### 3. Google Wallet Pass Ads
 
 Add the `sdk-wallet` module to activate wallet CTAs inside Interstitial and MRECT Banner ads:
 
