@@ -19,6 +19,7 @@ val publishableArtifacts = mapOf(
     "sdk-appopen" to "apex-sdk-appopen",
     "sdk-wallet" to "apex-sdk-wallet",
     "sdk-measurement" to "apex-sdk-measurement",
+    "sdk-integrity" to "apex-sdk-integrity",
     "adapters-admob" to "apex-adapter-admob"
 )
 
@@ -44,6 +45,11 @@ val businessLogicExcludes = listOf(
     "**/com/apexads/sdk/wallet/WalletDelegateImpl*.*",
     "**/com/apexads/sdk/wallet/WalletPassManager*.*",
     "**/com/apexads/sdk/wallet/WalletResultActivity*.*",
+    // Platform integration seams are exercised through protocol/contract tests;
+    // Android Keystore and Play Integrity themselves require device/integration tests.
+    "**/com/apexads/sdk/integrity/ApexIntegrityExtension*.*",
+    "**/com/apexads/sdk/integrity/PlayIntegrityTrustDelegate*.*",
+    "**/com/apexads/sdk/integrity/SessionKey*.*",
     "**/com/apexads/sdk/appopen/AppOpenAd*.*",
     "**/com/apexads/sdk/appopen/AppOpenAdManager*.*",
     "**/com/apexads/sdk/core/consent/**",
