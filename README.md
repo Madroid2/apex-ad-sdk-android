@@ -99,6 +99,12 @@ The emulator heuristic remains advisory. A T2 lease requires `PLAY_RECOGNIZED` p
 `MEETS_DEVICE_INTEGRITY`; T3 also requires `MEETS_STRONG_INTEGRITY`. Leases are short-lived,
 and every signed request is freshness-checked and replay-protected by the server.
 
+Before enabling this path for real inventory, complete the
+[Production Trust Activation Runbook](docs/PRODUCTION_TRUST_ACTIVATION.md). It records the
+external Google Cloud/Play Console setup, Play app-signing certificate, server credentials,
+cross-service lease-secret handoff, and live-token acceptance tests that cannot be completed
+from source code alone.
+
 ## What Sets This SDK Apart
 
 Most ad SDKs (including major ones from Google, Meta, Unity) share a common set of problems. ApexAds was designed to solve all of them out of the box:
@@ -724,6 +730,11 @@ ApexAds.init(this, config)
 The optional module has `minSdk 23`; `sdk-core` remains API 21 compatible. Configure the
 same package name and SHA-256 signing certificates on Apex Ad Server. Play Integrity
 failures degrade to unsigned T1 requests; they never crash the host application.
+
+Production setup is not complete until the linked project, server credentials, Play
+app-signing certificate, shared Ad Server/Demand lease secret, and a live T2/T3 lease have
+been verified using the
+[Production Trust Activation Runbook](docs/PRODUCTION_TRUST_ACTIVATION.md).
 
 ### 3. Google Wallet Pass Ads
 
