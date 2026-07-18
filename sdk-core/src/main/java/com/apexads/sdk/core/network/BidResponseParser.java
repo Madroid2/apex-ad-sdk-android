@@ -76,6 +76,11 @@ final class BidResponseParser {
             if (walletObj != null) {
                 bid.ext.walletExtJson = walletObj.toString();
             }
+            JSONObject apexObj = extObj.optJSONObject("apex");
+            JSONObject actionObj = apexObj != null ? apexObj.optJSONObject("action") : null;
+            if (actionObj != null) {
+                bid.ext.actionExtJson = actionObj.toString();
+            }
         }
 
         return bid;

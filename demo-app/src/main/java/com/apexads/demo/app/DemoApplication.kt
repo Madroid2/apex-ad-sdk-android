@@ -30,7 +30,7 @@ class DemoApplication : Application() {
 
         ApexAds.init(this, config)
 
-        // Activate the wallet CTA feature for Interstitial and MRECT Banner ads.
+        // Activate Wallet actions for Intent-to-Action Native, Interstitial, and MRECT ads.
         // Without this line, ads load normally — the wallet panel is simply absent.
         WalletAdExtension.install()
 

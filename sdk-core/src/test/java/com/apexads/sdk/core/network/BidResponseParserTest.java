@@ -31,7 +31,8 @@ public class BidResponseParserTest {
                 + "\"exp\":60,"
                 + "\"api\":6,"
                 + "\"protocol\":7,"
-                + "\"ext\":{\"wallet\":{\"pass_jwt\":\"jwt\",\"offer_id\":\"offer\"}}"
+                + "\"ext\":{\"wallet\":{\"pass_jwt\":\"jwt\",\"offer_id\":\"offer\"},"
+                + "\"apex\":{\"action\":{\"type\":\"save_to_wallet\",\"cta_text\":\"Save to Google Wallet\"}}}"
                 + "}]}]}");
 
         assertThat(response.id).isEqualTo("req-1");
@@ -57,6 +58,7 @@ public class BidResponseParserTest {
         assertThat(bid.api).isEqualTo(6);
         assertThat(bid.protocol).isEqualTo(7);
         assertThat(bid.ext.walletExtJson).contains("\"offer_id\":\"offer\"");
+        assertThat(bid.ext.actionExtJson).contains("\"type\":\"save_to_wallet\"");
     }
 
     @Test

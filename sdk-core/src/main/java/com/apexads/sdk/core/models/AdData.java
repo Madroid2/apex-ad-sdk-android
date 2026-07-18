@@ -25,6 +25,7 @@ public final class AdData {
     @Nullable public final String vastXml;
 
     @Nullable public final String walletExtJson;
+    @Nullable public final String actionExtJson;
 
     private AdData(Builder b) {
         requestId = b.requestId;
@@ -43,6 +44,7 @@ public final class AdData {
         nativePayload = b.nativePayload;
         vastXml = b.vastXml;
         walletExtJson = b.walletExtJson;
+        actionExtJson = b.actionExtJson;
     }
 
     public boolean isExpired() {
@@ -78,6 +80,7 @@ public final class AdData {
                 .expiresAt(System.currentTimeMillis() + ttlSeconds * 1000L)
                 .vastXml(isVideo ? bid.adm : null)
                 .walletExtJson(bid.ext != null ? bid.ext.walletExtJson : null)
+                .actionExtJson(bid.ext != null ? bid.ext.actionExtJson : null)
                 .build();
     }
 
@@ -89,13 +92,14 @@ public final class AdData {
                 .adFormat(adFormat).width(width).height(height).cpm(cpm)
                 .currency(currency).expiresAt(expiresAt).vastXml(vastXml)
                 .walletExtJson(walletExtJson)
+                .actionExtJson(actionExtJson)
                 .nativePayload(payload)
                 .build();
     }
 
     public static final class Builder {
         String requestId, impressionId, bidId, adMarkup = "", currency = "USD";
-        String winNoticeUrl, billingUrl, creativeId, vastXml, walletExtJson;
+        String winNoticeUrl, billingUrl, creativeId, vastXml, walletExtJson, actionExtJson;
         AdFormat adFormat;
         int width, height;
         double cpm;
@@ -117,6 +121,7 @@ public final class AdData {
         public Builder expiresAt(long v) { expiresAt = v; return this; }
         public Builder vastXml(String v) { vastXml = v; return this; }
         public Builder walletExtJson(String v) { walletExtJson = v; return this; }
+        public Builder actionExtJson(String v) { actionExtJson = v; return this; }
         public Builder nativePayload(NativeAdPayload v) { nativePayload = v; return this; }
 
         public AdData build() { return new AdData(this); }

@@ -5,6 +5,8 @@ import android.graphics.BitmapFactory
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,6 +29,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,13 +40,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.apexads.demo.viewmodel.AdViewModel
 import com.apexads.sdk.core.error.AdError
+import com.apexads.sdk.core.models.IntentContext
 import com.apexads.sdk.nativeads.NativeAd
 import com.apexads.sdk.nativeads.NativeAdListener
 import com.apexads.sdk.nativeads.NativeAdView
@@ -82,9 +88,9 @@ fun NativeScreen(viewModel: AdViewModel) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("Native Ad (IAB Native 1.2)", style = MaterialTheme.typography.titleLarge)
+        Text("Intent-to-Action Card", style = MaterialTheme.typography.titleLarge)
         Text(
-            text = "Publisher-controlled layout · OpenRTB native request · org.json asset parsing",
+            text = "Native 1.2 assets · coarse journey intent · executable Wallet CTA · native fallback",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -109,6 +115,13 @@ fun NativeScreen(viewModel: AdViewModel) {
                 viewModel.onNativeLoading()
                 viewModel.log("Native", "Loading native ad…")
                 NativeAd.Builder("demo-native-placement")
+                    .intentContext(
+                        IntentContext.builder("apex-commerce-1", "travel.hotel")
+                            .journeyStage(IntentContext.JourneyStage.READY_TO_ACT)
+                            .displayLabel("Relevant to your hotel search")
+                            .supports(IntentContext.ActionType.SAVE_TO_WALLET)
+                            .build(),
+                    )
                     .listener(object : NativeAdListener {
                         override fun onNativeAdLoaded(ad: NativeAd) {
                             nativeAd = ad
@@ -145,6 +158,7 @@ fun NativeScreen(viewModel: AdViewModel) {
 private fun NativeAdCard(ad: NativeAd, context: android.content.Context) {
     val mainBitmap by rememberBitmapFromUrl(ad.imageUrl)
     val iconBitmap by rememberBitmapFromUrl(ad.iconUrl)
+    LaunchedEffect(ad) { ad.recordActionRendered() }
 
     Card(
         // Whole-card tap navigates, matching native-ad UX and the SDK's
@@ -156,6 +170,46 @@ private fun NativeAdCard(ad: NativeAd, context: android.content.Context) {
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
     ) {
         Column {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "${ad.disclosureText ?: "Sponsored"} · ${ad.advertiserName ?: "Advertiser"}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = "Why this ad?",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+
+            ad.intentLabel?.let { label ->
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .padding(horizontal = 12.dp)
+                        .background(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                            RoundedCornerShape(50),
+                        )
+                        .border(
+                            1.dp,
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                            RoundedCornerShape(50),
+                        )
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                )
+                Spacer(Modifier.height(10.dp))
+            }
+
             // Main creative image
             mainBitmap?.let { bmp ->
                 Image(
@@ -186,16 +240,24 @@ private fun NativeAdCard(ad: NativeAd, context: android.content.Context) {
                     }
                     Column {
                         Text(
-                            text = ad.title ?: "",
-                            style = MaterialTheme.typography.titleMedium,
+                            text = ad.advertiserName ?: "Advertiser",
+                            style = MaterialTheme.typography.titleSmall,
                         )
-                        Text(
-                            text = ad.advertiserName ?: "Sponsored",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        ad.actionBadgeText?.let { badge ->
+                            Text(
+                                text = "✓ $badge",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFF18794E),
+                            )
+                        }
                     }
                 }
+
+                Text(
+                    text = ad.title ?: "",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
 
                 Text(
                     text = ad.description ?: "",
@@ -203,20 +265,39 @@ private fun NativeAdCard(ad: NativeAd, context: android.content.Context) {
                 )
 
                 Button(
-                    onClick = { ad.handleClick(context) },
+                    onClick = {
+                        if (ad.hasIntentAction()) ad.performAction(context)
+                        else ad.handleClick(context)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                     ),
                 ) {
-                    Text(ad.ctaText ?: "Learn More")
+                    Text(ad.actionCtaText ?: ad.ctaText ?: "Learn More")
                 }
+
+                Text(
+                    text = "View offer",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .clickable { ad.handleClick(context) }
+                        .padding(8.dp),
+                )
+                Text(
+                    text = "Offer terms apply",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                )
             }
         }
     }
 
-    // Zero-size AndroidView that binds the NativeAdView to fire impression
-    // trackers. The Compose card above handles display and routes clicks through
-    // ad.handleClick(); this view only registers the impression.
+    // The classic View binding remains mounted for Native 1.2 impression tracking;
+    // Compose renders the card and explicitly records the optional action CTA above.
     val trackingView = remember(ad) {
         NativeAdView(context).also { nv -> ad.bindTo(nv) }
     }

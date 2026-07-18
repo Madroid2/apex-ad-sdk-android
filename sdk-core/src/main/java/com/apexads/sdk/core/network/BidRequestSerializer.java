@@ -8,6 +8,7 @@ import org.json.JSONObject;
 
 import java.util.List;
 import java.util.Map;
+import java.lang.reflect.Array;
 
 final class BidRequestSerializer {
 
@@ -309,13 +310,38 @@ final class BidRequestSerializer {
         JSONObject o = new JSONObject();
         for (Map.Entry<String, Object> entry : map.entrySet()) {
             if (entry.getValue() == null) continue;
-            Object v = entry.getValue();
-            if (v instanceof Boolean) o.put(entry.getKey(), (boolean) (Boolean) v);
-            else if (v instanceof Integer) o.put(entry.getKey(), (int) (Integer) v);
-            else if (v instanceof Long) o.put(entry.getKey(), (long) (Long) v);
-            else if (v instanceof Double) o.put(entry.getKey(), (double) (Double) v);
-            else if (v instanceof String) o.put(entry.getKey(), (String) v);
+            Object value = serExtValue(entry.getValue());
+            if (value != null) o.put(entry.getKey(), value);
         }
         return o;
+    }
+
+    private static Object serExtValue(Object value) throws JSONException {
+        if (value instanceof Boolean || value instanceof Number || value instanceof String) {
+            return value;
+        }
+        if (value instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> nested = (Map<String, Object>) value;
+            return serFlatMap(nested);
+        }
+        if (value instanceof Iterable) {
+            JSONArray array = new JSONArray();
+            for (Object item : (Iterable<?>) value) {
+                Object serialized = item == null ? JSONObject.NULL : serExtValue(item);
+                if (serialized != null) array.put(serialized);
+            }
+            return array;
+        }
+        if (value.getClass().isArray()) {
+            JSONArray array = new JSONArray();
+            for (int i = 0; i < Array.getLength(value); i++) {
+                Object item = Array.get(value, i);
+                Object serialized = item == null ? JSONObject.NULL : serExtValue(item);
+                if (serialized != null) array.put(serialized);
+            }
+            return array;
+        }
+        return null;
     }
 }

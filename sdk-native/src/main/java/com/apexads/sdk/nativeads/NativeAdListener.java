@@ -9,4 +9,7 @@ public interface NativeAdListener {
     void onNativeAdFailed(@NonNull AdError error);
     default void onNativeAdClicked() {}
     default void onNativeAdImpression() {}
+    default void onNativeAdActionCompleted() {}
+    default void onNativeAdActionCancelled() {}
+    default void onNativeAdActionFailed() {}
 }
