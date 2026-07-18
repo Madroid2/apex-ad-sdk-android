@@ -101,6 +101,23 @@ public class MockAdExchangeTest {
         assertThat(bid.adm).contains("\"native\"");
     }
 
+    @Test
+    public void requestBid_intentActionNative_returnsWalletAndActionExtensions() throws Exception {
+        BidRequest.Impression imp = new BidRequest.Impression();
+        imp.id = "intent-imp";
+        imp.nativeObject = new BidRequest.NativeObject();
+        HashMap<String, Object> apex = new HashMap<>();
+        apex.put("actions_supported", Collections.singletonList("save_to_wallet"));
+        imp.ext = new HashMap<>();
+        imp.ext.put("apex", apex);
+
+        BidResponse.Bid bid = exchange.requestBid(requestWith(imp)).getWinningBid();
+
+        assertThat(bid.ext).isNotNull();
+        assertThat(bid.ext.walletExtJson).contains("pass_jwt");
+        assertThat(bid.ext.actionExtJson).contains("Relevant to your hotel search");
+    }
+
     private static BidRequest requestWith(BidRequest.Impression imp) {
         BidRequest request = new BidRequest();
         request.id = "req";

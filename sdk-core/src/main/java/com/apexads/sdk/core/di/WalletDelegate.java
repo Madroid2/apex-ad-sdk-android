@@ -21,6 +21,12 @@ public interface WalletDelegate extends SdkFeature {
 
     boolean handleActivityResult(int requestCode, int resultCode);
 
+    /** Executes a Wallet action requested by a publisher-rendered native card. */
+    boolean performAction(
+            @NonNull Context context,
+            @NonNull String walletExtJson,
+            @NonNull WalletEventCallback callback);
+
     void attachToBanner(
             @NonNull Context context,
             @NonNull ViewGroup container,

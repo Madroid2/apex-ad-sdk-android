@@ -6,6 +6,8 @@ import com.apexads.sdk.core.models.openrtb.BidRequest;
 import com.apexads.sdk.core.models.openrtb.BidResponse;
 
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class MockAdExchange implements AdNetworkClient {
@@ -32,7 +34,7 @@ public class MockAdExchange implements AdNetworkClient {
         if (imp.video != null) {
             bid = buildVastBid(imp.id, imp.bidfloor);
         } else if (imp.nativeObject != null) {
-            bid = buildNativeBid(imp.id, imp.bidfloor);
+            bid = buildNativeBid(imp.id, imp.bidfloor, supportsIntentWalletAction(imp));
         } else if (imp.instl == 1) {
             bid = buildInterstitialBid(imp.id, imp.bidfloor, walletSupported);
         } else {
@@ -94,6 +96,19 @@ public class MockAdExchange implements AdNetworkClient {
         return ext;
     }
 
+    private BidResponse.BidExt buildIntentActionExt() {
+        BidResponse.BidExt ext = buildWalletExt();
+        ext.actionExtJson = "{" +
+                "\"type\":\"save_to_wallet\"," +
+                "\"intent_label\":\"Relevant to your hotel search\"," +
+                "\"cta_text\":\"Save to Google Wallet\"," +
+                "\"disclosure\":\"Sponsored\"," +
+                "\"badge_text\":\"Wallet-ready offer\"," +
+                "\"rendered_tracking_url\":\"https://track.apexads.mock/wallet-rendered\"," +
+                "\"started_tracking_url\":\"https://track.apexads.mock/wallet-started\"}";
+        return ext;
+    }
+
     private BidResponse.Bid buildVastBid(String impId, double floor) {
         BidResponse.Bid bid = newBid(impId, Math.max(floor + 0.50, 8.00));
         bid.crid = "video-001";
@@ -105,12 +120,21 @@ public class MockAdExchange implements AdNetworkClient {
         return bid;
     }
 
-    private BidResponse.Bid buildNativeBid(String impId, double floor) {
+    private BidResponse.Bid buildNativeBid(String impId, double floor, boolean withIntentAction) {
         BidResponse.Bid bid = newBid(impId, Math.max(floor + 0.20, 3.00));
         bid.crid = "native-001";
         bid.adm = NATIVE_JSON;
         bid.nurl = "https://track.apexads.mock/win?type=native";
+        if (withIntentAction) bid.ext = buildIntentActionExt();
         return bid;
+    }
+
+    private boolean supportsIntentWalletAction(BidRequest.Impression imp) {
+        if (imp.ext == null) return false;
+        Object apexValue = imp.ext.get("apex");
+        if (!(apexValue instanceof Map)) return false;
+        Object actions = ((Map<?, ?>) apexValue).get("actions_supported");
+        return actions instanceof List && ((List<?>) actions).contains("save_to_wallet");
     }
 
     private BidResponse.Bid newBid(String impId, double price) {
@@ -251,10 +275,10 @@ public class MockAdExchange implements AdNetworkClient {
         "\"clicktrackers\":[\"https://track.apexads.mock/click?type=native\"]}," +
         "\"imptrackers\":[\"https://track.apexads.mock/impression?t=native\"]," +
         "\"assets\":[" +
-        "{\"id\":1,\"required\":1,\"title\":{\"text\":\"ApexAd SDK: Programmatic Advertising\"}}," +
-        "{\"id\":2,\"required\":1,\"img\":{\"type\":3,\"url\":\"https://picsum.photos/seed/apexad/1200/627\",\"w\":1200,\"h\":627}}," +
-        "{\"id\":3,\"img\":{\"type\":1,\"url\":\"https://picsum.photos/seed/apexlogo/80/80\",\"w\":80,\"h\":80}}," +
-        "{\"id\":4,\"required\":1,\"data\":{\"type\":2,\"value\":\"Full-stack Android ad SDK with OpenRTB, MRAID 3.0, VAST 4.0 support.\"}}," +
-        "{\"id\":5,\"data\":{\"type\":1,\"value\":\"ApexAd\"}}," +
-        "{\"id\":6,\"data\":{\"type\":12,\"value\":\"Learn More\"}}]}}";
+        "{\"id\":1,\"required\":1,\"title\":{\"text\":\"Save ₹1,500 on your Bengaluru stay\"}}," +
+        "{\"id\":2,\"required\":1,\"img\":{\"type\":3,\"url\":\"https://picsum.photos/seed/apexhotel/1200/627\",\"w\":1200,\"h\":627}}," +
+        "{\"id\":3,\"img\":{\"type\":1,\"url\":\"https://picsum.photos/seed/stayvista/80/80\",\"w\":80,\"h\":80}}," +
+        "{\"id\":4,\"required\":1,\"data\":{\"type\":2,\"value\":\"Save this limited-time hotel offer to Wallet and use it when you are ready to book.\"}}," +
+        "{\"id\":5,\"data\":{\"type\":1,\"value\":\"StayVista\"}}," +
+        "{\"id\":6,\"data\":{\"type\":12,\"value\":\"View hotel\"}}]}}";
 }

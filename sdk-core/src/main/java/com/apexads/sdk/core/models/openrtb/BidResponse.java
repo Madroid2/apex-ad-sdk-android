@@ -62,5 +62,6 @@ public class BidResponse {
         public Map<String, Object> prebid;
 
         @Nullable public String walletExtJson;
+        @Nullable public String actionExtJson;
     }
 }

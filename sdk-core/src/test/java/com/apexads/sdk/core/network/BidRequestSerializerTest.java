@@ -111,6 +111,32 @@ public class BidRequestSerializerTest {
     }
 
     @Test
+    public void serialize_impressionExtPreservesNestedIntentAndActions() throws Exception {
+        BidRequest request = new BidRequest();
+        request.id = "req-intent";
+        BidRequest.Impression imp = new BidRequest.Impression();
+        imp.id = "1";
+        imp.nativeObject = new BidRequest.NativeObject();
+        imp.nativeObject.request = "{}";
+        imp.nativeObject.ver = "1.2";
+        Map<String, Object> intent = new HashMap<>();
+        intent.put("taxonomy", "apex-commerce-1");
+        intent.put("category", "travel.hotel");
+        Map<String, Object> apex = new HashMap<>();
+        apex.put("intent", intent);
+        apex.put("actions_supported", Collections.singletonList("save_to_wallet"));
+        imp.ext = new HashMap<>();
+        imp.ext.put("apex", apex);
+        request.imp = Collections.singletonList(imp);
+
+        JSONObject ext = new JSONObject(BidRequestSerializer.serialize(request))
+                .getJSONArray("imp").getJSONObject(0).getJSONObject("ext").getJSONObject("apex");
+
+        assertThat(ext.getJSONObject("intent").getString("category")).isEqualTo("travel.hotel");
+        assertThat(ext.getJSONArray("actions_supported").getString(0)).isEqualTo("save_to_wallet");
+    }
+
+    @Test
     public void serialize_userWithoutData_omitsDataArray() throws Exception {
         BidRequest request = new BidRequest();
         request.id = "req-1";

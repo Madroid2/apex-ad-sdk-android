@@ -29,7 +29,8 @@ final class WalletDelegateImpl implements WalletDelegate {
 
     @Override
     public boolean isAvailable(@NonNull Context context) {
-        return WalletPassManager.isAvailable(context);
+        return (ApexSdkRuntime.isInitialized() && ApexSdkRuntime.getConfig().isTestMode())
+                || WalletPassManager.isAvailable(context);
     }
 
     @Override
@@ -148,6 +149,28 @@ final class WalletDelegateImpl implements WalletDelegate {
             }
             SdkExecutors.MAIN.post(session.callback::onPassFailed);
         }
+        return true;
+    }
+
+    @Override
+    public boolean performAction(
+            @NonNull Context context,
+            @NonNull String walletExtJson,
+            @NonNull WalletEventCallback callback) {
+        WalletPassData passData = WalletPassData.fromJson(walletExtJson);
+        if (passData == null || !WalletPassManager.isAvailable(context)) {
+            AdLog.d("WalletDelegateImpl: native action unavailable or wallet payload invalid");
+            return false;
+        }
+        if (ApexSdkRuntime.isInitialized() && ApexSdkRuntime.getConfig().isTestMode()) {
+            AdLog.d("WalletDelegateImpl: test mode — simulating native wallet save offer=%s",
+                    passData.offerId);
+            fireTracking(passData.saveTrackingUrl);
+            SdkExecutors.MAIN.post(callback::onPassSaved);
+            return true;
+        }
+        WalletResultActivity.launch(
+                context, passData.passJwt, passData.saveTrackingUrl, callback);
         return true;
     }
 

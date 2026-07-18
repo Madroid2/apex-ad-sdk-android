@@ -14,6 +14,7 @@ import com.apexads.sdk.core.di.MeasurementDelegate;
 import com.apexads.sdk.core.di.WalletDelegate;
 import com.apexads.sdk.core.models.AdFormat;
 import com.apexads.sdk.core.models.AdSize;
+import com.apexads.sdk.core.models.IntentContext;
 import com.apexads.sdk.core.models.openrtb.BidRequest;
 import com.apexads.sdk.internal.ApexFeatureAccess;
 import com.apexads.sdk.internal.ApexSdkRuntime;
@@ -43,6 +44,7 @@ public class OpenRTBRequestBuilder {
     private double bidFloor = 0.0;
     private List<String> blockedCategories = null;
     private List<String> blockedDomains = null;
+    @Nullable private IntentContext intentContext = null;
 
     public OpenRTBRequestBuilder(@NonNull DeviceInfoProvider deviceInfoProvider,
                                  @NonNull ConsentManager consentManager) {
@@ -56,6 +58,7 @@ public class OpenRTBRequestBuilder {
     public OpenRTBRequestBuilder bidFloor(double floor) { bidFloor = floor; return this; }
     public OpenRTBRequestBuilder blockedCategories(@NonNull List<String> cats) { blockedCategories = cats; return this; }
     public OpenRTBRequestBuilder blockedDomains(@NonNull List<String> domains) { blockedDomains = domains; return this; }
+    public OpenRTBRequestBuilder intentContext(@Nullable IntentContext context) { intentContext = context; return this; }
 
     @NonNull
     public BidRequest build() {
@@ -117,6 +120,9 @@ public class OpenRTBRequestBuilder {
                 break;
             case NATIVE:
                 imp.nativeObject = buildNativeObject();
+                if (intentContext != null) {
+                    imp.ext = intentActionExt(intentContext, walletRegistered);
+                }
                 break;
         }
         return imp;
@@ -174,6 +180,26 @@ public class OpenRTBRequestBuilder {
     private static Map<String, Object> walletSupportedExt() {
         Map<String, Object> ext = new HashMap<>();
         ext.put("wallet_supported", true);
+        return ext;
+    }
+
+    private static Map<String, Object> intentActionExt(
+            @NonNull IntentContext context,
+            boolean walletRegistered) {
+        Map<String, Object> ext = new HashMap<>();
+        Map<String, Object> apex = new HashMap<>();
+        List<String> executableActions = new ArrayList<>();
+        for (IntentContext.ActionType action : context.supportedActions) {
+            if (action != IntentContext.ActionType.SAVE_TO_WALLET || walletRegistered) {
+                executableActions.add(action.wireValue());
+            }
+        }
+        apex.put("intent", context.toOpenRtbMap());
+        apex.put("actions_supported", executableActions);
+        if (walletRegistered) apex.put("wallet_supported", true);
+        ext.put("apex", apex);
+        // Keep the existing flat flag for older demand adapters.
+        if (walletRegistered) ext.put("wallet_supported", true);
         return ext;
     }
 

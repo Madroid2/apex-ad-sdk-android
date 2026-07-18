@@ -64,10 +64,12 @@ public class AdDataTest {
         bid.adm = "<html/>";
         bid.ext = new BidResponse.BidExt();
         bid.ext.walletExtJson = "{\"pass_jwt\":\"jwt\"}";
+        bid.ext.actionExtJson = "{\"type\":\"save_to_wallet\"}";
 
         AdData data = AdData.fromBid("request-1", bid, AdFormat.INTERSTITIAL, "USD", 1);
 
         assertThat(data.walletExtJson).isEqualTo("{\"pass_jwt\":\"jwt\"}");
+        assertThat(data.actionExtJson).isEqualTo("{\"type\":\"save_to_wallet\"}");
     }
 
     @Test
@@ -115,6 +117,7 @@ public class AdDataTest {
                 .currency("USD")
                 .expiresAt(123L)
                 .walletExtJson("{wallet}")
+                .actionExtJson("{action}")
                 .build();
         NativeAdPayload payload = new NativeAdPayload(
                 "Title", "Body", null, "https://image", "Install", "Brand", "https://click",
@@ -128,6 +131,7 @@ public class AdDataTest {
         assertThat(next.requestId).isEqualTo("req");
         assertThat(next.nativePayload).isEqualTo(payload);
         assertThat(next.walletExtJson).isEqualTo("{wallet}");
+        assertThat(next.actionExtJson).isEqualTo("{action}");
         assertThat(next.billingUrl).isEqualTo("https://bill");
     }
 

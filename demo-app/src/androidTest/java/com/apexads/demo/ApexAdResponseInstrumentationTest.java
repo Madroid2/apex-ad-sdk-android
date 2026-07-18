@@ -15,6 +15,7 @@ import com.apexads.sdk.banner.BannerAd;
 import com.apexads.sdk.banner.BannerAdListener;
 import com.apexads.sdk.core.error.AdError;
 import com.apexads.sdk.core.models.AdSize;
+import com.apexads.sdk.core.models.IntentContext;
 import com.apexads.sdk.core.models.openrtb.BidRequest;
 import com.apexads.sdk.core.models.openrtb.BidResponse;
 import com.apexads.sdk.core.network.AdNetworkClient;
@@ -25,6 +26,7 @@ import com.apexads.sdk.nativeads.NativeAd;
 import com.apexads.sdk.nativeads.NativeAdListener;
 import com.apexads.sdk.video.VideoAd;
 import com.apexads.sdk.video.VideoAdListener;
+import com.apexads.sdk.wallet.WalletAdExtension;
 
 import org.junit.After;
 import org.junit.Before;
@@ -172,6 +174,41 @@ public class ApexAdResponseInstrumentationTest {
     }
 
     @Test
+    public void intentActionNative_roundTripsRequestAndResponseExtensions() throws Exception {
+        WalletAdExtension.install();
+        FakeClient client = new FakeClient(FakeMode.VALID_INTENT_ACTION);
+        installFake(client);
+        CountDownLatch loaded = new CountDownLatch(1);
+        AtomicReference<NativeAd> loadedAd = new AtomicReference<>();
+        NativeAd nativeAd = new NativeAd.Builder("intent-action-placement")
+                .intentContext(IntentContext.builder("apex-commerce-1", "travel.hotel")
+                        .journeyStage(IntentContext.JourneyStage.READY_TO_ACT)
+                        .displayLabel("Relevant to your hotel search")
+                        .supports(IntentContext.ActionType.SAVE_TO_WALLET)
+                        .build())
+                .listener(new NativeAdListener() {
+                    @Override public void onNativeAdLoaded(@NonNull NativeAd ad) {
+                        loadedAd.set(ad);
+                        loaded.countDown();
+                    }
+                    @Override public void onNativeAdFailed(@NonNull AdError error) {}
+                })
+                .build();
+
+        nativeAd.load();
+
+        assertThat(loaded.await(3, TimeUnit.SECONDS)).isTrue();
+        Object apexValue = client.lastRequest.imp.get(0).ext.get("apex");
+        assertThat(apexValue).isInstanceOf(java.util.Map.class);
+        java.util.Map<?, ?> apex = (java.util.Map<?, ?>) apexValue;
+        assertThat((java.util.List<?>) apex.get("actions_supported"))
+                .contains("save_to_wallet");
+        assertThat(loadedAd.get().hasIntentAction()).isTrue();
+        assertThat(loadedAd.get().getActionCtaText()).isEqualTo("Save to Google Wallet");
+        nativeAd.destroy();
+    }
+
+    @Test
     public void video_handlesValidAndInvalidResponses() throws Exception {
         installFake(new FakeClient(FakeMode.VALID_VIDEO));
         CountDownLatch loaded = new CountDownLatch(1);
@@ -243,6 +280,7 @@ public class ApexAdResponseInstrumentationTest {
 
     private static final class FakeClient implements AdNetworkClient {
         private final FakeMode mode;
+        private BidRequest lastRequest;
 
         FakeClient(FakeMode mode) {
             this.mode = mode;
@@ -251,6 +289,7 @@ public class ApexAdResponseInstrumentationTest {
         @NonNull
         @Override
         public BidResponse requestBid(@NonNull BidRequest request) {
+            lastRequest = request;
             if (mode == FakeMode.NO_FILL) {
                 return noFill(request.id);
             }
@@ -262,6 +301,12 @@ public class ApexAdResponseInstrumentationTest {
                     return response(request.id, bid(imp.id, "<html><body>interstitial</body></html>", 320, 480));
                 case VALID_NATIVE:
                     return response(request.id, bid(imp.id, NATIVE_JSON, 0, 0));
+                case VALID_INTENT_ACTION:
+                    BidResponse.Bid intentBid = bid(imp.id, NATIVE_JSON, 0, 0);
+                    intentBid.ext = new BidResponse.BidExt();
+                    intentBid.ext.walletExtJson = "{\"pass_jwt\":\"jwt\",\"offer_id\":\"offer\",\"cta_text\":\"Save to Google Wallet\"}";
+                    intentBid.ext.actionExtJson = "{\"type\":\"save_to_wallet\",\"intent_label\":\"Relevant to your hotel search\",\"cta_text\":\"Save to Google Wallet\"}";
+                    return response(request.id, intentBid);
                 case INVALID_NATIVE:
                     return response(request.id, bid(imp.id, "{\"native\":{\"assets\":[]}}", 0, 0));
                 case VALID_VIDEO:
@@ -282,6 +327,7 @@ public class ApexAdResponseInstrumentationTest {
         VALID_BANNER,
         VALID_INTERSTITIAL,
         VALID_NATIVE,
+        VALID_INTENT_ACTION,
         INVALID_NATIVE,
         VALID_VIDEO,
         INVALID_VIDEO,

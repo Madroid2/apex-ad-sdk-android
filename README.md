@@ -1,7 +1,7 @@
 # ApexAd SDK — Android
 
 > A production-grade programmatic advertising SDK demonstrating full-stack ad-tech engineering:
-> OpenRTB 2.6 · VAST 4.0 · MRAID 3.0 · IAB Native 1.2 · IAB TCF 2.0 + GPP · App Open Ads · In-App Bidding · AdMob Mediation · Google Wallet Pass Ads · In-House Crash Reporting · Custom DI · MRC Viewability · Apex Trust Layer
+> OpenRTB 2.6 · VAST 4.0 · MRAID 3.0 · IAB Native 1.2 · Intent-to-Action Native Cards · IAB TCF 2.0 + GPP · App Open Ads · In-App Bidding · AdMob Mediation · Google Wallet Pass Ads · In-House Crash Reporting · Custom DI · MRC Viewability · Apex Trust Layer
 
 [![API](https://img.shields.io/badge/API-21%2B-brightgreen)](https://android-arsenal.com/api?level=21)
 [![OpenRTB](https://img.shields.io/badge/OpenRTB-2.6-orange)](https://www.iab.com/guidelines/openrtb/)
@@ -44,6 +44,40 @@
     </td>
   </tr>
 </table>
+
+## Card Live 1 — Intent-to-Action Native
+
+<p align="center">
+  <img src="assets/demo_intent_action_card.png" width="360" alt="Apex Intent-to-Action Native Card with a Save to Google Wallet CTA"/><br/>
+  <b>Native 1.2 travel offer with an executable Wallet action</b>
+</p>
+
+The card reuses the same title, main image, icon, body, advertiser, CTA, click URL, and
+impression trackers as the Native Ad demo above. Its edge is an optional action contract:
+the app declares a coarse journey category, eligible demand returns `bid.ext.apex.action`,
+and the SDK executes the action while retaining the ordinary Native click as fallback.
+
+```kotlin
+val ad = NativeAd.Builder("hotel-results-card")
+    .intentContext(
+        IntentContext.builder("apex-commerce-1", "travel.hotel")
+            .journeyStage(IntentContext.JourneyStage.READY_TO_ACT)
+            .displayLabel("Relevant to your hotel search")
+            .supports(IntentContext.ActionType.SAVE_TO_WALLET)
+            .build()
+    )
+    .listener(listener)
+    .build()
+
+ad.load()
+// Publisher-rendered CTA:
+if (ad.hasIntentAction()) ad.performAction(context) else ad.handleClick(context)
+```
+
+Only structured taxonomy/category data should be supplied. Do not pass raw searches,
+chat messages, or other free-form user content. When `sdk-wallet` is not installed, the
+SDK omits Wallet from `actions_supported`; when demand returns no action, rendering and
+click handling remain standard IAB Native 1.2.
 
 ## Portfolio Demo: Agentic Creative Review Loop
 
@@ -112,6 +146,7 @@ Most ad SDKs (including major ones from Google, Meta, Unity) share a common set 
 | Feature | ApexAds | AdMob | MAX | IronSource / LevelPlay |
 |---|:---:|:---:|:---:|:---:|
 | **Google Wallet Pass Ads** | ✅ | ❌ | ❌ | ❌ |
+| **Intent-to-Action Native Cards** | ✅ | ❌ | ❌ | ❌ |
 | **First-Party Audience Cohorts** (zero-dep, privacy-gated) | ✅ | ❌ | ❌ | ❌ |
 | App Open Ads (native SDK feature) | ✅ | ✅ | ❌ | ❌ |
 | In-App / Header Bidding | ✅ | ❌ | ✅ (MAX) | ✅ (LevelPlay) |
@@ -190,7 +225,38 @@ User taps CTA               ──→ WalletPassManager.savePassesJwt()
 
 **Zero dependency leakage:** `play-services-wallet` is scoped to `sdk-wallet` only. Publishers who don't call `WalletAdExtension.install()` never pull in Google Pay APIs and are unaffected.
 
-#### 2. App Open Ads — Only the second SDK to offer this natively
+#### 2. Intent-to-Action Native Cards
+
+Intent-to-Action is an enhancement to ordinary Native 1.2 inventory, not a new opaque
+format. `imp.ext.apex.intent` carries the coarse context and `actions_supported` capabilities;
+an eligible bid returns `ext.apex.action` plus the existing `ext.wallet` payload. The SDK
+renders clear sponsored/context disclosures, records action lifecycle events, and falls back
+to the native creative's click URL if the feature module or action is unavailable.
+
+```json
+{
+  "imp": [{
+    "native": { "request": "{...Native 1.2 assets...}", "ver": "1.2" },
+    "ext": {
+      "apex": {
+        "intent": {
+          "taxonomy": "apex-commerce-1",
+          "category": "travel.hotel",
+          "journey_stage": "ready_to_act",
+          "label": "Relevant to your hotel search"
+        },
+        "actions_supported": ["save_to_wallet"]
+      }
+    }
+  }]
+}
+```
+
+The Apex Ad Server preserves these extensions through the auction, and the Apex Demand
+Platform emits the action only for a compatible Native impression and a Wallet-backed
+campaign. No model call is added to the auction hot path.
+
+#### 3. App Open Ads — Only the second SDK to offer this natively
 Google AdMob introduced App Open as a dedicated ad format in 2021. No other Android ad SDK has followed. ApexAds implements the full lifecycle — background detection, frequency capping, automatic preload and re-preload after dismiss — backed by the same OpenRTB pipeline as every other format.
 
 ```kotlin
@@ -204,7 +270,7 @@ AppOpenAd.setFrequencyCapHours(1)   // show at most once per hour
 AppOpenAd.setAdExpiryMinutes(30)    // discard stale cached ad after 30 min
 ```
 
-#### 3. In-House Crash Reporting — Zero Sentry SDK dependency
+#### 4. In-House Crash Reporting — Zero Sentry SDK dependency
 Crash events are serialized to the Sentry envelope protocol and delivered via raw `HttpURLConnection` — no Sentry Android SDK on the classpath. The reporter installs a `Thread.UncaughtExceptionHandler`, retries delivery up to 3× with exponential back-off, and respects 429 rate limits.
 
 ```kotlin
@@ -214,7 +280,7 @@ ApexAdsConfig.Builder("APP_TOKEN")
 // ↑ crash reporting is fully automatic after this. No other wiring needed.
 ```
 
-#### 4. Custom DI — No Hilt, No Dagger, No Koin
+#### 5. Custom DI — No Hilt, No Dagger, No Koin
 Annotation processors from DI frameworks conflict with host app DI graphs and slow incremental builds. Apex uses a tiny in-house container instead: `ApexServices` owns typed core services, while library-internal feature access is limited to optional `SdkFeature` contracts backed by a `ConcurrentHashMap<Class, SdkFeature>`. There is zero reflection at runtime and zero transitive DI dependency.
 
 ```kotlin
@@ -224,7 +290,7 @@ ApexAds.init(this, config)
 WalletAdExtension.install() // → ServiceLocator.register(WalletDelegate::class.java, …)
 ```
 
-#### 5. Zero 3P Runtime Dependencies
+#### 6. Zero 3P Runtime Dependencies
 Every SDK imported into a publisher app risks version conflicts with the publisher's own dependencies. ApexAds runtime uses only Android platform APIs:
 
 | Replaced | With |
@@ -465,7 +531,7 @@ graph LR
 | `sdk-core` | — (Android platform only) | SDK init, OpenRTB models, HTTP networking, ad cache, consent, DI, crash reporting, logging, `WalletDelegate` interface; **MVVM base layer** — `AdViewModel`, `AdStateObservable`, `AdRepository`, `AdState` |
 | `sdk-banner` | `sdk-core` | `BannerAd` facade + `BannerAdViewModel` (extends `AdViewModel`); `BannerAdView` (observes `AdStateObservable`); MRAID 3.0 WebView; auto-attaches wallet CTA on MRECT |
 | `sdk-interstitial` | `sdk-core` | `InterstitialAd` facade + `InterstitialAdViewModel`; fullscreen HTML activity; auto-attaches wallet bottom panel |
-| `sdk-native` | `sdk-core` | `NativeAd` facade + `NativeAdViewModel` (IAB Native 1.2 JSON parsing hook); publisher-controlled view binding |
+| `sdk-native` | `sdk-core` | `NativeAd` facade + `NativeAdViewModel` (IAB Native 1.2 JSON parsing hook); publisher-controlled binding and optional Intent-to-Action execution |
 | `sdk-video` | `sdk-core` | `VideoAd` facade + `VideoAdViewModel` (VAST 4.0 XML parsing hook); ExoPlayer rewarded video; quartile tracking |
 | `sdk-appopen` | `sdk-interstitial` | App Open Ads — foreground detection, frequency cap, auto-preload; delegates lifecycle to `InterstitialAdViewModel` |
 | `sdk-inappbidding` | `sdk-core` | Header bidding price signals via `ApexInAppBidder`; MAX/LevelPlay mock simulation |
@@ -573,6 +639,12 @@ Reads `IABTCF_TCString`, `IABTCF_gdprApplies`, and `IABUSPrivacy_String` from Sh
 
 ### In-App Bidding / Header Bidding
 `ApexInAppBidder` fetches a real-time bid from the exchange and packages it as a `BidToken` price signal — compatible with MAX and LevelPlay's `setLocalExtraParameter` / `setSignal` patterns.
+
+### Intent-to-Action Native (`imp.ext.apex.intent` / `bid.ext.apex.action`)
+Structured, privacy-minimised journey context and executable capability negotiation ride
+beside a normal Native 1.2 request. Compatible demand may return a Wallet or deep-link action;
+the SDK exposes disclosure/chip/badge assets, lifecycle tracking, publisher callbacks, and a
+standard Native click fallback.
 
 ### Google Wallet Pass Ads (ext.wallet)
 Non-standard OpenRTB extension (`ext.wallet`) carries a signed Google Wallet pass JWT alongside the creative. The SDK parses this, presents a native "Save to Google Wallet" CTA, and invokes `PayClient.savePassesJwt()` — with result handling, tracking pixel, and publisher callbacks.
