@@ -13,6 +13,9 @@ import com.apexads.sdk.ApexAdsConfig;
 import com.apexads.sdk.appopen.AppOpenAd;
 import com.apexads.sdk.banner.BannerAd;
 import com.apexads.sdk.banner.BannerAdListener;
+import com.apexads.sdk.conversational.ConversationalAd;
+import com.apexads.sdk.conversational.ConversationalAdListener;
+import com.apexads.sdk.conversational.SponsoredSuggestion;
 import com.apexads.sdk.core.error.AdError;
 import com.apexads.sdk.core.models.AdSize;
 import com.apexads.sdk.core.models.IntentContext;
@@ -206,6 +209,46 @@ public class ApexAdResponseInstrumentationTest {
         assertThat(loadedAd.get().hasIntentAction()).isTrue();
         assertThat(loadedAd.get().getActionCtaText()).isEqualTo("Save to Google Wallet");
         nativeAd.destroy();
+    }
+
+    @Test
+    public void conversational_roundTripsAssistantSurfaceAndSuggestion() throws Exception {
+        WalletAdExtension.install();
+        FakeClient client = new FakeClient(FakeMode.VALID_INTENT_ACTION);
+        installFake(client);
+        CountDownLatch ready = new CountDownLatch(1);
+        AtomicReference<ConversationalAd> readyAd = new AtomicReference<>();
+        ConversationalAd ad = new ConversationalAd.Builder("assistant-inline")
+                .intentContext(IntentContext.builder("apex-commerce-1", "travel.hotel")
+                        .journeyStage(IntentContext.JourneyStage.READY_TO_ACT)
+                        .displayLabel("Relevant to your hotel search")
+                        .supports(IntentContext.ActionType.SAVE_TO_WALLET)
+                        .build())
+                .listener(new ConversationalAdListener() {
+                    @Override public void onSuggestionReady(@NonNull ConversationalAd loadedAd) {
+                        readyAd.set(loadedAd);
+                        ready.countDown();
+                    }
+                    @Override public void onSuggestionFailed(@NonNull AdError error) {}
+                })
+                .build();
+
+        ad.load();
+
+        assertThat(ready.await(3, TimeUnit.SECONDS)).isTrue();
+        // Request declared the conversational surface alongside the intent context.
+        java.util.Map<?, ?> apex = (java.util.Map<?, ?>) client.lastRequest.imp.get(0).ext.get("apex");
+        assertThat(apex.get("surface")).isEqualTo("assistant");
+        assertThat((java.util.List<?>) apex.get("actions_supported")).contains("save_to_wallet");
+        // Bid mapped onto the compact conversational render contract.
+        SponsoredSuggestion suggestion = readyAd.get().getSuggestion();
+        assertThat(suggestion).isNotNull();
+        assertThat(suggestion.title).isEqualTo("Instrumentation Native");
+        assertThat(suggestion.disclosure).isEqualTo("Sponsored");
+        assertThat(suggestion.relevanceLabel).isEqualTo("Relevant to your hotel search");
+        assertThat(suggestion.actionCtaText).isEqualTo("Save to Google Wallet");
+        assertThat(suggestion.hasAction).isTrue();
+        ad.destroy();
     }
 
     @Test

@@ -47,6 +47,7 @@ dependencies {
     implementation(project(":sdk-banner"))
     implementation(project(":sdk-interstitial"))
     implementation(project(":sdk-native"))
+    implementation(project(":sdk-conversational"))
     implementation(project(":sdk-video"))
     implementation(project(":sdk-inappbidding"))
     implementation(project(":sdk-appopen"))

@@ -16,6 +16,34 @@ import java.util.Map;
 public class BidRequestSerializerTest {
 
     @Test
+    public void serialize_conversationalSurfaceExt_writesNestedApexEnvelope() throws Exception {
+        BidRequest request = new BidRequest();
+        request.id = "req-conv";
+        BidRequest.Impression imp = new BidRequest.Impression();
+        imp.id = "1";
+        Map<String, Object> apex = new HashMap<>();
+        apex.put("surface", "assistant");
+        Map<String, Object> intent = new HashMap<>();
+        intent.put("taxonomy", "apex-commerce-1");
+        intent.put("category", "travel.hotel");
+        intent.put("journey_stage", "ready_to_act");
+        apex.put("intent", intent);
+        apex.put("actions_supported", Collections.singletonList("save_to_wallet"));
+        Map<String, Object> ext = new HashMap<>();
+        ext.put("apex", apex);
+        imp.ext = ext;
+        request.imp = Collections.singletonList(imp);
+
+        JSONObject json = new JSONObject(BidRequestSerializer.serialize(request));
+
+        JSONObject apexExt = json.getJSONArray("imp").getJSONObject(0)
+                .getJSONObject("ext").getJSONObject("apex");
+        assertThat(apexExt.getString("surface")).isEqualTo("assistant");
+        assertThat(apexExt.getJSONObject("intent").getString("category")).isEqualTo("travel.hotel");
+        assertThat(apexExt.getJSONArray("actions_supported").getString(0)).isEqualTo("save_to_wallet");
+    }
+
+    @Test
     public void serialize_fullRequest_writesOpenRtbShape() throws Exception {
         BidRequest request = new BidRequest();
         request.id = "req-1";

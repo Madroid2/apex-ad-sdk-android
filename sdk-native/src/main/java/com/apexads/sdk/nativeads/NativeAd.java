@@ -34,7 +34,8 @@ public final class NativeAd {
         OpenRTBRequestBuilder requestBuilder = new OpenRTBRequestBuilder(
                 ApexSdkRuntime.getDeviceInfoProvider(),
                 ApexSdkRuntime.getConsentManager())
-                .intentContext(builder.intentContext);
+                .intentContext(builder.intentContext)
+                .renderSurface(builder.renderSurface);
         AdRepository repository = new OpenRTBAdRepository(
                 ApexSdkRuntime.getNetworkClient(),
                 requestBuilder);
@@ -207,6 +208,7 @@ public final class NativeAd {
         private final String placementId;
         @Nullable private NativeAdListener listener;
         @Nullable private IntentContext intentContext;
+        @Nullable private String renderSurface;
 
         public Builder(@Nullable String placementId) { this.placementId = placementId; }
 
@@ -214,6 +216,16 @@ public final class NativeAd {
 
         public Builder intentContext(@Nullable IntentContext context) {
             intentContext = context;
+            return this;
+        }
+
+        /**
+         * Declares the in-app surface this placement renders on, carried as
+         * {@code imp.ext.apex.surface}. Used by Apex surface modules (e.g.
+         * {@code sdk-conversational}); most publishers never call this directly.
+         */
+        public Builder renderSurface(@Nullable String surface) {
+            renderSurface = surface;
             return this;
         }
 

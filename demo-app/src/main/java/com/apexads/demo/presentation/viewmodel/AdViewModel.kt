@@ -63,6 +63,9 @@ class AdViewModel : ViewModel() {
     private val _videoState = MutableStateFlow<AdState>(AdState.Idle)
     val videoState: StateFlow<AdState> = _videoState.asStateFlow()
 
+    private val _conversationalState = MutableStateFlow<AdState>(AdState.Idle)
+    val conversationalState: StateFlow<AdState> = _conversationalState.asStateFlow()
+
     private val _walletState = MutableStateFlow<AdState>(AdState.Idle)
     val walletState: StateFlow<AdState> = _walletState.asStateFlow()
 
@@ -126,6 +129,10 @@ class AdViewModel : ViewModel() {
     fun onNativeLoading() { _nativeState.value = AdState.Loading }
     fun onNativeLoaded() { _nativeState.value = AdState.Loaded }
     fun onNativeError(error: AdError) { _nativeState.value = AdState.Error(error) }
+
+    fun onConversationalLoading() { _conversationalState.value = AdState.Loading }
+    fun onConversationalLoaded() { _conversationalState.value = AdState.Loaded }
+    fun onConversationalError(error: AdError) { _conversationalState.value = AdState.Error(error) }
 
     // ── Video ──────────────────────────────────────────────────────────────────
 

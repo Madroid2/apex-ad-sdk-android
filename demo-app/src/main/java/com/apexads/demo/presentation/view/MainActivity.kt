@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.automirrored.filled.Article
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.Gavel
@@ -29,6 +30,7 @@ import com.apexads.demo.presentation.view.appopen.AppOpenScreen
 import com.apexads.demo.presentation.view.banner.BannerScreen
 import com.apexads.demo.presentation.view.inappbidding.InAppBiddingScreen
 import com.apexads.demo.presentation.view.interstitial.InterstitialScreen
+import com.apexads.demo.presentation.view.conversational.ConversationalScreen
 import com.apexads.demo.presentation.view.native.NativeScreen
 import com.apexads.demo.ui.theme.ApexTheme
 import com.apexads.demo.presentation.view.video.VideoScreen
@@ -77,6 +79,7 @@ class MainActivity : ComponentActivity() {
                         composable(NavDestination.Banner.route) { BannerScreen(adViewModel) }
                         composable(NavDestination.Interstitial.route) { InterstitialScreen(adViewModel) }
                         composable(NavDestination.Native.route) { NativeScreen(adViewModel) }
+                        composable(NavDestination.Chat.route) { ConversationalScreen(adViewModel) }
                         composable(NavDestination.Video.route) { VideoScreen(adViewModel) }
                         composable(NavDestination.AppOpen.route) { AppOpenScreen() }
                         composable(NavDestination.Bidding.route) { InAppBiddingScreen(adViewModel) }
@@ -97,6 +100,7 @@ enum class NavDestination(
     Banner("banner", "Banner", Icons.Default.Image),
     Interstitial("interstitial", "Interst.", Icons.Default.Fullscreen),
     Native("native", "Native", Icons.AutoMirrored.Filled.Article),
+    Chat("chat", "Chat", Icons.AutoMirrored.Filled.Chat),
     Video("video", "Video", Icons.Default.PlayCircle),
     AppOpen("appopen", "App Open", Icons.AutoMirrored.Filled.OpenInNew),
     Bidding("bidding", "Bidding", Icons.Default.Gavel),
