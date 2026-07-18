@@ -1,7 +1,7 @@
 # ApexAd SDK — Android
 
 > A production-grade programmatic advertising SDK demonstrating full-stack ad-tech engineering:
-> OpenRTB 2.6 · VAST 4.0 · MRAID 3.0 · IAB Native 1.2 · Intent-to-Action Native Cards · IAB TCF 2.0 + GPP · App Open Ads · In-App Bidding · AdMob Mediation · Google Wallet Pass Ads · In-House Crash Reporting · Custom DI · MRC Viewability · Apex Trust Layer
+> OpenRTB 2.6 · VAST 4.0 · MRAID 3.0 · IAB Native 1.2 · Intent-to-Action Native Cards · Conversational Sponsored Suggestions · IAB TCF 2.0 + GPP · App Open Ads · In-App Bidding · AdMob Mediation · Google Wallet Pass Ads · In-House Crash Reporting · Custom DI · MRC Viewability · Apex Trust Layer
 
 [![API](https://img.shields.io/badge/API-21%2B-brightgreen)](https://android-arsenal.com/api?level=21)
 [![OpenRTB](https://img.shields.io/badge/OpenRTB-2.6-orange)](https://www.iab.com/guidelines/openrtb/)
@@ -78,6 +78,54 @@ Only structured taxonomy/category data should be supplied. Do not pass raw searc
 chat messages, or other free-form user content. When `sdk-wallet` is not installed, the
 SDK omits Wallet from `actions_supported`; when demand returns no action, rendering and
 click handling remain standard IAB Native 1.2.
+
+## Card Live 2 — Conversational Sponsored Suggestion
+
+<p align="center">
+  <img src="assets/demo_conversational_card.svg" width="360" alt="Apex Conversational Sponsored Suggestion rendered between assistant messages with a Save to Google Wallet action"/><br/>
+  <b>The first open programmatic format for in-app AI surfaces</b>
+</p>
+
+Apps are embedding their own AI assistants, but there is no programmatic monetization
+primitive for those surfaces. The Conversational Sponsored Suggestion is that primitive:
+the same Native 1.2 + Intent-to-Action creative from Card Live 1, re-flowed by
+`sdk-conversational` for a chat surface and requested with
+`imp.ext.apex.surface = "assistant"` so demand can price and copy-fit the placement.
+
+```kotlin
+val ad = ConversationalAd.Builder("assistant-inline-1")
+    .intentContext(
+        IntentContext.builder("apex-commerce-1", "travel.hotel")
+            .journeyStage(IntentContext.JourneyStage.READY_TO_ACT)
+            .displayLabel("Relevant to your hotel search")
+            .supports(IntentContext.ActionType.SAVE_TO_WALLET)
+            .build()
+    )
+    .listener(listener)
+    .build()
+
+ad.load()
+// Publisher-rendered card between chat messages:
+val suggestion = ad.suggestion   // title/body clamped, thumbnail, disclosure, CTAs
+if (suggestion.hasAction) ad.performAction(context) else ad.handleClick(context)
+```
+
+The format's trust rules are structural, not aspirational:
+
+| Rule | Enforcement |
+|---|---|
+| Answer independence | The card renders *between* messages; the SDK never injects ad content into assistant answers |
+| No conversation data leaves the app | Only the structured `IntentContext` taxonomy is sent — raw chat text is never read or transmitted |
+| Always disclosed | `SponsoredSuggestion.disclosure` is non-null by contract and rendered in the tinted card header |
+| Renderable-or-silent | `apex-demand-platform` refuses to send a bid whose Native markup lacks a title asset; the SDK no-fills instead of degrading the surface |
+| Compact by contract | Title ≤ 60 chars, body ≤ 90 chars, word-boundary ellipsis — enforced in `SponsoredSuggestion`, not left to demand |
+
+End-to-end, the trio supports the format natively: the SDK declares the surface, the
+Apex Ad Server forwards it transparently (`imp.ext.apex.surface`) with auction-log
+visibility, and the Apex Demand Platform gates conversational bids on structured
+renderability and echoes the surface in `bid.ext.apex` for log joins. Demand that
+returns an action produces the same executable Wallet CTA as Card Live 1 — with the
+ordinary Native click as fallback — so one creative serves both surfaces.
 
 ## Portfolio Demo: Agentic Creative Review Loop
 
@@ -532,6 +580,7 @@ graph LR
 | `sdk-banner` | `sdk-core` | `BannerAd` facade + `BannerAdViewModel` (extends `AdViewModel`); `BannerAdView` (observes `AdStateObservable`); MRAID 3.0 WebView; auto-attaches wallet CTA on MRECT |
 | `sdk-interstitial` | `sdk-core` | `InterstitialAd` facade + `InterstitialAdViewModel`; fullscreen HTML activity; auto-attaches wallet bottom panel |
 | `sdk-native` | `sdk-core` | `NativeAd` facade + `NativeAdViewModel` (IAB Native 1.2 JSON parsing hook); publisher-controlled binding and optional Intent-to-Action execution |
+| `sdk-conversational` | `sdk-native` | `ConversationalAd` facade — Sponsored Suggestions for in-app AI surfaces; declares `imp.ext.apex.surface="assistant"`, clamps Native assets to the compact `SponsoredSuggestion` render contract, reuses Intent-to-Action execution |
 | `sdk-video` | `sdk-core` | `VideoAd` facade + `VideoAdViewModel` (VAST 4.0 XML parsing hook); ExoPlayer rewarded video; quartile tracking |
 | `sdk-appopen` | `sdk-interstitial` | App Open Ads — foreground detection, frequency cap, auto-preload; delegates lifecycle to `InterstitialAdViewModel` |
 | `sdk-inappbidding` | `sdk-core` | Header bidding price signals via `ApexInAppBidder`; MAX/LevelPlay mock simulation |

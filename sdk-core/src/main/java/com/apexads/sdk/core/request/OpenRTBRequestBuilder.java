@@ -45,6 +45,7 @@ public class OpenRTBRequestBuilder {
     private List<String> blockedCategories = null;
     private List<String> blockedDomains = null;
     @Nullable private IntentContext intentContext = null;
+    @Nullable private String renderSurface = null;
 
     public OpenRTBRequestBuilder(@NonNull DeviceInfoProvider deviceInfoProvider,
                                  @NonNull ConsentManager consentManager) {
@@ -59,6 +60,16 @@ public class OpenRTBRequestBuilder {
     public OpenRTBRequestBuilder blockedCategories(@NonNull List<String> cats) { blockedCategories = cats; return this; }
     public OpenRTBRequestBuilder blockedDomains(@NonNull List<String> domains) { blockedDomains = domains; return this; }
     public OpenRTBRequestBuilder intentContext(@Nullable IntentContext context) { intentContext = context; return this; }
+
+    /**
+     * Declares the in-app surface this Native placement renders on (e.g. {@code "assistant"}
+     * for a conversational/AI-assistant surface). Carried as {@code imp.ext.apex.surface} so
+     * demand can price and copy-fit the creative for the surface. Null omits the field.
+     */
+    public OpenRTBRequestBuilder renderSurface(@Nullable String surface) {
+        renderSurface = surface == null || surface.trim().isEmpty() ? null : surface.trim();
+        return this;
+    }
 
     @NonNull
     public BidRequest build() {
@@ -120,8 +131,9 @@ public class OpenRTBRequestBuilder {
                 break;
             case NATIVE:
                 imp.nativeObject = buildNativeObject();
-                if (intentContext != null) {
-                    imp.ext = intentActionExt(intentContext, walletRegistered);
+                Map<String, Object> nativeExt = nativeApexExt(walletRegistered);
+                if (nativeExt != null) {
+                    imp.ext = nativeExt;
                 }
                 break;
         }
@@ -183,19 +195,27 @@ public class OpenRTBRequestBuilder {
         return ext;
     }
 
-    private static Map<String, Object> intentActionExt(
-            @NonNull IntentContext context,
-            boolean walletRegistered) {
+    /**
+     * Builds {@code imp.ext} for Native placements. The apex envelope carries the optional
+     * Intent-to-Action context and, for conversational placements, the render surface.
+     * Returns null when there is nothing to declare so plain Native requests stay untouched.
+     */
+    @Nullable
+    private Map<String, Object> nativeApexExt(boolean walletRegistered) {
+        if (intentContext == null && renderSurface == null) return null;
         Map<String, Object> ext = new HashMap<>();
         Map<String, Object> apex = new HashMap<>();
-        List<String> executableActions = new ArrayList<>();
-        for (IntentContext.ActionType action : context.supportedActions) {
-            if (action != IntentContext.ActionType.SAVE_TO_WALLET || walletRegistered) {
-                executableActions.add(action.wireValue());
+        if (renderSurface != null) apex.put("surface", renderSurface);
+        if (intentContext != null) {
+            List<String> executableActions = new ArrayList<>();
+            for (IntentContext.ActionType action : intentContext.supportedActions) {
+                if (action != IntentContext.ActionType.SAVE_TO_WALLET || walletRegistered) {
+                    executableActions.add(action.wireValue());
+                }
             }
+            apex.put("intent", intentContext.toOpenRtbMap());
+            apex.put("actions_supported", executableActions);
         }
-        apex.put("intent", context.toOpenRtbMap());
-        apex.put("actions_supported", executableActions);
         if (walletRegistered) apex.put("wallet_supported", true);
         ext.put("apex", apex);
         // Keep the existing flat flag for older demand adapters.
