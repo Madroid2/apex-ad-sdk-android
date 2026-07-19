@@ -8,6 +8,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.apexads.sdk.core.models.AdData;
+import com.apexads.sdk.core.quality.AdQualityReporter;
 
 import java.util.Locale;
 
@@ -141,6 +142,7 @@ public final class AdNavigationGuard {
                 requestGestureKnown, hasRequestGesture, recentTouch,
                 msSinceTouch, msSinceLoad, navigationAttemptCount,
                 nullToDash(requestId), nullToDash(bidId), nullToDash(creativeId)));
+        AdQualityReporter.reportNavigationBlocked(surface, reason, score, requestId, bidId, creativeId);
     }
 
     @Nullable
