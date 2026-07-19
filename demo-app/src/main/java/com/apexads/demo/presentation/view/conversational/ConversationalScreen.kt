@@ -1,22 +1,14 @@
 package com.apexads.demo.presentation.view.conversational
 
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
+import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
@@ -27,47 +19,23 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.apexads.demo.viewmodel.AdViewModel
 import com.apexads.sdk.conversational.ConversationalAd
 import com.apexads.sdk.conversational.ConversationalAdListener
-import com.apexads.sdk.conversational.SponsoredSuggestion
 import com.apexads.sdk.core.error.AdError
 import com.apexads.sdk.core.models.IntentContext
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import java.net.URL
-
-@Composable
-private fun rememberBitmapFromUrl(url: String?): State<Bitmap?> = produceState<Bitmap?>(
-    initialValue = null,
-    key1 = url,
-) {
-    if (url == null) return@produceState
-    withContext(Dispatchers.IO) {
-        try {
-            val conn = URL(url).openConnection().apply { connect() }
-            value = BitmapFactory.decodeStream(conn.getInputStream())
-        } catch (_: Exception) { /* leave null */ }
-    }
-}
 
 /**
  * Demo of the Conversational Sponsored Suggestion format: a mock in-app trip
@@ -79,6 +47,7 @@ private fun rememberBitmapFromUrl(url: String?): State<Bitmap?> = produceState<B
 @Composable
 fun ConversationalScreen(viewModel: AdViewModel) {
     val state by viewModel.conversationalState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     var conversationalAd by remember { mutableStateOf<ConversationalAd?>(null) }
 
     Column(
@@ -94,6 +63,14 @@ fun ConversationalScreen(viewModel: AdViewModel) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+
+        OutlinedButton(
+            onClick = {
+                context.startActivity(Intent(context, TripAssistantActivity::class.java))
+            },
+        ) {
+            Text("Open Trip Assistant — production integration")
+        }
 
         AnimatedVisibility(visible = state is AdViewModel.AdState.Loading) {
             LinearProgressIndicator(modifier = Modifier.width(240.dp))
@@ -205,139 +182,4 @@ private fun AssistantBubble(text: String) {
             )
             .padding(horizontal = 12.dp, vertical = 8.dp),
     )
-}
-
-/**
- * The Sponsored Suggestion card: structurally distinct from chat bubbles (full
- * border + tinted disclosure header), rendered between organic messages.
- */
-@Composable
-private fun SponsoredSuggestionCard(ad: ConversationalAd, suggestion: SponsoredSuggestion) {
-    val context = LocalContext.current
-    val thumbBitmap by rememberBitmapFromUrl(suggestion.thumbnailUrl)
-    val iconBitmap by rememberBitmapFromUrl(suggestion.iconUrl)
-    LaunchedEffect(ad) { ad.recordSuggestionRendered() }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(
-                1.dp,
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
-                RoundedCornerShape(14.dp),
-            )
-            .clip(RoundedCornerShape(14.dp))
-            .clickable { ad.handleClick(context) },
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
-                .padding(horizontal = 10.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text(
-                text = "${suggestion.disclosure} · ${suggestion.advertiserName ?: "Advertiser"}",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Medium,
-            )
-            Text(
-                text = "Why this ad?",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-            )
-        }
-
-        Column(
-            modifier = Modifier.padding(10.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            suggestion.relevanceLabel?.let { label ->
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .background(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                            RoundedCornerShape(50),
-                        )
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
-                )
-            }
-
-            Row(verticalAlignment = Alignment.Top) {
-                thumbBitmap?.let { bmp ->
-                    Image(
-                        bitmap = bmp.asImageBitmap(),
-                        contentDescription = "Suggestion thumbnail",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(width = 84.dp, height = 64.dp)
-                            .clip(RoundedCornerShape(8.dp)),
-                    )
-                    Spacer(Modifier.width(10.dp))
-                }
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        iconBitmap?.let { bmp ->
-                            Image(
-                                bitmap = bmp.asImageBitmap(),
-                                contentDescription = "Advertiser icon",
-                                modifier = Modifier
-                                    .size(16.dp)
-                                    .clip(RoundedCornerShape(3.dp)),
-                            )
-                            Spacer(Modifier.width(6.dp))
-                        }
-                        Text(
-                            text = listOfNotNull(suggestion.advertiserName, suggestion.badgeText)
-                                .joinToString(" · "),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Text(
-                        text = suggestion.title,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(
-                        text = suggestion.body,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-
-            Button(
-                onClick = {
-                    if (suggestion.hasAction) ad.performAction(context)
-                    else ad.handleClick(context)
-                },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(suggestion.actionCtaText ?: suggestion.fallbackCtaText)
-            }
-            if (suggestion.hasAction) {
-                Text(
-                    text = suggestion.fallbackCtaText,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .clickable { ad.handleClick(context) }
-                        .padding(4.dp),
-                )
-            }
-            Text(
-                text = "Offer terms apply",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-            )
-        }
-    }
-    Spacer(Modifier.height(0.dp))
 }
