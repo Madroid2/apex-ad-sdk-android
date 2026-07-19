@@ -81,10 +81,19 @@ click handling remain standard IAB Native 1.2.
 
 ## Card Live 2 — Conversational Sponsored Suggestion
 
-<p align="center">
-  <img src="assets/demo_conversational_card.svg" width="360" alt="Apex Conversational Sponsored Suggestion rendered between assistant messages with a Save to Google Wallet action"/><br/>
-  <b>The first open programmatic format for in-app AI surfaces</b>
-</p>
+<table align="center">
+  <tr>
+    <td align="center">
+      <img src="assets/demo_conversational_card.svg" width="320" alt="Apex Conversational Sponsored Suggestion format design"/><br/>
+      <b>Format design</b>
+    </td>
+    <td align="center">
+      <img src="assets/demo_trip_assistant_live.png" width="320" alt="Sponsored Suggestion live in the demo app's Trip Assistant chat, rendered between assistant messages with a Save to Google Wallet action"/><br/>
+      <b>Live in the demo app — Trip Assistant</b>
+    </td>
+  </tr>
+</table>
+<p align="center"><b>The first open programmatic format for in-app AI surfaces</b></p>
 
 Apps are embedding their own AI assistants, but there is no programmatic monetization
 primitive for those surfaces. The Conversational Sponsored Suggestion is that primitive:
