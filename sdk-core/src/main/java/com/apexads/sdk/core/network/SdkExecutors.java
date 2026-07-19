@@ -5,6 +5,7 @@ import android.os.Looper;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -15,6 +16,9 @@ public final class SdkExecutors {
 
     public static final ExecutorService SINGLE = Executors.newSingleThreadExecutor(
             new NamedThreadFactory("apexad-single"));
+
+    public static final ScheduledExecutorService SCHEDULER =
+            Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("apexad-sched"));
 
     public static final Handler MAIN = new Handler(Looper.getMainLooper());
 

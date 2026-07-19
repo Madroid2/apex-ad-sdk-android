@@ -18,10 +18,15 @@ import com.apexads.sdk.core.network.AdNetworkClient;
 import com.apexads.sdk.core.network.HttpAdNetworkClient;
 import com.apexads.sdk.core.network.MockAdExchange;
 import com.apexads.sdk.core.network.SdkExecutors;
+import com.apexads.sdk.core.network.TrackingTransport;
 import com.apexads.sdk.core.network.WaterfallAdNetworkClient;
+import com.apexads.sdk.core.quality.AdQualityReporter;
+import com.apexads.sdk.core.tracking.PersistentTrackingQueue;
 import com.apexads.sdk.core.tracking.TrackingClient;
 import com.apexads.sdk.core.utils.AdLog;
 
+import java.io.File;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,6 +41,7 @@ public final class ApexServices {
 
     private volatile AdNetworkClient networkClient;
     private volatile CohortProvider cohortProvider = CohortProvider.NONE;
+    private final PersistentTrackingQueue trackingQueue;
 
     private ApexServices(@NonNull Context appContext,
                          @NonNull ApexAdsConfig config,
@@ -47,6 +53,12 @@ public final class ApexServices {
         this.networkClient = networkClient;
         this.deviceInfoProvider = deviceInfoProvider;
         this.consentManager = consentManager;
+        File queueDir = new File(appContext.getFilesDir(), "apexads");
+        //noinspection ResultOfMethodCallIgnored
+        queueDir.mkdirs();
+        this.trackingQueue = new PersistentTrackingQueue(
+                queueDir, TrackingTransport::sendGet, SdkExecutors.SINGLE, SdkExecutors.SCHEDULER);
+        installQualityReporter(config);
     }
 
     @NonNull
@@ -96,7 +108,40 @@ public final class ApexServices {
 
     @NonNull
     public TrackingClient trackingClient() {
-        return url -> networkClient.fireTrackingUrl(url);
+        return trackingQueue;
+    }
+
+    /**
+     * Wires AdNavigationGuard block reports to the ad server's quality-report
+     * endpoint so abusive creatives are quarantined fleet-wide, not just on
+     * the device that blocked them.
+     */
+    private static void installQualityReporter(@NonNull ApexAdsConfig config) {
+        String origin = serverOrigin(config.getAdServerUrl());
+        if (origin == null) {
+            AdLog.w("ApexAds: cannot derive server origin — quality reports disabled");
+            return;
+        }
+        String endpoint = origin + "/sdk/v1/quality-report";
+        AdQualityReporter.install((surface, reason, score, requestId, bidId, creativeId) -> {
+            String json = AdQualityReporter.toJson(surface, reason, score, requestId, bidId, creativeId);
+            SdkExecutors.IO.execute(() -> {
+                if (!TrackingTransport.sendJson(endpoint, json)) {
+                    AdLog.d("ApexAds: quality report delivery failed (best-effort)");
+                }
+            });
+        });
+    }
+
+    @Nullable
+    private static String serverOrigin(@NonNull String adServerUrl) {
+        try {
+            URI uri = URI.create(adServerUrl);
+            if (uri.getScheme() == null || uri.getAuthority() == null) return null;
+            return uri.getScheme() + "://" + uri.getAuthority();
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     @NonNull
@@ -142,5 +187,6 @@ public final class ApexServices {
     public void close() {
         cohortProvider = CohortProvider.NONE;
         features.clear();
+        AdQualityReporter.clear();
     }
 }
