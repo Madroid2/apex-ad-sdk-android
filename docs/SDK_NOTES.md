@@ -152,6 +152,33 @@ implementation files terse; add ADR-style context here or in a more specific doc
   MRC-viewable impression in `ImpressionTracker`; `lurl` (loss, reason 102)
   fires for losing bids in `OpenRTBAdRepository` after the winner is chosen.
 
+## Offline Tracking Queue (Trust Layer)
+
+- `PersistentTrackingQueue` is the SDK's `TrackingClient`. Billing-relevant
+  events (nurl, MRC-viewable burl, click/quartile beacons) are appended to a
+  file-backed queue before the first send attempt and removed only after the
+  transport confirms delivery — a lost billing event is lost publisher revenue
+  and a server-side discrepancy.
+- Failures retry with exponential backoff (5s base, 10min cap), bounded by 8
+  attempts and 24h age. The queue survives process death: pending events are
+  recovered and drained at next SDK init.
+- Queue state is confined to `SdkExecutors.SINGLE`; redrains are scheduled on
+  `SdkExecutors.SCHEDULER`. No locks are held during network sends.
+- Server-issued URLs are HMAC-signed with a bounded TTL, so events older than
+  the signature window may be rejected server-side even if delivered; the 24h
+  age cap keeps the queue from retrying into certain rejection forever.
+
+## Quality Report Loop (Trust Layer)
+
+- When `AdNavigationGuard` blocks a navigation it reports through
+  `AdQualityReporter` to the ad server's `POST /sdk/v1/quality-report`.
+  Repeat-offender creatives are quarantined server-side, so a block on one
+  device retires the creative fleet-wide instead of replaying on every device.
+- The sink is installed by `ApexServices` at init (endpoint derived from the
+  ad-server origin) and cleared on close. Reporting is best-effort,
+  fire-and-forget on the IO executor: it must never affect rendering, and a
+  failed report is only debug-logged.
+
 ## Open Measurement (OMID) Scaffolding
 
 - `MeasurementDelegate` (sdk-core `di/`) is the optional-feature contract for
