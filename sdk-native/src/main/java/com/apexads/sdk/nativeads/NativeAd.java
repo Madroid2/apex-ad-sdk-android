@@ -35,7 +35,8 @@ public final class NativeAd {
                 ApexSdkRuntime.getDeviceInfoProvider(),
                 ApexSdkRuntime.getConsentManager())
                 .intentContext(builder.intentContext)
-                .renderSurface(builder.renderSurface);
+                .renderSurface(builder.renderSurface)
+                .declareCapabilities(builder.declareCapabilities);
         AdRepository repository = new OpenRTBAdRepository(
                 ApexSdkRuntime.getNetworkClient(),
                 requestBuilder);
@@ -209,6 +210,7 @@ public final class NativeAd {
         @Nullable private NativeAdListener listener;
         @Nullable private IntentContext intentContext;
         @Nullable private String renderSurface;
+        private boolean declareCapabilities;
 
         public Builder(@Nullable String placementId) { this.placementId = placementId; }
 
@@ -226,6 +228,16 @@ public final class NativeAd {
          */
         public Builder renderSurface(@Nullable String surface) {
             renderSurface = surface;
+            return this;
+        }
+
+        /**
+         * Declares this build's executable actions so server-side placement config can
+         * be intersected against them. Used by Apex surface modules; publishers who
+         * declare intent in-app do not need it.
+         */
+        public Builder declareCapabilities(boolean declare) {
+            declareCapabilities = declare;
             return this;
         }
 

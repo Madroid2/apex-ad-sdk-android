@@ -16,6 +16,32 @@ import java.util.Map;
 public class BidRequestSerializerTest {
 
     @Test
+    public void serialize_thinClientCapabilitiesOnly_carriesNoClientIntent() throws Exception {
+        // The thin integration declares no intent at all: the server resolves it from
+        // the placement registry. All the SDK contributes is what this build can execute.
+        BidRequest request = new BidRequest();
+        request.id = "req-thin";
+        BidRequest.Impression imp = new BidRequest.Impression();
+        imp.id = "1";
+        imp.tagid = "assistant-inline-1";
+        Map<String, Object> apex = new HashMap<>();
+        apex.put("surface", "assistant");
+        apex.put("actions_supported", Arrays.asList("open_deeplink", "save_to_wallet"));
+        Map<String, Object> ext = new HashMap<>();
+        ext.put("apex", apex);
+        imp.ext = ext;
+        request.imp = Collections.singletonList(imp);
+
+        JSONObject json = new JSONObject(BidRequestSerializer.serialize(request));
+
+        JSONObject apexExt = json.getJSONArray("imp").getJSONObject(0)
+                .getJSONObject("ext").getJSONObject("apex");
+        assertThat(apexExt.getString("surface")).isEqualTo("assistant");
+        assertThat(apexExt.has("intent")).isFalse();
+        assertThat(apexExt.getJSONArray("actions_supported").length()).isEqualTo(2);
+    }
+
+    @Test
     public void serialize_conversationalSurfaceExt_writesNestedApexEnvelope() throws Exception {
         BidRequest request = new BidRequest();
         request.id = "req-conv";
