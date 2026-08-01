@@ -103,13 +103,6 @@ the same Native 1.2 + Intent-to-Action creative from Card Live 1, re-flowed by
 
 ```kotlin
 val ad = ConversationalAd.Builder("assistant-inline-1")
-    .intentContext(
-        IntentContext.builder("apex-commerce-1", "travel.hotel")
-            .journeyStage(IntentContext.JourneyStage.READY_TO_ACT)
-            .displayLabel("Relevant to your hotel search")
-            .supports(IntentContext.ActionType.SAVE_TO_WALLET)
-            .build()
-    )
     .listener(listener)
     .build()
 
@@ -119,22 +112,87 @@ val suggestion = ad.suggestion   // title/body clamped, thumbnail, disclosure, C
 if (suggestion.hasAction) ad.performAction(context) else ad.handleClick(context)
 ```
 
+That is the whole integration. There is no targeting code in the app because
+intent is configured server-side against the placement's tag id — taxonomy,
+category, journey stage, disclosure label and allowed actions all live in the
+Apex placement console, so a publisher retunes a placement without shipping an
+app update.
+
+### The SDK keeps a veto on executable actions
+
+Server-side configuration decides which actions are **allowed**. It cannot
+decide which are **possible** — that depends on which modules are linked into
+this particular build. If the console declared `save_to_wallet` for an app
+without `sdk-wallet`, the server would promise demand an action the SDK has no
+way to execute: a dead CTA and a wasted impression.
+
+So the SDK declares its capabilities on every request, derived from the modules
+actually present, and the server forwards only the intersection:
+
+```
+console  actionsAllowed  = [save_to_wallet, open_deeplink]   ← publisher policy
+SDK      capability      = [open_deeplink]                    ← sdk-wallet not installed
+─────────────────────────────────────────────────────────────
+imp.ext.apex.actions_supported = [open_deeplink]              ← what demand sees
+```
+
+Policy can never outrun capability, and the veto cannot drift, because the
+capability list is computed from the build rather than declared by hand.
+
+### Runtime overrides stay possible
+
+`IntentContext` is still supported for the cases where a placement default is
+genuinely insufficient — most usefully `journeyStage`, the one signal that
+varies per request rather than per placement:
+
+```kotlin
+ConversationalAd.Builder("assistant-inline-1")
+    .intentContext(
+        IntentContext.builder("apex-commerce-1", "travel.flight")
+            .journeyStage(IntentContext.JourneyStage.DISCOVERY)
+            .build()
+    )
+    .listener(listener)
+    .build()
+```
+
+A category override is honoured only when it falls inside the placement's
+allowed set; anything else falls back to the placement default and increments a
+rejection counter the publisher can see, so a drifting app build is visible
+rather than silently mistargeting. The disclosure label is always server-owned.
+
 The format's trust rules are structural, not aspirational:
 
 | Rule | Enforcement |
 |---|---|
 | Answer independence | The card renders *between* messages; the SDK never injects ad content into assistant answers |
-| No conversation data leaves the app | Only the structured `IntentContext` taxonomy is sent — raw chat text is never read or transmitted |
+| No conversation data leaves the app | Only structured taxonomy nodes are sent — raw chat text is never read or transmitted. Server-side configuration is validated against a registered vocabulary, so free text cannot enter the bidstream from either end |
+| Policy never outruns capability | The console declares which actions are *allowed*; the SDK declares what this build can *execute*; the wire carries only the intersection |
 | Always disclosed | `SponsoredSuggestion.disclosure` is non-null by contract and rendered in the tinted card header |
 | Renderable-or-silent | `apex-demand-platform` refuses to send a bid whose Native markup lacks a title asset; the SDK no-fills instead of degrading the surface |
 | Compact by contract | Title ≤ 60 chars, body ≤ 90 chars, word-boundary ellipsis — enforced in `SponsoredSuggestion`, not left to demand |
 
-End-to-end, the trio supports the format natively: the SDK declares the surface, the
-Apex Ad Server forwards it transparently (`imp.ext.apex.surface`) with auction-log
-visibility, and the Apex Demand Platform gates conversational bids on structured
-renderability and echoes the surface in `bid.ext.apex` for log joins. Demand that
-returns an action produces the same executable Wallet CTA as Card Live 1 — with the
-ordinary Native click as fallback — so one creative serves both surfaces.
+End-to-end, the trio supports the format natively: the SDK declares the surface and its
+executable capabilities, the Apex Ad Server resolves intent from the placement registry
+and forwards it transparently (`imp.ext.apex.surface`) with auction-log visibility, and
+the Apex Demand Platform gates conversational bids on structured renderability and
+echoes the surface in `bid.ext.apex` for log joins. Demand that returns an action
+produces the same executable Wallet CTA as Card Live 1 — with the ordinary Native click
+as fallback — so one creative serves both surfaces.
+
+### Configured server-side, in the Apex placement console
+
+<p align="center">
+  <img src="assets/placement_console.png" width="820" alt="Apex placement console: live resolution counters, a constrained-vocabulary placement editor, and the configured placements table"/><br/>
+  <b>Retuning a placement takes effect on the next auction — no SDK upgrade, no store review</b>
+</p>
+
+The category field is a picker over the registered taxonomy, never a text input, which
+is what preserves the "no free-form text in the bidstream" guarantee now that the value
+is editable at runtime. The counters show the contract working live: overrides accepted
+versus rejected, and how often the SDK's capability veto dropped an action the placement
+allowed but the build could not perform. Full details in the
+[Apex Ad Server README](https://github.com/Madroid2/apex-ad-server#placement-registry--publisher-console).
 
 ## Portfolio Demo: Agentic Creative Review Loop
 
@@ -589,7 +647,7 @@ graph LR
 | `sdk-banner` | `sdk-core` | `BannerAd` facade + `BannerAdViewModel` (extends `AdViewModel`); `BannerAdView` (observes `AdStateObservable`); MRAID 3.0 WebView; auto-attaches wallet CTA on MRECT |
 | `sdk-interstitial` | `sdk-core` | `InterstitialAd` facade + `InterstitialAdViewModel`; fullscreen HTML activity; auto-attaches wallet bottom panel |
 | `sdk-native` | `sdk-core` | `NativeAd` facade + `NativeAdViewModel` (IAB Native 1.2 JSON parsing hook); publisher-controlled binding and optional Intent-to-Action execution |
-| `sdk-conversational` | `sdk-native` | `ConversationalAd` facade — Sponsored Suggestions for in-app AI surfaces; declares `imp.ext.apex.surface="assistant"`, clamps Native assets to the compact `SponsoredSuggestion` render contract, reuses Intent-to-Action execution |
+| `sdk-conversational` | `sdk-native` | `ConversationalAd` facade — Sponsored Suggestions for in-app AI surfaces; declares `imp.ext.apex.surface="assistant"` plus this build's executable capabilities, clamps Native assets to the compact `SponsoredSuggestion` render contract, reuses Intent-to-Action execution. Intent resolves server-side from the placement registry, so no targeting code ships in the app |
 | `sdk-video` | `sdk-core` | `VideoAd` facade + `VideoAdViewModel` (VAST 4.0 XML parsing hook); ExoPlayer rewarded video; quartile tracking |
 | `sdk-appopen` | `sdk-interstitial` | App Open Ads — foreground detection, frequency cap, auto-preload; delegates lifecycle to `InterstitialAdViewModel` |
 | `sdk-inappbidding` | `sdk-core` | Header bidding price signals via `ApexInAppBidder`; MAX/LevelPlay mock simulation |
