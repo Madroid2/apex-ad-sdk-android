@@ -192,7 +192,7 @@ is what preserves the "no free-form text in the bidstream" guarantee now that th
 is editable at runtime. The counters show the contract working live: overrides accepted
 versus rejected, and how often the SDK's capability veto dropped an action the placement
 allowed but the build could not perform. Full details in the
-[Apex Ad Server README](https://github.com/Madroid2/apex-ad-server#placement-registry--publisher-console).
+[Apex Ad Server README](https://github.com/Madroid2/apex-ad-server#server-side-intent).
 
 ## Portfolio Demo: Agentic Creative Review Loop
 
