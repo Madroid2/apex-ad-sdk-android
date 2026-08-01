@@ -46,6 +46,7 @@ public class OpenRTBRequestBuilder {
     private List<String> blockedDomains = null;
     @Nullable private IntentContext intentContext = null;
     @Nullable private String renderSurface = null;
+    private boolean declareCapabilities = false;
 
     public OpenRTBRequestBuilder(@NonNull DeviceInfoProvider deviceInfoProvider,
                                  @NonNull ConsentManager consentManager) {
@@ -71,12 +72,27 @@ public class OpenRTBRequestBuilder {
         return this;
     }
 
+    /**
+     * Declares the actions this build can actually execute, independent of any
+     * {@link IntentContext}. Server-side placement configuration decides which actions are
+     * <em>allowed</em>; this list is what the installed modules can <em>perform</em>, and the
+     * server forwards only the intersection. Without it a server-configured placement could
+     * promise demand a Wallet action that this app has no module to execute.
+     */
+    public OpenRTBRequestBuilder declareCapabilities(boolean declare) {
+        declareCapabilities = declare;
+        return this;
+    }
+
     @NonNull
     public BidRequest build() {
         ApexAdsConfig config = ApexSdkRuntime.getConfig();
         DeviceInfoProvider.DeviceInfo device = deviceInfoProvider.getDeviceInfo();
 
-        boolean identityAllowed = !device.limitAdTracking
+        // Test-mode traffic is synthetic by contract. Never attach GAID/user IDs,
+        // even when the emulator or test device has advertising tracking enabled.
+        boolean identityAllowed = !config.isTestMode()
+                && !device.limitAdTracking
                 && config.getCoppa() == 0
                 && consentManager.canShareDeviceIdentifiers();
 
@@ -202,25 +218,47 @@ public class OpenRTBRequestBuilder {
      */
     @Nullable
     private Map<String, Object> nativeApexExt(boolean walletRegistered) {
-        if (intentContext == null && renderSurface == null) return null;
+        if (intentContext == null && renderSurface == null && !declareCapabilities) return null;
         Map<String, Object> ext = new HashMap<>();
         Map<String, Object> apex = new HashMap<>();
         if (renderSurface != null) apex.put("surface", renderSurface);
         if (intentContext != null) {
-            List<String> executableActions = new ArrayList<>();
-            for (IntentContext.ActionType action : intentContext.supportedActions) {
-                if (action != IntentContext.ActionType.SAVE_TO_WALLET || walletRegistered) {
-                    executableActions.add(action.wireValue());
-                }
-            }
+            // Publisher declared intent in-app: forward it, filtered by capability.
             apex.put("intent", intentContext.toOpenRtbMap());
-            apex.put("actions_supported", executableActions);
+            apex.put("actions_supported", executableActions(intentContext.supportedActions, walletRegistered));
+        } else if (declareCapabilities) {
+            // Intent is configured server-side. All the SDK contributes is what this
+            // build can execute; the server intersects it with placement policy.
+            apex.put("actions_supported", installedCapabilities(walletRegistered));
         }
         if (walletRegistered) apex.put("wallet_supported", true);
         ext.put("apex", apex);
         // Keep the existing flat flag for older demand adapters.
         if (walletRegistered) ext.put("wallet_supported", true);
         return ext;
+    }
+
+    /** Publisher-declared actions, minus any whose module is not installed. */
+    private static List<String> executableActions(
+            @NonNull List<IntentContext.ActionType> declared, boolean walletRegistered) {
+        List<String> actions = new ArrayList<>(declared.size());
+        for (IntentContext.ActionType action : declared) {
+            if (action != IntentContext.ActionType.SAVE_TO_WALLET || walletRegistered) {
+                actions.add(action.wireValue());
+            }
+        }
+        return actions;
+    }
+
+    /** Every action this build can execute, derived from the installed modules. */
+    private static List<String> installedCapabilities(boolean walletRegistered) {
+        List<String> capabilities = new ArrayList<>(2);
+        // A deep link needs no optional module — the core click path handles it.
+        capabilities.add(IntentContext.ActionType.OPEN_DEEPLINK.wireValue());
+        if (walletRegistered) {
+            capabilities.add(IntentContext.ActionType.SAVE_TO_WALLET.wireValue());
+        }
+        return capabilities;
     }
 
     private BidRequest.NativeObject buildNativeObject() {
@@ -266,8 +304,10 @@ public class OpenRTBRequestBuilder {
         d.js = 1;
         d.devicetype = device.isTablet ? 5 : 4;
         if (identityAllowed) d.ifa = device.advertisingId;
-        d.lmt = device.limitAdTracking ? 1 : 0;
-        d.dnt = device.limitAdTracking ? 1 : 0;
+        boolean restrictedTracking = ApexSdkRuntime.getConfig().isTestMode()
+                || device.limitAdTracking;
+        d.lmt = restrictedTracking ? 1 : 0;
+        d.dnt = restrictedTracking ? 1 : 0;
         if (device.geoCountry != null) {
             d.geo = new BidRequest.Geo();
             d.geo.country = device.geoCountry;

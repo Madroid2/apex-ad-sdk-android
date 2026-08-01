@@ -22,14 +22,13 @@ import com.apexads.sdk.nativeads.NativeAdListener;
  * {@link IntentContext} taxonomy/category/journey declared by the app — and the loaded creative
  * must never be merged into the assistant's own answer text (answer independence).</p>
  *
+ * <p>Intent is configured server-side against the placement's tag id, so the integration
+ * carries no targeting code at all and a publisher can retune taxonomy, journey stage,
+ * disclosure label and allowed actions from the Apex placement console without shipping
+ * an app update:</p>
+ *
  * <pre>{@code
  * val ad = ConversationalAd.Builder("assistant-inline-1")
- *     .intentContext(
- *         IntentContext.builder("apex-commerce-1", "travel.hotel")
- *             .journeyStage(IntentContext.JourneyStage.READY_TO_ACT)
- *             .displayLabel("Relevant to your hotel search")
- *             .supports(IntentContext.ActionType.SAVE_TO_WALLET)
- *             .build())
  *     .listener(listener)
  *     .build()
  * ad.load()
@@ -38,6 +37,11 @@ import com.apexads.sdk.nativeads.NativeAdListener;
  * // render suggestion fields; on CTA tap:
  * if (suggestion.hasAction) ad.performAction(context) else ad.handleClick(context)
  * }</pre>
+ *
+ * <p>The SDK still declares what this build can <em>execute</em> — the server forwards only
+ * the intersection of placement policy and installed capability. Pass an
+ * {@link IntentContext} only to declare a runtime override, such as a journey stage that
+ * genuinely varies within one surface.</p>
  */
 public final class ConversationalAd {
 
@@ -52,6 +56,10 @@ public final class ConversationalAd {
         nativeAd = new NativeAd.Builder(builder.placementId)
                 .intentContext(builder.intentContext)
                 .renderSurface(SURFACE_ASSISTANT)
+                // Always tell the server what this build can execute, so a
+                // server-configured placement can never promise demand an action
+                // the installed modules cannot perform.
+                .declareCapabilities(true)
                 .listener(new NativeAdListener() {
                     @Override public void onNativeAdLoaded(@NonNull NativeAd ad) {
                         SponsoredSuggestion mapped = SponsoredSuggestion.from(ad);
@@ -151,21 +159,23 @@ public final class ConversationalAd {
         public Builder listener(@NonNull ConversationalAdListener l) { listener = l; return this; }
 
         /**
-         * Required. Only structured taxonomy/category data may be supplied — never raw
-         * chat messages, prompts, or other free-form conversation content.
+         * Optional. Intent is normally configured server-side against this placement's
+         * tag id, so most publishers never call this and the placement can be retuned
+         * without an app release.
+         *
+         * <p>Supply it only to declare a runtime override — for example a journey stage
+         * that genuinely varies within the same surface. The server accepts a category
+         * override only when it falls inside the placement's allowed set, and always
+         * owns the disclosure label. Only structured taxonomy/category data may be
+         * supplied — never raw chat messages, prompts, or free-form content.</p>
          */
-        public Builder intentContext(@NonNull IntentContext context) {
+        public Builder intentContext(@Nullable IntentContext context) {
             intentContext = context;
             return this;
         }
 
         @NonNull
         public ConversationalAd build() {
-            if (intentContext == null) {
-                throw new IllegalStateException(
-                        "ConversationalAd requires an IntentContext: declare the coarse journey "
-                                + "taxonomy/category for this assistant surface.");
-            }
             return new ConversationalAd(this);
         }
     }
