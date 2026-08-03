@@ -14,6 +14,13 @@ public class BidResponse {
     public String customdata;
     public Integer nbr;
     public Map<String, Object> ext;
+    /**
+     * Raw response-level {@code ext} JSON. Carries the placement's render policy
+     * ({@code ext.apex.render}), which the server returns with the ad so no separate
+     * config fetch is needed. Parsed by
+     * {@link com.apexads.sdk.core.models.RenderPolicy#fromResponseExt(String)}.
+     */
+    public String extJson;
 
     @Nullable
     public Bid getWinningBid() {
