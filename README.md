@@ -183,7 +183,7 @@ as fallback — so one creative serves both surfaces.
 ### Configured server-side, in the Apex placement console
 
 <p align="center">
-  <img src="assets/placement_console.png" width="820" alt="Apex placement console: live resolution counters, a constrained-vocabulary placement editor, and the configured placements table"/><br/>
+  <img src="assets/publisher_portal.png" width="820" alt="Apex placement console: live resolution counters, a constrained-vocabulary placement editor, and the configured placements table"/><br/>
   <b>Retuning a placement takes effect on the next auction — no SDK upgrade, no store review</b>
 </p>
 
