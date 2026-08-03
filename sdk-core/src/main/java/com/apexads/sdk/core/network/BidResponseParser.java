@@ -21,6 +21,13 @@ final class BidResponseParser {
         resp.bidid = root.optString("bidid", null);
         resp.nbr   = root.has("nbr") ? root.getInt("nbr") : null;
 
+        // Response-level ext carries the placement's render policy. It is kept as
+        // raw JSON so RenderPolicy owns the parsing and the clamping in one place.
+        JSONObject respExt = root.optJSONObject("ext");
+        if (respExt != null) {
+            resp.extJson = respExt.toString();
+        }
+
         JSONArray seatbids = root.optJSONArray("seatbid");
         if (seatbids != null) {
             resp.seatbid = new ArrayList<>();
