@@ -2,6 +2,8 @@ package com.apexads.sdk.video.presentation.view;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -11,6 +13,7 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -22,13 +25,21 @@ import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.ui.PlayerView;
 
 import com.apexads.sdk.core.utils.AdUrlHandler;
+import com.apexads.sdk.core.models.AdData;
 import com.apexads.sdk.core.network.SdkExecutors;
+import com.apexads.sdk.core.tracking.EngagementTracker;
+import com.apexads.sdk.core.tracking.ImpressionTracker;
 import com.apexads.sdk.core.tracking.TrackingClient;
 import com.apexads.sdk.video.VideoAdListener;
 import com.apexads.sdk.video.vast.VastParser;
 import com.apexads.sdk.video.vast.VastParser.TrackingEvent;
 import com.apexads.sdk.video.vast.VastParser.VastAd;
+import com.apexads.sdk.video.vast.VastParser.CompanionAd;
 
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.List;
 
 import com.apexads.sdk.core.utils.AdLog;
@@ -36,14 +47,17 @@ import com.apexads.sdk.core.utils.AdLog;
 public final class VideoAdActivity extends Activity {
 
     private static volatile VastAd          pendingAd;
+    private static volatile AdData          pendingAdData;
     private static volatile TrackingClient  pendingTrackingClient;
     private static volatile VideoAdListener activeListener;
 
     public static void launch(@NonNull Context context,
                               @NonNull VastAd ad,
+                              @NonNull AdData adData,
                               @NonNull TrackingClient trackingClient,
                               @Nullable VideoAdListener listener) {
         pendingAd             = ad;
+        pendingAdData         = adData;
         pendingTrackingClient = trackingClient;
         activeListener        = listener;
         Intent intent = new Intent(context, VideoAdActivity.class);
@@ -53,6 +67,7 @@ public final class VideoAdActivity extends Activity {
 
     private ExoPlayer    player;
     private PlayerView   playerView;
+    private FrameLayout  root;
 
     private ImageButton  btnClose;
 
@@ -60,10 +75,14 @@ public final class VideoAdActivity extends Activity {
     private ImageButton  btnSkip;
 
     private VastAd vastAd;
+    private AdData adData;
     private TrackingClient trackingClient;
     private VideoAdListener listener;
 
     @Nullable private Player.Listener playerListener;
+    @Nullable private ImpressionTracker impressionTracker;
+    @Nullable private EngagementTracker videoEngagementTracker;
+    @Nullable private EngagementTracker companionEngagementTracker;
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
@@ -73,6 +92,7 @@ public final class VideoAdActivity extends Activity {
     private boolean q3Fired        = false;
     private boolean completeFired  = false;
     private boolean rewardGranted  = false;
+    private boolean skipBecameAvailable = false;
 
     private int skipCountdown;
 
@@ -101,19 +121,29 @@ public final class VideoAdActivity extends Activity {
         super.onCreate(savedInstanceState);
 
         vastAd         = pendingAd;
+        adData          = pendingAdData;
         trackingClient = pendingTrackingClient;
         listener       = activeListener;
         pendingAd             = null;
+        pendingAdData         = null;
         pendingTrackingClient = null;
 
-        if (vastAd == null) {
+        if (vastAd == null || adData == null) {
             AdLog.e("VideoAdActivity: launched with null VastAd — finishing");
             finish();
             return;
         }
 
         makeFullscreen();
-        setContentView(buildLayout());
+        root = buildLayout();
+        setContentView(root);
+        impressionTracker = new ImpressionTracker(trackingClient);
+        impressionTracker.attach(root, adData);
+        if (adData.engagementMeasurement != null) {
+            videoEngagementTracker = new EngagementTracker(
+                    trackingClient, adData.engagementMeasurement, "VIDEO");
+            videoEngagementTracker.attach(root);
+        }
         initPlayer();
         startSkipCountdown();
     }
@@ -122,10 +152,14 @@ public final class VideoAdActivity extends Activity {
     protected void onStart() {
         super.onStart();
         if (player != null) player.setPlayWhenReady(true);
+        if (videoEngagementTracker != null) videoEngagementTracker.resume();
+        if (companionEngagementTracker != null) companionEngagementTracker.resume();
     }
 
     @Override
     protected void onStop() {
+        if (videoEngagementTracker != null) videoEngagementTracker.pause();
+        if (companionEngagementTracker != null) companionEngagementTracker.pause();
         super.onStop();
         if (player != null) player.setPlayWhenReady(false);
     }
@@ -134,6 +168,12 @@ public final class VideoAdActivity extends Activity {
     protected void onDestroy() {
         mainHandler.removeCallbacks(skipTickRunnable);
         mainHandler.removeCallbacks(quartileRunnable);
+        if (impressionTracker != null) impressionTracker.detach();
+        impressionTracker = null;
+        if (videoEngagementTracker != null) videoEngagementTracker.stop();
+        videoEngagementTracker = null;
+        if (companionEngagementTracker != null) companionEngagementTracker.stop();
+        companionEngagementTracker = null;
         releasePlayer();
         activeListener = null;
         listener = null;
@@ -148,16 +188,13 @@ public final class VideoAdActivity extends Activity {
             return;
         }
         if (btnSkip != null && btnSkip.getVisibility() == View.VISIBLE) {
-
-            fireTracking(TrackingEvent.SKIP);
-            notifyListener(VideoAdListener::onVideoAdSkipped);
-            finish();
+            skipAd();
             return;
         }
 
     }
 
-    private View buildLayout() {
+    private FrameLayout buildLayout() {
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(0xFF000000);
 
@@ -215,9 +252,7 @@ public final class VideoAdActivity extends Activity {
         root.addView(btnSkip, skipParams);
 
         btnSkip.setOnClickListener(v -> {
-            fireTracking(TrackingEvent.SKIP);
-            notifyListener(VideoAdListener::onVideoAdSkipped);
-            finish();
+            skipAd();
         });
 
         if (vastAd.clickThroughUrl != null) {
@@ -260,6 +295,7 @@ public final class VideoAdActivity extends Activity {
             public void onIsPlayingChanged(boolean isPlaying) {
                 if (isPlaying && !startFired) {
                     startFired = true;
+                    fireTrackingList(vastAd.impressionUrls);
                     fireTracking(TrackingEvent.START);
                     notifyListener(VideoAdListener::onVideoAdStarted);
                 }
@@ -294,8 +330,18 @@ public final class VideoAdActivity extends Activity {
         if (completeFired) return;
         completeFired = true;
         fireTracking(TrackingEvent.COMPLETE);
+        if (skipBecameAvailable && videoEngagementTracker != null) {
+            videoEngagementTracker.fireSignal("VIDEO_COMPLETE_AFTER_SKIP");
+        }
+        if (videoEngagementTracker != null) {
+            videoEngagementTracker.stop();
+            videoEngagementTracker = null;
+        }
 
+        tvSkipTimer.setVisibility(View.GONE);
+        btnSkip.setVisibility(View.GONE);
         showCloseButton();
+        showCompanionEndCard();
         if (!rewardGranted) {
             rewardGranted = true;
             notifyListener(l -> { l.onVideoAdCompleted(); l.onRewardEarned(); });
@@ -344,6 +390,92 @@ public final class VideoAdActivity extends Activity {
     private void showSkipButton() {
         tvSkipTimer.setVisibility(View.GONE);
         btnSkip.setVisibility(View.VISIBLE);
+        if (!skipBecameAvailable) {
+            skipBecameAvailable = true;
+            if (videoEngagementTracker != null) {
+                videoEngagementTracker.fireSignal("VIDEO_SKIP_AVAILABLE");
+            }
+        }
+    }
+
+    private void skipAd() {
+        fireTracking(TrackingEvent.SKIP);
+        notifyListener(VideoAdListener::onVideoAdSkipped);
+        finish();
+    }
+
+    private void showCompanionEndCard() {
+        CompanionAd companion = vastAd.companionAd;
+        if (companion == null || root == null) return;
+        playerView.setVisibility(View.GONE);
+
+        ImageView endCard = new ImageView(this);
+        endCard.setBackgroundColor(0xFF000000);
+        endCard.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        endCard.setContentDescription("Sponsored end card");
+        if (companion.clickThroughUrl != null) {
+            endCard.setOnClickListener(v -> {
+                if (AdUrlHandler.openClickThrough(
+                        this, companion.clickThroughUrl, null, "VideoCompanion")
+                        != AdUrlHandler.OPEN_FAILED) {
+                    notifyListener(VideoAdListener::onVideoAdClicked);
+                }
+            });
+        }
+        root.addView(endCard, 1, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT));
+        loadCompanionImage(companion, endCard);
+    }
+
+    private void loadCompanionImage(@NonNull CompanionAd companion, @NonNull ImageView target) {
+        SdkExecutors.IO.execute(() -> {
+            Bitmap bitmap = downloadBitmap(companion.imageUrl);
+            SdkExecutors.MAIN.post(() -> {
+                if (isFinishing() || isDestroyed() || bitmap == null) return;
+                target.setImageBitmap(bitmap);
+                fireTrackingList(companion.creativeViewUrls);
+                if (adData.engagementMeasurement != null) {
+                    companionEngagementTracker = new EngagementTracker(
+                            trackingClient, adData.engagementMeasurement, "COMPANION");
+                    companionEngagementTracker.attach(target);
+                }
+            });
+        });
+    }
+
+    @Nullable
+    private Bitmap downloadBitmap(@NonNull String imageUrl) {
+        if (!imageUrl.startsWith("https://") && !imageUrl.startsWith("http://")) return null;
+        HttpURLConnection connection = null;
+        try {
+            connection = (HttpURLConnection) new URL(imageUrl).openConnection();
+            connection.setConnectTimeout(5_000);
+            connection.setReadTimeout(8_000);
+            connection.setInstanceFollowRedirects(true);
+            int declaredLength = connection.getContentLength();
+            final int maxBytes = 8 * 1024 * 1024;
+            if (declaredLength > maxBytes) return null;
+            try (InputStream input = connection.getInputStream();
+                 ByteArrayOutputStream bytes = new ByteArrayOutputStream(
+                         declaredLength > 0 ? declaredLength : 32 * 1024)) {
+                byte[] buffer = new byte[8 * 1024];
+                int total = 0;
+                int read;
+                while ((read = input.read(buffer)) != -1) {
+                    total += read;
+                    if (total > maxBytes) return null;
+                    bytes.write(buffer, 0, read);
+                }
+                byte[] payload = bytes.toByteArray();
+                return BitmapFactory.decodeByteArray(payload, 0, payload.length);
+            }
+        } catch (Exception error) {
+            AdLog.w(error, "VideoAdActivity: companion image load failed");
+            return null;
+        } finally {
+            if (connection != null) connection.disconnect();
+        }
     }
 
     private void fireTracking(@NonNull TrackingEvent event) {

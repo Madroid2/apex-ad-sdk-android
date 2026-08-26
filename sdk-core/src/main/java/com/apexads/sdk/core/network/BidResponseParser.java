@@ -8,6 +8,8 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 
+import com.apexads.sdk.core.models.EngagementMeasurement;
+
 final class BidResponseParser {
 
     private BidResponseParser() {}
@@ -87,6 +89,12 @@ final class BidResponseParser {
             JSONObject actionObj = apexObj != null ? apexObj.optJSONObject("action") : null;
             if (actionObj != null) {
                 bid.ext.actionExtJson = actionObj.toString();
+            }
+            JSONObject measurementObj = apexObj != null ? apexObj.optJSONObject("measurement") : null;
+            JSONObject engagementObj = measurementObj != null
+                    ? measurementObj.optJSONObject("engagement") : null;
+            if (engagementObj != null) {
+                bid.ext.engagementMeasurement = EngagementMeasurement.fromJson(engagementObj.toString());
             }
         }
 

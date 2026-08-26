@@ -67,6 +67,23 @@ public final class VastParser {
         }
     }
 
+    public static final class CompanionAd implements Serializable {
+        public final String imageUrl;
+        public final String clickThroughUrl;
+        public final int width;
+        public final int height;
+        public final List<String> creativeViewUrls;
+
+        CompanionAd(String imageUrl, String clickThroughUrl, int width, int height,
+                    List<String> creativeViewUrls) {
+            this.imageUrl = imageUrl;
+            this.clickThroughUrl = clickThroughUrl;
+            this.width = width;
+            this.height = height;
+            this.creativeViewUrls = Collections.unmodifiableList(creativeViewUrls);
+        }
+    }
+
     public static final class VastAd implements Serializable {
         public final String               adId;
         public final String               adTitle;
@@ -79,6 +96,7 @@ public final class VastParser {
         public final int                  skipOffset;
         public final boolean              isWrapper;
         public final String               wrapperAdTagUri;
+        @Nullable public final CompanionAd companionAd;
 
         VastAd(Builder b) {
             adId              = b.adId;
@@ -92,6 +110,7 @@ public final class VastParser {
             skipOffset        = b.skipOffset;
             isWrapper         = b.isWrapper;
             wrapperAdTagUri   = b.wrapperAdTagUri;
+            companionAd       = b.companionAd;
         }
 
         @Nullable
@@ -109,6 +128,7 @@ public final class VastParser {
             String adId, adTitle, clickThroughUrl, wrapperAdTagUri;
             int duration = 0, skipOffset = -1;
             boolean isWrapper = false;
+            CompanionAd companionAd;
             List<MediaFile> mediaFiles        = new ArrayList<>();
             List<String>    impressionUrls    = new ArrayList<>();
             List<String>    clickTrackingUrls = new ArrayList<>();
@@ -143,6 +163,10 @@ public final class VastParser {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             factory.setNamespaceAware(false);
             factory.setValidating(false);
+            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+            factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+            factory.setExpandEntityReferences(false);
             DocumentBuilder builder = factory.newDocumentBuilder();
             Document doc = builder.parse(new InputSource(new StringReader(vastXml)));
             doc.getDocumentElement().normalize();
@@ -186,12 +210,13 @@ public final class VastParser {
         Element linear = firstElement(creative, "Linear");
         if (linear == null) return VastResult.error("No Linear in Creative");
 
-        String skipAttr = linear.getAttribute("skipoffset");
-        b.skipOffset = skipAttr.isEmpty() ? -1 : parseSkipOffset(skipAttr);
         b.duration   = parseDuration(textContent(linear, "Duration"));
+        String skipAttr = linear.getAttribute("skipoffset");
+        b.skipOffset = skipAttr.isEmpty() ? -1 : parseSkipOffset(skipAttr, b.duration);
 
         b.trackingEvents = parseTrackingEvents(linear);
         b.mediaFiles     = parseMediaFiles(linear);
+        b.companionAd    = parseCompanion(node);
 
         Element clicks = firstElement(linear, "VideoClicks");
         if (clicks != null) {
@@ -255,6 +280,36 @@ public final class VastParser {
     }
 
     @Nullable
+    private CompanionAd parseCompanion(Element inline) {
+        NodeList nodes = inline.getElementsByTagName("Companion");
+        for (int i = 0; i < nodes.getLength(); i++) {
+            Element companion = (Element) nodes.item(i);
+            Element resource = firstElement(companion, "StaticResource");
+            if (resource == null) continue;
+            String creativeType = resource.getAttribute("creativeType");
+            String imageUrl = resource.getTextContent().trim();
+            if (imageUrl.isEmpty() || (!creativeType.isEmpty() && !creativeType.startsWith("image/"))) {
+                continue;
+            }
+            List<String> creativeViews = new ArrayList<>();
+            NodeList tracking = companion.getElementsByTagName("Tracking");
+            for (int j = 0; j < tracking.getLength(); j++) {
+                Element event = (Element) tracking.item(j);
+                if (!"creativeview".equalsIgnoreCase(event.getAttribute("event"))) continue;
+                String url = event.getTextContent().trim();
+                if (!url.isEmpty()) creativeViews.add(url);
+            }
+            return new CompanionAd(
+                    imageUrl,
+                    textContent(companion, "CompanionClickThrough"),
+                    parseInt(companion.getAttribute("width")),
+                    parseInt(companion.getAttribute("height")),
+                    creativeViews);
+        }
+        return null;
+    }
+
+    @Nullable
     private Element firstElement(Element parent, String tag) {
         NodeList nl = parent.getElementsByTagName(tag);
         return nl.getLength() > 0 ? (Element) nl.item(0) : null;
@@ -275,9 +330,16 @@ public final class VastParser {
         return parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
     }
 
-    private int parseSkipOffset(@NonNull String value) {
+    private int parseSkipOffset(@NonNull String value, int durationSeconds) {
         if (value.contains(":")) return parseDuration(value);
-        try { return Integer.parseInt(value.replace("%", "")); }
+        try {
+            if (value.endsWith("%")) {
+                float percent = Float.parseFloat(value.substring(0, value.length() - 1));
+                if (percent < 0f || percent > 100f || durationSeconds <= 0) return -1;
+                return Math.round(durationSeconds * percent / 100f);
+            }
+            return Integer.parseInt(value);
+        }
         catch (NumberFormatException e) { return -1; }
     }
 

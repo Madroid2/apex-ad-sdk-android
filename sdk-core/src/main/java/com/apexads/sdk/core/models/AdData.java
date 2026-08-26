@@ -26,6 +26,7 @@ public final class AdData {
 
     @Nullable public final String walletExtJson;
     @Nullable public final String actionExtJson;
+    @Nullable public final EngagementMeasurement engagementMeasurement;
 
     private AdData(Builder b) {
         requestId = b.requestId;
@@ -45,6 +46,7 @@ public final class AdData {
         vastXml = b.vastXml;
         walletExtJson = b.walletExtJson;
         actionExtJson = b.actionExtJson;
+        engagementMeasurement = b.engagementMeasurement;
     }
 
     public boolean isExpired() {
@@ -81,6 +83,7 @@ public final class AdData {
                 .vastXml(isVideo ? bid.adm : null)
                 .walletExtJson(bid.ext != null ? bid.ext.walletExtJson : null)
                 .actionExtJson(bid.ext != null ? bid.ext.actionExtJson : null)
+                .engagementMeasurement(bid.ext != null ? bid.ext.engagementMeasurement : null)
                 .build();
     }
 
@@ -93,6 +96,7 @@ public final class AdData {
                 .currency(currency).expiresAt(expiresAt).vastXml(vastXml)
                 .walletExtJson(walletExtJson)
                 .actionExtJson(actionExtJson)
+                .engagementMeasurement(engagementMeasurement)
                 .nativePayload(payload)
                 .build();
     }
@@ -100,6 +104,7 @@ public final class AdData {
     public static final class Builder {
         String requestId, impressionId, bidId, adMarkup = "", currency = "USD";
         String winNoticeUrl, billingUrl, creativeId, vastXml, walletExtJson, actionExtJson;
+        EngagementMeasurement engagementMeasurement;
         AdFormat adFormat;
         int width, height;
         double cpm;
@@ -122,6 +127,7 @@ public final class AdData {
         public Builder vastXml(String v) { vastXml = v; return this; }
         public Builder walletExtJson(String v) { walletExtJson = v; return this; }
         public Builder actionExtJson(String v) { actionExtJson = v; return this; }
+        public Builder engagementMeasurement(EngagementMeasurement v) { engagementMeasurement = v; return this; }
         public Builder nativePayload(NativeAdPayload v) { nativePayload = v; return this; }
 
         public AdData build() { return new AdData(this); }

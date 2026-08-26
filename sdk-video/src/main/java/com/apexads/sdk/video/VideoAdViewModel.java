@@ -57,7 +57,12 @@ public final class VideoAdViewModel extends AdViewModel {
             AdLog.w(TAG + ": show() called before ad was loaded — ignored");
             return;
         }
-        VideoAdActivity.launch(context, readyAd, trackingClient, listener);
+        AdData adData = getAdData();
+        if (adData == null) {
+            AdLog.w(TAG + ": show() lost its bid data before launch");
+            return;
+        }
+        VideoAdActivity.launch(context, readyAd, adData, trackingClient, listener);
         onDisplayed();
     }
 

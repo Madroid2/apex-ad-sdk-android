@@ -25,6 +25,7 @@ import com.apexads.sdk.core.models.AdData;
 import com.apexads.sdk.core.presentation.mvvm.AdState;
 import com.apexads.sdk.core.presentation.mvvm.AdStateObserver;
 import com.apexads.sdk.core.tracking.ImpressionTracker;
+import com.apexads.sdk.core.tracking.EngagementTracker;
 import com.apexads.sdk.core.utils.AdNavigationGuard;
 import com.apexads.sdk.core.utils.AdUrlHandler;
 import com.apexads.sdk.core.utils.AdViewLifecycle;
@@ -44,6 +45,7 @@ public class BannerAdView extends FrameLayout {
     private final AdNavigationGuard navigationGuard = new AdNavigationGuard("BannerAdView");
     private MRAIDBridge mraidBridge;
     private ImpressionTracker impressionTracker;
+    @Nullable private EngagementTracker engagementTracker;
 
     @Nullable private BannerAdListener listener;
     @Nullable private BannerAdViewModel boundViewModel;
@@ -112,6 +114,10 @@ public class BannerAdView extends FrameLayout {
             impressionTracker.detach();
             impressionTracker = null;
         }
+        if (engagementTracker != null) {
+            engagementTracker.stop();
+            engagementTracker = null;
+        }
         renderedAdData = adData;
         navigationGuard.reset(adData);
 
@@ -147,6 +153,12 @@ public class BannerAdView extends FrameLayout {
         if (!skipImpression) {
             impressionTracker = new ImpressionTracker(ApexSdkRuntime.getTrackingClient());
             impressionTracker.attach(this, adData, this::onViewableImpression);
+        }
+        if (adData.engagementMeasurement != null) {
+            engagementTracker = new EngagementTracker(
+                    ApexSdkRuntime.getTrackingClient(), adData.engagementMeasurement,
+                    adData.width == 300 && adData.height == 250 ? "MRECT" : "BANNER");
+            engagementTracker.attach(this);
         }
 
         WalletDelegate delegate = ApexFeatureAccess.getFeature(WalletDelegate.class);
@@ -210,6 +222,10 @@ public class BannerAdView extends FrameLayout {
             impressionTracker.detach();
             impressionTracker = null;
         }
+        if (engagementTracker != null) {
+            engagementTracker.stop();
+            engagementTracker = null;
+        }
         renderedAdData = null;
 
         if (measurementSession != null) {
@@ -237,6 +253,7 @@ public class BannerAdView extends FrameLayout {
         if (impressionTracker != null) {
             impressionTracker.detach();
         }
+        if (engagementTracker != null) engagementTracker.pause();
         notifyMraidViewable(false);
         try {
             webView.onPause();
@@ -257,6 +274,7 @@ public class BannerAdView extends FrameLayout {
         if (impressionTracker != null && renderedAdData != null && !renderedAdData.isExpired()) {
             impressionTracker.attach(this, renderedAdData, this::onViewableImpression);
         }
+        if (engagementTracker != null) engagementTracker.resume();
         notifyMraidViewable(true);
     }
 

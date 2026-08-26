@@ -101,13 +101,21 @@ public class ApexAdsServicesTest {
     }
 
     @Test
-    public void setNetworkClientForTesting_replaces_only_network_client() {
+    public void setNetworkClientForTesting_obeys_build_type_guard() {
         ApexAds.init(ApplicationProvider.getApplicationContext(), config());
         AdNetworkClient original = ApexSdkRuntime.getNetworkClient();
         FakeNetworkClient fake = new FakeNetworkClient();
 
-        ApexSdkRuntime.setNetworkClientForTesting(fake);
+        if (!BuildConfig.DEBUG) {
+            assertThrows(
+                    IllegalStateException.class,
+                    () -> ApexSdkRuntime.setNetworkClientForTesting(fake)
+            );
+            assertThat(ApexSdkRuntime.getNetworkClient()).isSameInstanceAs(original);
+            return;
+        }
 
+        ApexSdkRuntime.setNetworkClientForTesting(fake);
         assertThat(ApexSdkRuntime.getNetworkClient()).isSameInstanceAs(fake);
         assertThat(ApexSdkRuntime.getDeviceInfoProvider()).isNotNull();
         assertThat(ApexSdkRuntime.getNetworkClient()).isNotSameInstanceAs(original);
