@@ -24,9 +24,15 @@ public class OmidMeasurementDelegateTest {
     }
 
     @Test
-    public void partnerIdentifiers_nonBlank() {
-        assertThat(delegate.partnerName()).isNotEmpty();
+    public void partnerIdentity_isUnregisteredUntilIabNamespaceIsConfigured() {
+        assertThat(delegate.partnerName()).isEmpty();
         assertThat(delegate.partnerVersion()).isNotEmpty();
+        assertThat(delegate.partnerVersion()).isEqualTo(com.apexads.sdk.BuildConfig.SDK_VERSION);
+    }
+
+    @Test
+    public void targetOmSdkVersion_tracksCurrentIabRelease() {
+        assertThat(OmidMeasurementDelegate.TARGET_OM_SDK_VERSION).isEqualTo("1.6.0");
     }
 
     @Test

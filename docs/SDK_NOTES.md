@@ -194,6 +194,9 @@ implementation files terse; add ADR-style context here or in a more specific doc
   not-ready until the IAB Tech Lab OM SDK AAR is bundled (portal-distributed
   after partner registration — not on Maven Central) and `OMID_ACTIVE` is
   flipped. Never signal OMID without live measurement.
+- `omidpv` is the Apex integration version supplied to OMID's `Partner`
+  object. It follows the published `APEX_VERSION`; it is not the OM SDK
+  library version. The current portal build target is OM SDK 1.6.
 - Remaining steps to production are enumerated on `OmidMeasurementDelegate`:
   partner registration → bundle AAR → Omid.activate/Partner → script
   injection → HTML session wiring → certification → video (VAST

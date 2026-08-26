@@ -23,7 +23,7 @@ import com.apexads.sdk.core.utils.AdLog;
  *   <li>Register the partner name with IAB Tech Lab; receive the OM SDK AAR + namespace.</li>
  *   <li>Bundle the AAR (see {@code sdk-measurement/build.gradle.kts}) and set
  *       {@code OMID_ACTIVE = true}.</li>
- *   <li>{@code Omid.activate(context)} at install; {@code Partner.createPartner(PARTNER_NAME, version)}.</li>
+ *   <li>{@code Omid.activate(context)} at install; {@code Partner.createPartner(PARTNER_NAME, PARTNER_VERSION)}.</li>
  *   <li>{@link #enrichHtml}: {@code ScriptInjector.injectScriptContentIntoHtml(omidJs, html)}.</li>
  *   <li>{@link #startDisplaySession}: {@code AdSessionConfiguration.createAdSessionConfiguration(
  *       CreativeType.HTML_DISPLAY, ImpressionType.VIEWABLE, Owner.NATIVE, Owner.NONE, false)}
@@ -40,8 +40,9 @@ public final class OmidMeasurementDelegate implements MeasurementDelegate {
     /** Flip only after the IAB OM SDK AAR is bundled and partner registration is complete. */
     static final boolean OMID_ACTIVE = false;
 
-    static final String PARTNER_NAME = "Apexads";
-    static final String OM_SDK_VERSION = "1.5.0";
+    static final String PARTNER_NAME = BuildConfig.OMID_PARTNER_NAME;
+    static final String PARTNER_VERSION = com.apexads.sdk.BuildConfig.SDK_VERSION;
+    static final String TARGET_OM_SDK_VERSION = "1.6.0";
 
     @Override
     public boolean isReady() {
@@ -57,7 +58,7 @@ public final class OmidMeasurementDelegate implements MeasurementDelegate {
     @NonNull
     @Override
     public String partnerVersion() {
-        return OM_SDK_VERSION;
+        return PARTNER_VERSION;
     }
 
     @NonNull

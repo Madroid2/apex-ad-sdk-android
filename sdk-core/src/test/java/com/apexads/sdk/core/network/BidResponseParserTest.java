@@ -32,7 +32,10 @@ public class BidResponseParserTest {
                 + "\"api\":6,"
                 + "\"protocol\":7,"
                 + "\"ext\":{\"wallet\":{\"pass_jwt\":\"jwt\",\"offer_id\":\"offer\"},"
-                + "\"apex\":{\"action\":{\"type\":\"save_to_wallet\",\"cta_text\":\"Save to Google Wallet\"}}}"
+                + "\"apex\":{\"action\":{\"type\":\"save_to_wallet\",\"cta_text\":\"Save to Google Wallet\"},"
+                + "\"measurement\":{\"engagement\":{\"version\":1,\"events\":[{"
+                + "\"surface\":\"MRECT\",\"signal\":\"VIEWABLE_DWELL\",\"value_ms\":1000,"
+                + "\"threshold_ms\":1000,\"url\":\"https://track.example/engagement\"}]}}}}"
                 + "}]}]}");
 
         assertThat(response.id).isEqualTo("req-1");
@@ -59,6 +62,8 @@ public class BidResponseParserTest {
         assertThat(bid.protocol).isEqualTo(7);
         assertThat(bid.ext.walletExtJson).contains("\"offer_id\":\"offer\"");
         assertThat(bid.ext.actionExtJson).contains("\"type\":\"save_to_wallet\"");
+        assertThat(bid.ext.engagementMeasurement).isNotNull();
+        assertThat(bid.ext.engagementMeasurement.events).hasSize(1);
     }
 
     @Test

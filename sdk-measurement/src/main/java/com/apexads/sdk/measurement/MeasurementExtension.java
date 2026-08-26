@@ -14,7 +14,8 @@ import com.apexads.sdk.core.di.ServiceLocator;
  *
  * <p>OMID bid-request signaling ({@code api=7}, {@code source.ext.omidpn/omidpv})
  * activates only when the bundled OM SDK is certified and ready — see
- * {@link OmidMeasurementDelegate}.</p>
+ * {@link OmidMeasurementDelegate}. {@code omidpv} is the Apex integration
+ * version, not the OM SDK library version.</p>
  */
 public final class MeasurementExtension {
 

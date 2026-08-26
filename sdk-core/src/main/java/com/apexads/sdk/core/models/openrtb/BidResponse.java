@@ -5,6 +5,8 @@ import androidx.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 
+import com.apexads.sdk.core.models.EngagementMeasurement;
+
 public class BidResponse {
 
     public String id;
@@ -70,5 +72,6 @@ public class BidResponse {
 
         @Nullable public String walletExtJson;
         @Nullable public String actionExtJson;
+        @Nullable public EngagementMeasurement engagementMeasurement;
     }
 }

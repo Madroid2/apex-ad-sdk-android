@@ -259,3 +259,32 @@ tasks.register<JacocoCoverageVerification>("jacocoDebugCoverageVerification") {
         }
     }
 }
+
+tasks.register("verifyOmidCertificationReadiness") {
+    group = "verification"
+    description = "Fails until the IAB-issued OM SDK build and production partner identity are ready for certification."
+
+    doLast {
+        val failures = mutableListOf<String>()
+        val partnerName = providers.gradleProperty("APEX_OMID_PARTNER_NAME").orNull?.trim().orEmpty()
+        val omAars = fileTree("sdk-measurement/libs") { include("*.aar") }.files
+        val delegateSource = file("sdk-measurement/src/main/java/com/apexads/sdk/measurement/OmidMeasurementDelegate.java").readText()
+
+        if (partnerName.isEmpty()) {
+            failures += "Set -PAPEX_OMID_PARTNER_NAME to the namespace assigned in the IAB Tech Lab Tools Portal."
+        }
+        if (omAars.size != 1) {
+            failures += "Place exactly one IAB-issued Android OM SDK AAR in sdk-measurement/libs (found ${omAars.size})."
+        }
+        if (apexVersion.get().endsWith("SNAPSHOT", ignoreCase = true)) {
+            failures += "Set a non-SNAPSHOT -PAPEX_VERSION matching the SDK build submitted for certification."
+        }
+        if (delegateSource.contains("OMID_ACTIVE = false")) {
+            failures += "Complete the native OM SDK session integration and enable OMID_ACTIVE only after its device tests pass."
+        }
+
+        if (failures.isNotEmpty()) {
+            throw GradleException("OMID certification is not ready:\n- ${failures.joinToString("\n- ")}")
+        }
+    }
+}

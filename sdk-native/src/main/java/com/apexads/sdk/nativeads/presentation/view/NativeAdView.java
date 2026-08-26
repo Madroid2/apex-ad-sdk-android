@@ -12,9 +12,11 @@ import androidx.annotation.Nullable;
 
 import com.apexads.sdk.core.models.NativeAdPayload;
 import com.apexads.sdk.core.models.IntentAction;
+import com.apexads.sdk.core.models.EngagementMeasurement;
 import com.apexads.sdk.core.network.SdkExecutors;
 import com.apexads.sdk.core.tracking.TrackingClient;
 import com.apexads.sdk.core.tracking.ImpressionTracker;
+import com.apexads.sdk.core.tracking.EngagementTracker;
 
 import com.apexads.sdk.core.utils.AdViewLifecycle;
 import com.apexads.sdk.core.utils.AdLog;
@@ -35,6 +37,7 @@ public class NativeAdView extends FrameLayout {
     @Nullable private NativeAdPayload boundPayload;
     @Nullable private TrackingClient boundTrackingClient;
     @Nullable private ImpressionTracker impressionTracker;
+    @Nullable private EngagementTracker engagementTracker;
 
     public NativeAdView(@NonNull Context context) { this(context, null); }
 
@@ -57,7 +60,7 @@ public class NativeAdView extends FrameLayout {
     public void setActionBadgeView(@NonNull TextView view) { actionBadgeView = view; }
 
     public void bind(@NonNull NativeAdPayload payload, @NonNull TrackingClient trackingClient) {
-        bind(payload, trackingClient, null, null, null);
+        bind(payload, trackingClient, null, null, null, null);
     }
 
     public void bind(
@@ -65,8 +68,10 @@ public class NativeAdView extends FrameLayout {
             @NonNull TrackingClient trackingClient,
             @Nullable IntentAction action,
             @Nullable Runnable actionClick,
-            @Nullable Runnable actionRendered) {
+            @Nullable Runnable actionRendered,
+            @Nullable EngagementMeasurement engagementMeasurement) {
         if (impressionTracker != null) impressionTracker.detach();
+        if (engagementTracker != null) engagementTracker.stop();
         this.boundPayload = payload;
         this.boundTrackingClient = trackingClient;
         if (titleView != null)       titleView.setText(payload.title);
@@ -104,6 +109,12 @@ public class NativeAdView extends FrameLayout {
             }
             if (actionRendered != null) actionRendered.run();
         }, null);
+        if (engagementMeasurement != null) {
+            engagementTracker = new EngagementTracker(trackingClient, engagementMeasurement, "NATIVE");
+            engagementTracker.attach(this);
+        } else {
+            engagementTracker = null;
+        }
 
         AdLog.d("NativeAdView: bound payload title='%s'", payload.title);
     }
@@ -112,6 +123,8 @@ public class NativeAdView extends FrameLayout {
     public void destroy() {
         if (impressionTracker != null) impressionTracker.detach();
         impressionTracker = null;
+        if (engagementTracker != null) engagementTracker.stop();
+        engagementTracker = null;
         setOnClickListener(null);
         if (ctaView != null) ctaView.setOnClickListener(null);
         boundPayload = null;
@@ -129,8 +142,15 @@ public class NativeAdView extends FrameLayout {
     }
 
     @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        if (engagementTracker != null) engagementTracker.resume();
+    }
+
+    @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
+        if (engagementTracker != null) engagementTracker.pause();
         if (AdViewLifecycle.isTerminalDetach(this)) {
             destroy();
         } else {

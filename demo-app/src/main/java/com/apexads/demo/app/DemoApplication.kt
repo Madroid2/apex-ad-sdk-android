@@ -17,14 +17,12 @@ class DemoApplication : Application() {
             .debugLogging(true)
             .testMode(true)
             .cacheTtlSeconds(120)
-            // No hardcoded ad-server URL: the debug build auto-targets this
-            // machine's current LAN IP (see sdk-core/build.gradle.kts →
-            // resolveDebugAdServerHost), so a DHCP renewal can't silently pin
-            // the app to a dead address. Override per-machine with
-            // `apex.adServerHost=<ip>` in local.properties if needed.
-            // Real demand first; mock creatives are a debug-only FALLBACK that
-            // only renders when the live auction returns no fill.
-            .debugFakeFill(true)
+            // Debug emulator builds target Android's stable 10.0.2.2 host alias.
+            // For a physical device, override it with
+            // `apex.adServerHost=<mac-lan-ip>` in local.properties.
+            // Keep the live demo honest: connectivity and auction failures must
+            // surface as no-fill instead of rendering SDK-generated mock demand.
+            .debugFakeFill(false)
             .sentryDsn(SENTRY_DSN)
             .build()
 

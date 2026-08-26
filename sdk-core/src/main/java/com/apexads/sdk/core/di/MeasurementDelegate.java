@@ -30,7 +30,7 @@ public interface MeasurementDelegate extends SdkFeature {
     @NonNull
     String partnerName();
 
-    /** OM SDK version in use ({@code source.ext.omidpv}). */
+    /** Apex OM SDK integration version ({@code source.ext.omidpv}). */
     @NonNull
     String partnerVersion();
 

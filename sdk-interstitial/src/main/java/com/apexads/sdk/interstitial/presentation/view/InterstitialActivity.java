@@ -31,10 +31,13 @@ import com.apexads.sdk.BuildConfig;
 import com.apexads.sdk.banner.presentation.view.mraid.MRAIDBridge;
 import com.apexads.sdk.core.di.WalletDelegate;
 import com.apexads.sdk.core.models.AdData;
+import com.apexads.sdk.core.tracking.EngagementTracker;
+import com.apexads.sdk.core.tracking.ImpressionTracker;
 import com.apexads.sdk.core.utils.AdNavigationGuard;
 import com.apexads.sdk.core.utils.AdUrlHandler;
 import com.apexads.sdk.core.utils.AdLog;
 import com.apexads.sdk.internal.ApexFeatureAccess;
+import com.apexads.sdk.internal.ApexSdkRuntime;
 import com.apexads.sdk.interstitial.InterstitialAdListener;
 
 public final class InterstitialActivity extends Activity {
@@ -49,6 +52,8 @@ public final class InterstitialActivity extends Activity {
     private TextView tvCountdown;
     private ImageButton btnClose;
     private AdData adData;
+    private ImpressionTracker impressionTracker;
+    @Nullable private EngagementTracker engagementTracker;
     private final AdNavigationGuard navigationGuard = new AdNavigationGuard("InterstitialActivity");
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -93,6 +98,15 @@ public final class InterstitialActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
         setContentView(root);
+
+        impressionTracker = new ImpressionTracker(ApexSdkRuntime.getTrackingClient());
+        impressionTracker.attach(root, adData);
+        if (adData.engagementMeasurement != null) {
+            engagementTracker = new EngagementTracker(
+                    ApexSdkRuntime.getTrackingClient(), adData.engagementMeasurement,
+                    "INTERSTITIAL");
+            engagementTracker.attach(root);
+        }
 
         mraidBridge = new MRAIDBridge(new MRAIDBridge.MRAIDListener() {
             @Override public void onClose()                                          { finish(); }
@@ -204,8 +218,24 @@ public final class InterstitialActivity extends Activity {
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+        if (engagementTracker != null) engagementTracker.resume();
+    }
+
+    @Override
+    protected void onStop() {
+        if (engagementTracker != null) engagementTracker.pause();
+        super.onStop();
+    }
+
+    @Override
     protected void onDestroy() {
         mainHandler.removeCallbacks(closeTickRunnable);
+        if (impressionTracker != null) impressionTracker.detach();
+        impressionTracker = null;
+        if (engagementTracker != null) engagementTracker.stop();
+        engagementTracker = null;
 
         // Snapshot before clearing — ensures a single onInterstitialClosed() delivery.
         InterstitialAdListener listenerToNotify = activeListener;

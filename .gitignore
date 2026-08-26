@@ -33,3 +33,6 @@ kotlin/
 
 # Logs
 *.log
+
+# Generated visual-QA renders (final shareable PDFs live under output/pdf).
+tmp/

@@ -80,12 +80,14 @@ public final class NativeAd {
             return;
         }
         IntentAction action = getIntentAction();
+        AdData adData = viewModel.getAdData();
         view.bind(
                 payload,
                 ApexSdkRuntime.getTrackingClient(),
                 action,
                 action != null ? () -> performAction(view.getContext()) : null,
-                action != null ? this::recordActionRendered : null);
+                action != null ? this::recordActionRendered : null,
+                adData != null ? adData.engagementMeasurement : null);
     }
 
     /**

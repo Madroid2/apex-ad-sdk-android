@@ -101,6 +101,22 @@ public class VastParserTest {
     }
 
     @Test
+    public void parse_percentageSkipOffset_usesVideoDuration() {
+        VastParser.VastAd ad = parser.parse(INLINE_VAST_PERCENT_SKIP).ad;
+        assertThat(ad.skipOffset).isEqualTo(5);
+    }
+
+    @Test
+    public void parse_inlineAd_companionEndCardParsed() {
+        VastParser.VastAd ad = parser.parse(INLINE_VAST).ad;
+        assertThat(ad.companionAd).isNotNull();
+        assertThat(ad.companionAd.imageUrl).isEqualTo("https://example.com/end-card.png");
+        assertThat(ad.companionAd.clickThroughUrl).isEqualTo("https://example.com/end-click");
+        assertThat(ad.companionAd.creativeViewUrls)
+                .containsExactly("https://track.example.com/companion-view");
+    }
+
+    @Test
     public void parse_inlineAd_notSkippable_returnsMinusOne() {
         VastParser.VastAd ad = parser.parse(INLINE_VAST_NO_SKIP).ad;
         assertThat(ad.skipOffset).isEqualTo(-1);
@@ -171,8 +187,21 @@ public class VastParserTest {
         "<![CDATA[https://example.com/ad.mp4]]>" +
         "</MediaFile>" +
         "</MediaFiles>" +
-        "</Linear></Creative></Creatives>" +
+        "</Linear></Creative>" +
+        "<Creative><CompanionAds><Companion width=\"320\" height=\"480\">" +
+        "<TrackingEvents><Tracking event=\"creativeView\"><![CDATA[https://track.example.com/companion-view]]></Tracking></TrackingEvents>" +
+        "<StaticResource creativeType=\"image/png\"><![CDATA[https://example.com/end-card.png]]></StaticResource>" +
+        "<CompanionClickThrough><![CDATA[https://example.com/end-click]]></CompanionClickThrough>" +
+        "</Companion></CompanionAds></Creative></Creatives>" +
         "</InLine></Ad></VAST>";
+
+    private static final String INLINE_VAST_PERCENT_SKIP =
+        "<VAST version=\"4.0\"><Ad id=\"percent\"><InLine>" +
+        "<AdSystem>Test</AdSystem><AdTitle>Percent</AdTitle><Creatives>" +
+        "<Creative><Linear skipoffset=\"25%\"><Duration>00:00:20</Duration>" +
+        "<MediaFiles><MediaFile delivery=\"progressive\" type=\"video/mp4\" width=\"640\" height=\"360\">" +
+        "<![CDATA[https://example.com/ad.mp4]]></MediaFile></MediaFiles>" +
+        "</Linear></Creative></Creatives></InLine></Ad></VAST>";
 
     private static final String INLINE_VAST_NO_SKIP =
         "<VAST version=\"4.0\">" +
