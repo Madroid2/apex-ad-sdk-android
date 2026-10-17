@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en" data-root="">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Install and initialize the modular ApexAd Android SDK.">
+  <meta name="theme-color" content="#121715">
+  <title>Getting started · ApexAd SDK</title>
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="docs-page">
+  <a class="skip-link" href="#docs-main">Skip to documentation</a>
+  <header class="site-header">
+    <nav class="nav-shell" aria-label="Primary navigation">
+      <a class="brand" href="/"><span class="brand-mark">A</span><span>ApexAd SDK<small>Documentation</small></span></a>
+      <button class="mobile-toggle" type="button" data-menu aria-expanded="false" aria-label="Open navigation">Menu</button>
+      <div class="nav-links" data-nav><a href="/docs/">Get started</a><a href="/docs/formats.html">Formats</a><a href="/docs/trust.html">Trust</a><button class="search-trigger" type="button" data-open-search>Search docs</button><a href="https://github.com/Madroid2/apex-ad-sdk-android">GitHub</a></div>
+    </nav>
+  </header>
+
+  <div class="docs-shell">
+    <aside class="docs-sidebar" aria-label="Documentation sections">
+      <strong>Overview</strong>
+      <a class="active" href="/docs/">Getting started</a>
+      <a href="#release-status">Release status</a>
+      <a href="#modules">Module map</a>
+      <strong>Build</strong>
+      <a href="#install">Install</a>
+      <a href="#initialize">Initialize</a>
+      <a href="#lifecycle">Lifecycle</a>
+      <strong>Implement</strong>
+      <a href="/docs/formats.html">Ad formats</a>
+      <a href="/docs/formats.html#conversational">Conversational ads</a>
+      <a href="/docs/formats.html#wallet">Wallet actions</a>
+      <strong>Operate</strong>
+      <a href="/docs/trust.html#privacy">Privacy</a>
+      <a href="/docs/trust.html#trust">Trust layer</a>
+      <a href="/docs/trust.html#production">Production gates</a>
+    </aside>
+
+    <main class="docs-content" id="docs-main">
+      <p class="eyebrow">Android integration</p>
+      <h1>Getting started</h1>
+      <p class="lead">ApexAd is split into a dependency-light core and optional format or capability modules. Add the smallest surface you need, initialize once, then let each ad object own its load, show and destroy lifecycle.</p>
+
+      <div class="callout warning" id="release-status">
+        <strong>Maven Central publication is being activated</strong>
+        <p>The `net.apexsdk` coordinates shown here are the signed release coordinates. They become downloadable after domain verification and the first Central deployment. Until then, use the source checkout and demo application.</p>
+      </div>
+
+      <h2 id="requirements">Requirements</h2>
+      <table>
+        <tbody>
+          <tr><th>Minimum Android</th><td>API 21 for core and standard format modules</td></tr>
+          <tr><th>Integrity module</th><td>API 23 or later</td></tr>
+          <tr><th>Compile SDK</th><td>35 in the current source release</td></tr>
+          <tr><th>Java bytecode</th><td>Java 17 toolchain</td></tr>
+          <tr><th>License</th><td>Apache License 2.0</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="install">Install</h2>
+      <p>Add Maven Central to dependency resolution, then select core plus the format modules used by the application.</p>
+      <div class="code-block">
+        <div class="code-label">settings.gradle.kts</div><button class="copy-button" type="button" data-copy="repositories-code">Copy</button>
+        <pre id="repositories-code">dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}</pre>
+      </div>
+      <div class="code-block">
+        <div class="code-label">app/build.gradle.kts</div><button class="copy-button" type="button" data-copy="dependencies-code">Copy</button>
+        <pre id="dependencies-code">dependencies {
+    implementation("net.apexsdk:apex-sdk-core:0.1.0")
+    implementation("net.apexsdk:apex-sdk-banner:0.1.0")
+    implementation("net.apexsdk:apex-sdk-interstitial:0.1.0")
+    implementation("net.apexsdk:apex-sdk-native:0.1.0")
+}</pre>
+      </div>
+      <p>Keep all Apex modules on the same version. Optional modules declare their required Apex module dependencies through Maven metadata.</p>
+
+      <h2 id="modules">Module map</h2>
+      <table class="module-table">
+        <thead><tr><th>Artifact</th><th>Purpose</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td><code>apex-sdk-core</code></td><td>Initialization, OpenRTB, consent, tracking, cache and runtime contracts</td><td>Required</td></tr>
+          <tr><td><code>apex-sdk-banner</code></td><td>Banner, MRECT and MRAID rendering</td><td>Optional</td></tr>
+          <tr><td><code>apex-sdk-interstitial</code></td><td>Fullscreen display lifecycle</td><td>Optional</td></tr>
+          <tr><td><code>apex-sdk-native</code></td><td>IAB Native 1.2 parsing and view binding</td><td>Optional</td></tr>
+          <tr><td><code>apex-sdk-conversational</code></td><td>Sponsored suggestions for in-app assistant surfaces</td><td>Depends on Native</td></tr>
+          <tr><td><code>apex-sdk-video</code></td><td>VAST video parsing, playback and reward callbacks</td><td>Optional</td></tr>
+          <tr><td><code>apex-sdk-appopen</code></td><td>Foreground lifecycle ads and frequency caps</td><td>Optional</td></tr>
+          <tr><td><code>apex-sdk-inappbidding</code></td><td>Bid token and price signal for mediation</td><td>Optional</td></tr>
+          <tr><td><code>apex-sdk-wallet</code></td><td>Google Wallet action capability</td><td>Optional Google dependency</td></tr>
+          <tr><td><code>apex-sdk-integrity</code></td><td>Play Integrity leases and request signing</td><td>API 23+</td></tr>
+          <tr><td><code>apex-sdk-measurement</code></td><td>OM SDK integration boundary</td><td>Partner activation required</td></tr>
+          <tr><td><code>apex-adapter-admob</code></td><td>AdMob mediation adapter</td><td>Optional</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="initialize">Initialize once</h2>
+      <p>Initialize from <span class="inline-code">Application.onCreate()</span>. The application token identifies the registered publisher application. The endpoint override is useful for private OpenRTB integrations; production applications should use HTTPS.</p>
+      <div class="code-block">
+        <div class="code-label">Application.kt</div><button class="copy-button" type="button" data-copy="init-code">Copy</button>
+        <pre id="init-code">class PublisherApplication : Application() {
+    override fun onCreate() {
+        super.onCreate()
+
+        val tcfString = getSharedPreferences("IABTCF", MODE_PRIVATE)
+            .getString("IABTCF_TCString", null)
+
+        val config = ApexAdsConfig.Builder("YOUR_APP_TOKEN")
+            .adServerUrl("https://your-openrtb-endpoint.example/auction")
+            .cacheTtlSeconds(300)
+            .gdprConsentString(tcfString)
+            .build()
+
+        ApexAds.init(this, config)
+    }
+}</pre>
+      </div>
+      <div class="callout">
+        <strong>Do not put server secrets in the Android application</strong>
+        <p>The publisher token identifies a registered app. Demand API keys, signing lease secrets, service-account credentials and private PGP keys stay server-side.</p>
+      </div>
+
+      <h2 id="first-ad">Load a first banner</h2>
+      <p>Add the view to a publisher layout, then create the ad with a placement identifier configured on the server.</p>
+      <div class="code-block">
+        <div class="code-label">layout.xml</div><button class="copy-button" type="button" data-copy="banner-xml">Copy</button>
+        <pre id="banner-xml">&lt;com.apexads.sdk.banner.BannerAdView
+    android:id="@+id/apex_banner"
+    android:layout_width="320dp"
+    android:layout_height="50dp" /&gt;</pre>
+      </div>
+      <div class="code-block">
+        <div class="code-label">PublisherActivity.kt</div><button class="copy-button" type="button" data-copy="banner-code">Copy</button>
+        <pre id="banner-code">lateinit var banner: BannerAd
+banner = BannerAd.Builder("home-feed-banner")
+    .adSize(AdSize.BANNER_320x50)
+    .listener(object : BannerAdListener {
+        override fun onAdLoaded() = banner.show(binding.apexBanner)
+        override fun onAdFailed(error: AdError) = logNoFill(error)
+    })
+    .build()
+
+banner.load()</pre>
+      </div>
+
+      <h2 id="lifecycle">Lifecycle contract</h2>
+      <p>Ad objects move through deterministic states: idle, loading, loaded, displayed, expired or failed. Preload fullscreen formats before the transition where they may be shown. Destroy an ad or its rendering view when the owning Android lifecycle is permanently finished.</p>
+      <table>
+        <thead><tr><th>Host event</th><th>Publisher action</th></tr></thead>
+        <tbody>
+          <tr><td>Screen becomes eligible</td><td>Create the ad and call <code>load()</code>.</td></tr>
+          <tr><td>Listener reports loaded</td><td>Render banner/native immediately or hold fullscreen format until the intended transition.</td></tr>
+          <tr><td>Natural pause occurs</td><td>Check readiness, then call <code>show(activity)</code>.</td></tr>
+          <tr><td>Screen is permanently destroyed</td><td>Call the format's destroy or view cleanup method.</td></tr>
+          <tr><td>Load fails or no-fills</td><td>Preserve the app experience; never block content waiting for an ad.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="next">Next steps</h2>
+      <p>Continue with the format-specific examples, then review privacy and production activation requirements before connecting real inventory.</p>
+      <p><a class="button" href="/docs/formats.html">Explore ad formats</a> <a class="button secondary" href="/docs/trust.html">Review trust and privacy</a></p>
+    </main>
+
+    <aside class="on-this-page" aria-label="On this page"><strong>On this page</strong><a href="#requirements">Requirements</a><a href="#install">Install</a><a href="#modules">Modules</a><a href="#initialize">Initialize</a><a href="#first-ad">First ad</a><a href="#lifecycle">Lifecycle</a></aside>
+  </div>
+
+  <dialog class="search-dialog" data-search-dialog><div class="search-head"><input type="search" placeholder="Search Apex documentation" aria-label="Search documentation" data-search-input><button class="search-close" type="button" aria-label="Close search" data-close-search>×</button></div><div class="search-results" data-search-results></div></dialog>
+  <script src="/site.js" defer></script>
+</body>
+</html>

@@ -5,7 +5,7 @@ plugins {
 }
 
 val apexSdkVersion = providers.gradleProperty("APEX_VERSION")
-    .orElse("1.0.0-SNAPSHOT")
+    .orElse("0.1.0-SNAPSHOT")
     .get()
 
 // Resolves the host a debug build should target for the local ad server.

@@ -1,0 +1,67 @@
+name: Stage Maven Central Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version without the v prefix, for example 0.1.0
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: maven-central-release
+  cancel-in-progress: false
+
+jobs:
+  stage-release:
+    name: Validate and stage ${{ inputs.version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    environment: maven-central
+
+    steps:
+      - name: Validate version
+        shell: bash
+        run: |
+          if [[ ! "${{ inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9]+)*$ ]]; then
+            echo "Version must be a release number such as 0.1.0 or 0.1.0-rc1."
+            exit 1
+          fi
+          if [[ "${{ inputs.version }}" == *-SNAPSHOT ]]; then
+            echo "Maven Central releases cannot use a SNAPSHOT version."
+            exit 1
+          fi
+
+      - name: Checkout immutable release tag
+        uses: actions/checkout@v6
+        with:
+          ref: v${{ inputs.version }}
+          fetch-depth: 0
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Run release verification
+        run: ./gradlew testDebugUnitTest jacocoDebugUnitTestReport jacocoDebugCoverageVerification :demo-app:assembleDebugAndroidTest --stacktrace
+
+      - name: Stage signed artifacts in Maven Central
+        run: ./gradlew publishToMavenCentral -PAPEX_VERSION=${{ inputs.version }} --stacktrace
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
+
+      - name: Publication handoff
+        run: |
+          echo "Artifacts were uploaded for Central validation."
+          echo "Review the deployment in central.sonatype.com and publish it manually after validation succeeds."

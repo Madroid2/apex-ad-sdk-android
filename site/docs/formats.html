@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en" data-root="">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Integrate banner, interstitial, Native, VAST video, App Open, conversational and Wallet formats with ApexAd SDK.">
+  <meta name="theme-color" content="#121715"><title>Ad formats · ApexAd SDK</title>
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css">
+</head>
+<body class="docs-page">
+  <a class="skip-link" href="#docs-main">Skip to documentation</a>
+  <header class="site-header"><nav class="nav-shell" aria-label="Primary navigation"><a class="brand" href="/"><span class="brand-mark">A</span><span>ApexAd SDK<small>Documentation</small></span></a><button class="mobile-toggle" type="button" data-menu aria-expanded="false" aria-label="Open navigation">Menu</button><div class="nav-links" data-nav><a href="/docs/">Get started</a><a href="/docs/formats.html">Formats</a><a href="/docs/trust.html">Trust</a><button class="search-trigger" type="button" data-open-search>Search docs</button><a href="https://github.com/Madroid2/apex-ad-sdk-android">GitHub</a></div></nav></header>
+  <div class="docs-shell">
+    <aside class="docs-sidebar" aria-label="Documentation sections">
+      <strong>Overview</strong><a href="/docs/">Getting started</a><a href="/docs/#modules">Module map</a>
+      <strong>Formats</strong><a class="active" href="#banner">Banner and MRECT</a><a href="#interstitial">Interstitial</a><a href="#native">Native</a><a href="#video">VAST video</a><a href="#app-open">App Open</a><a href="#conversational">Conversational</a><a href="#wallet">Wallet actions</a><a href="#bidding">In-app bidding</a>
+      <strong>Operate</strong><a href="/docs/trust.html#privacy">Privacy</a><a href="/docs/trust.html#trust">Trust layer</a>
+    </aside>
+    <main class="docs-content" id="docs-main">
+      <p class="eyebrow">Rendering contracts</p><h1>Ad formats</h1>
+      <p class="lead">Every format uses the same core auction and tracking pipeline. Format modules translate approved OpenRTB markup into a bounded Android lifecycle and expose callbacks that keep the publisher in control.</p>
+
+      <h2 id="banner">Banner and MRECT</h2>
+      <p>Use a banner for persistent, non-blocking inventory. The same module supports a standard 320x50 placement and a 300x250 MRECT. MRAID markup is rendered in a guarded WebView and impressions are viewability-gated.</p>
+      <div class="code-block"><div class="code-label">Kotlin</div><button class="copy-button" type="button" data-copy="format-banner">Copy</button><pre id="format-banner">val banner = BannerAd.Builder("article-footer")
+    .adSize(AdSize.BANNER_320x50)
+    .listener(object : BannerAdListener {
+        override fun onAdLoaded() = banner.show(bannerView)
+        override fun onAdFailed(error: AdError) = handle(error)
+    })
+    .build()
+
+banner.load()</pre></div>
+
+      <h2 id="interstitial">Interstitial</h2>
+      <p>Load before a natural break, retain the object while the screen is alive, and show only after readiness is reported. The SDK does not decide when an interruption is appropriate.</p>
+      <div class="code-block"><div class="code-label">Kotlin</div><button class="copy-button" type="button" data-copy="format-interstitial">Copy</button><pre id="format-interstitial">val interstitial = InterstitialAd.Builder("level-complete")
+    .listener(object : InterstitialAdListener {
+        override fun onInterstitialLoaded() = enableContinueAction()
+        override fun onInterstitialFailed(error: AdError) = continueWithoutAd()
+    })
+    .build()
+
+interstitial.load()
+if (interstitial.isReady()) interstitial.show(activity)</pre></div>
+
+      <h2 id="native">IAB Native 1.2</h2>
+      <p>Native ads return structured title, body, image, icon, advertiser, CTA and tracking assets. The publisher owns the final Android layout while the SDK owns parsing, clicks and viewable impression registration.</p>
+      <div class="code-block"><div class="code-label">Kotlin</div><button class="copy-button" type="button" data-copy="format-native">Copy</button><pre id="format-native">val nativeAd = NativeAd.Builder("recommendation-card")
+    .listener(object : NativeAdListener {
+        override fun onNativeAdLoaded(ad: NativeAd) {
+            ad.bindTo(nativeAdView)
+        }
+        override fun onNativeAdFailed(error: AdError) = hideSlot()
+    })
+    .build()
+
+nativeAd.load()</pre></div>
+      <div class="callout success"><strong>Viewable impression rule</strong><p>Native impression trackers fire after at least 50% of the registered view remains visible for one continuous second.</p></div>
+
+      <h2 id="video">VAST rewarded video</h2>
+      <p>The video module parses VAST Inline and Wrapper documents and reports start, quartile, completion and skip events. Grant the publisher reward only from <span class="inline-code">onRewardEarned()</span>.</p>
+      <div class="code-block"><div class="code-label">Kotlin</div><button class="copy-button" type="button" data-copy="format-video">Copy</button><pre id="format-video">val video = VideoAd.Builder("rewarded-session")
+    .listener(object : VideoAdListener {
+        override fun onVideoAdLoaded() { watchButton.isEnabled = true }
+        override fun onRewardEarned() { grantPublisherReward() }
+        override fun onVideoAdFailed(error: AdError) { handle(error) }
+    })
+    .build()
+
+video.load()</pre></div>
+
+      <h2 id="app-open">App Open</h2>
+      <p>App Open listens for background-to-foreground transitions, preloads eligible inventory and applies local frequency and expiry constraints. Configure conservative caps so monetization does not obstruct returning users.</p>
+      <div class="code-block"><div class="code-label">Application.kt</div><button class="copy-button" type="button" data-copy="format-appopen">Copy</button><pre id="format-appopen">AppOpenAd.initialize(this, "app-open", listener)
+AppOpenAd.setFrequencyCapHours(1)
+AppOpenAd.setAdExpiryMinutes(30)</pre></div>
+
+      <h2 id="conversational">Conversational sponsored suggestions</h2>
+      <p>This module adapts an ordinary Native 1.2 creative for a chat or AI assistant surface. It renders a disclosed card between messages. It does not insert an advertiser claim into the assistant's answer and does not read raw conversation text.</p>
+      <div class="code-block"><div class="code-label">Kotlin</div><button class="copy-button" type="button" data-copy="format-conversational">Copy</button><pre id="format-conversational">val suggestionAd = ConversationalAd.Builder("assistant-inline-1")
+    .listener(listener)
+    .build()
+
+suggestionAd.load()
+
+val suggestion = suggestionAd.suggestion
+if (suggestion.hasAction) {
+    suggestionAd.performAction(context)
+} else {
+    suggestionAd.handleClick(context)
+}</pre></div>
+      <table><thead><tr><th>Boundary</th><th>Enforcement</th></tr></thead><tbody><tr><td>Disclosure</td><td>The suggestion contract always includes a sponsored disclosure.</td></tr><tr><td>Content separation</td><td>Ad UI renders between messages, never inside answer text.</td></tr><tr><td>Context minimization</td><td>Only registered taxonomy values may enter the request.</td></tr><tr><td>Renderable or silent</td><td>Missing required Native assets produce no-fill, not a broken card.</td></tr></tbody></table>
+
+      <h2 id="wallet">Wallet and intent actions</h2>
+      <p>Wallet is an optional executable capability, not a separate inventory type. Install the module before SDK initialization is used for eligible requests. The request advertises only actions that both publisher policy and the actual application build allow.</p>
+      <div class="code-block"><div class="code-label">Application.kt</div><button class="copy-button" type="button" data-copy="format-wallet">Copy</button><pre id="format-wallet">ApexAds.init(this, config)
+WalletAdExtension.install()</pre></div>
+      <div class="callout"><strong>Fallback remains first-class</strong><p>If the slot, application build or returned creative cannot execute a Wallet action, Apex keeps the standard Native, MRECT or interstitial click experience available.</p></div>
+
+      <h2 id="bidding">In-app bidding</h2>
+      <p>Fetch a bid token before loading the mediation network. If Apex has no eligible bid, continue the host waterfall rather than blocking the placement.</p>
+      <div class="code-block"><div class="code-label">Kotlin</div><button class="copy-button" type="button" data-copy="format-bidding">Copy</button><pre id="format-bidding">ApexInAppBidder.fetchBidToken(
+    "placement-001",
+    AdFormat.INTERSTITIAL,
+    object : InAppBidListener {
+        override fun onBidReady(token: BidToken) {
+            mediationAd.setLocalExtraParameter("apex_bid_token", token.token)
+            mediationAd.setLocalExtraParameter("apex_bid_cpm", token.cpmUsd.toString())
+            mediationAd.loadAd()
+        }
+
+        override fun onBidFailed(error: AdError) = mediationAd.loadAd()
+    }
+)</pre></div>
+    </main>
+    <aside class="on-this-page" aria-label="On this page"><strong>On this page</strong><a href="#banner">Banner</a><a href="#interstitial">Interstitial</a><a href="#native">Native</a><a href="#video">Video</a><a href="#app-open">App Open</a><a href="#conversational">Conversational</a><a href="#wallet">Wallet</a><a href="#bidding">Bidding</a></aside>
+  </div>
+  <dialog class="search-dialog" data-search-dialog><div class="search-head"><input type="search" placeholder="Search Apex documentation" aria-label="Search documentation" data-search-input><button class="search-close" type="button" aria-label="Close search" data-close-search>×</button></div><div class="search-results" data-search-results></div></dialog><script src="/site.js" defer></script>
+</body>
+</html>

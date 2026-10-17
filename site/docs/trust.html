@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en" data-root="">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="ApexAd SDK privacy, consent, trust signals and production activation requirements.">
+  <meta name="theme-color" content="#121715"><title>Privacy and trust · ApexAd SDK</title>
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css">
+</head>
+<body class="docs-page">
+  <a class="skip-link" href="#docs-main">Skip to documentation</a>
+  <header class="site-header"><nav class="nav-shell" aria-label="Primary navigation"><a class="brand" href="/"><span class="brand-mark">A</span><span>ApexAd SDK<small>Documentation</small></span></a><button class="mobile-toggle" type="button" data-menu aria-expanded="false" aria-label="Open navigation">Menu</button><div class="nav-links" data-nav><a href="/docs/">Get started</a><a href="/docs/formats.html">Formats</a><a href="/docs/trust.html">Trust</a><button class="search-trigger" type="button" data-open-search>Search docs</button><a href="https://github.com/Madroid2/apex-ad-sdk-android">GitHub</a></div></nav></header>
+  <div class="docs-shell">
+    <aside class="docs-sidebar" aria-label="Documentation sections"><strong>Overview</strong><a href="/docs/">Getting started</a><a href="/docs/formats.html">Ad formats</a><strong>Privacy and trust</strong><a class="active" href="#privacy">Privacy</a><a href="#audience">Audience cohorts</a><a href="#trust">Trust signals</a><a href="#signing">Request signing</a><a href="#production">Production activation</a><a href="#measurement">Measurement status</a></aside>
+    <main class="docs-content" id="docs-main">
+      <p class="eyebrow">Operational boundaries</p><h1>Privacy and trust</h1>
+      <p class="lead">Apex separates user consent, contextual relevance and supply trust. A signal may inform server policy, but it never creates consent and it never proves more than its evidence supports.</p>
+
+      <h2 id="privacy">Consent propagation</h2>
+      <p>The SDK reads standard consent values written by the host application's CMP and serializes the applicable OpenRTB privacy fields. The SDK is not a CMP and does not manufacture or reinterpret user choice.</p>
+      <table><thead><tr><th>Input</th><th>Use</th></tr></thead><tbody><tr><td><code>IABTCF_TCString</code></td><td>Propagated as the TCF consent string.</td></tr><tr><td><code>IABTCF_gdprApplies</code></td><td>Controls the OpenRTB GDPR applicability signal.</td></tr><tr><td><code>IABGPP_HDR_GppString</code></td><td>Propagated as the GPP string when supplied by the CMP.</td></tr><tr><td><code>IABGPP_GppSID</code></td><td>Propagated as applicable GPP section identifiers.</td></tr><tr><td><code>IABUSPrivacy_String</code></td><td>Respected by privacy-gated audience behavior.</td></tr></tbody></table>
+      <div class="callout warning"><strong>Publisher responsibility</strong><p>The publisher remains responsible for selecting a compliant CMP, establishing a lawful basis and configuring vendors and purposes correctly for its markets.</p></div>
+
+      <h2 id="audience">First-party audience cohorts</h2>
+      <p>Cohorts are declarative rules evaluated against bounded signals the request already carries. The SDK does not embed a scripting engine, collect new sensors or send free-form user content to produce a cohort.</p>
+      <ul><li>Rules are data, not executable code.</li><li>Matched segments use OpenRTB <code>user.data[].segment[]</code>.</li><li>Purpose 4 consent gates cohort attachment.</li><li>No consent means contextual request behavior.</li><li>Remote rule changes do not require an application release.</li></ul>
+
+      <h2 id="trust">Layered trust signals</h2>
+      <p>The optional integrity path combines device verdicts with server verification. Emulator heuristics remain advisory. T2 requires a Play-recognized application and device integrity. T3 additionally requires strong integrity.</p>
+      <table><thead><tr><th>Layer</th><th>Responsibility</th></tr></thead><tbody><tr><td>Android SDK</td><td>Generate a per-install signing key, request Play Integrity evidence, sign eligible requests and fail safely.</td></tr><tr><td>Apex Ad Server</td><td>Verify app identity, certificate, freshness, nonce, body hash, sequence and trust lease.</td></tr><tr><td>Demand policy</td><td>Use trust tier alongside publisher authentication, supply-chain data and event history.</td></tr><tr><td>Publisher application</td><td>Ship through the registered Play identity and keep publisher configuration current.</td></tr></tbody></table>
+      <div class="callout success"><strong>Safe fallback</strong><p>Before a valid lease exists, the SDK continues with unsigned T1 traffic. Server policy may restrict demand, serve house inventory or no-fill, but the SDK does not crash or block application content.</p></div>
+
+      <h2 id="signing">Request signing</h2>
+      <p>Where supported, the SDK signs the HTTP method, exact path and query, timestamp, nonce, sequence and body hash. The server checks freshness and replay state. The trust lease secret and Play service-account credentials never enter the application.</p>
+      <div class="code-block"><div class="code-label">Application.kt</div><button class="copy-button" type="button" data-copy="integrity-code">Copy</button><pre id="integrity-code">ApexIntegrityExtension.install(PRODUCTION_CLOUD_PROJECT_NUMBER)
+ApexAds.init(this, productionConfig)</pre></div>
+
+      <h2 id="production">Production activation gate</h2>
+      <p>Source code and unit tests are not sufficient evidence that production trust is active. Complete the following with a Google Play-installed release:</p>
+      <ol><li>Enable and link Play Integrity to the publisher release application.</li><li>Configure the numeric Cloud project number in the integrity extension.</li><li>Register the release package and Play app-signing SHA-256 certificate on the Ad Server.</li><li>Keep service-account credentials and the shared server-side lease secret in deployment secret stores.</li><li>Observe a live T2 or T3 lease from a Play-installed build.</li><li>Verify successful signed auction and tracking requests.</li><li>Reject replayed nonce, stale envelope, modified body, wrong package and wrong signing certificate cases.</li><li>Confirm T1 fallback remains non-blocking.</li></ol>
+      <p><a href="https://github.com/Madroid2/apex-ad-sdk-android/blob/main/docs/PRODUCTION_TRUST_ACTIVATION.md">Open the complete production runbook on GitHub</a>.</p>
+
+      <h2 id="measurement">OM SDK measurement status</h2>
+      <p>The source repository includes the measurement integration boundary, but the IAB OM SDK binary is distributed after partner registration and is not bundled from Maven Central.</p>
+      <div class="callout warning"><strong>Not yet a certification claim</strong><p>Do not describe Apex measurement as OM SDK certified until partner registration, the official binary, integration validation and certification evidence are complete.</p></div>
+
+      <h2 id="reporting">Security reporting</h2>
+      <p>Do not include publisher tokens, bidstream payloads, raw integrity tokens, user data or private keys in a public issue. Report reproducible non-sensitive defects through GitHub Issues and coordinate sensitive disclosure privately with the maintainer.</p>
+    </main>
+    <aside class="on-this-page" aria-label="On this page"><strong>On this page</strong><a href="#privacy">Privacy</a><a href="#audience">Audience</a><a href="#trust">Trust signals</a><a href="#signing">Signing</a><a href="#production">Activation</a><a href="#measurement">Measurement</a></aside>
+  </div>
+  <dialog class="search-dialog" data-search-dialog><div class="search-head"><input type="search" placeholder="Search Apex documentation" aria-label="Search documentation" data-search-input><button class="search-close" type="button" aria-label="Close search" data-close-search>×</button></div><div class="search-results" data-search-results></div></dialog><script src="/site.js" defer></script>
+</body>
+</html>
