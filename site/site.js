@@ -43,6 +43,15 @@ if (menuButton && menu) {
   menuButton.addEventListener("click", () => {
     const open = menu.classList.toggle("open");
     menuButton.setAttribute("aria-expanded", String(open));
+    menuButton.setAttribute("aria-label", open ? "Close navigation" : "Open navigation");
+  });
+
+  menu.querySelectorAll("a").forEach((link) => {
+    link.addEventListener("click", () => {
+      menu.classList.remove("open");
+      menuButton.setAttribute("aria-expanded", "false");
+      menuButton.setAttribute("aria-label", "Open navigation");
+    });
   });
 }
 
@@ -90,6 +99,11 @@ document.querySelector("[data-close-search]")?.addEventListener("click", () => d
 searchInput?.addEventListener("input", (event) => renderResults(event.target.value));
 
 document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && menu?.classList.contains("open")) {
+    menu.classList.remove("open");
+    menuButton?.setAttribute("aria-expanded", "false");
+    menuButton?.setAttribute("aria-label", "Open navigation");
+  }
   if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
     event.preventDefault();
     document.querySelector("[data-open-search]")?.click();
@@ -99,3 +113,96 @@ document.addEventListener("keydown", (event) => {
 document.querySelectorAll("[data-year]").forEach((element) => {
   element.textContent = new Date().getFullYear();
 });
+
+const platformTabs = Array.from(document.querySelectorAll("[data-platform-tab]"));
+const platformPanels = Array.from(document.querySelectorAll("[data-platform-panel]"));
+
+function selectPlatformStage(stage) {
+  platformTabs.forEach((tab) => {
+    const active = tab.dataset.platformTab === stage;
+    tab.classList.toggle("is-active", active);
+    tab.setAttribute("aria-selected", String(active));
+    tab.tabIndex = active ? 0 : -1;
+  });
+  platformPanels.forEach((panel) => {
+    panel.hidden = panel.dataset.platformPanel !== stage;
+  });
+}
+
+platformTabs.forEach((tab, index) => {
+  tab.addEventListener("click", () => selectPlatformStage(tab.dataset.platformTab));
+  tab.addEventListener("keydown", (event) => {
+    if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+    event.preventDefault();
+    const direction = event.key === 'ArrowRight' ? 1 : -1;
+    const next = platformTabs[(index + direction + platformTabs.length) % platformTabs.length];
+    selectPlatformStage(next.dataset.platformTab);
+    next.focus();
+  });
+});
+
+const agentStages = [
+  { key: "generator", message: "Resolving landing-page evidence", state: "DRAFT", approved: false },
+  { key: "review", message: "Checking policy and brand evidence", state: "CHECKING", approved: false },
+  { key: "copilot", message: "Preparing an informed action proposal", state: "APPROVAL", approved: false },
+  { key: "auction", message: "Approved creative is bid-ready", state: "BID READY", approved: true }
+];
+
+const agentNodes = Array.from(document.querySelectorAll("[data-agent-node]"));
+const agentMessage = document.querySelector("[data-agent-message]");
+const agentToggle = document.querySelector("[data-agent-toggle]");
+const creativePreview = document.querySelector("[data-creative-preview]");
+const creativeState = document.querySelector(".creative-state");
+let agentStageIndex = 0;
+let agentTimer = null;
+let agentPaused = false;
+
+function renderAgentStage() {
+  const stage = agentStages[agentStageIndex];
+  agentNodes.forEach((node) => node.classList.toggle("is-active", node.dataset.agentNode === stage.key));
+  if (agentMessage) agentMessage.textContent = stage.message;
+  if (creativeState) creativeState.textContent = stage.state;
+  creativePreview?.classList.toggle("is-approved", stage.approved);
+}
+
+function startAgentAnimation() {
+  window.clearInterval(agentTimer);
+  agentTimer = window.setInterval(() => {
+    agentStageIndex = (agentStageIndex + 1) % agentStages.length;
+    renderAgentStage();
+  }, 2200);
+}
+
+if (agentNodes.length) {
+  renderAgentStage();
+  if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) startAgentAnimation();
+}
+
+agentToggle?.addEventListener("click", () => {
+  agentPaused = !agentPaused;
+  if (agentPaused) {
+    window.clearInterval(agentTimer);
+    agentToggle.querySelector("span").textContent = ">";
+    agentToggle.setAttribute("aria-label", "Play agent animation");
+    agentToggle.title = "Play agent animation";
+  } else {
+    startAgentAnimation();
+    agentToggle.querySelector("span").textContent = "II";
+    agentToggle.setAttribute("aria-label", "Pause agent animation");
+    agentToggle.title = "Pause agent animation";
+  }
+});
+
+const revealItems = document.querySelectorAll(".reveal");
+if ("IntersectionObserver" in window && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  const revealObserver = new IntersectionObserver((entries, observer) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add("is-visible");
+      observer.unobserve(entry.target);
+    });
+  }, { threshold: 0.14 });
+  revealItems.forEach((item) => revealObserver.observe(item));
+} else {
+  revealItems.forEach((item) => item.classList.add("is-visible"));
+}

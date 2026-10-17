@@ -3,156 +3,385 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="ApexAd is a modular Android advertising SDK for OpenRTB, Native, VAST, MRAID, in-app bidding, Wallet actions and conversational sponsored suggestions.">
+  <meta name="description" content="ApexAd SDK is a modular Android advertising SDK for OpenRTB, Native, VAST, MRAID, in-app bidding, Wallet actions and conversational sponsored suggestions.">
   <meta name="author" content="Madhur Lalit">
-  <meta property="og:title" content="ApexAd SDK for Android">
-  <meta property="og:description" content="Open programmatic monetization for Android apps, from standard display and video to intent-aware sponsored actions.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://apexsdk.net/">
+  <meta property="og:title" content="ApexAd SDK - The Android edge for intelligent advertising">
+  <meta property="og:description" content="Open programmatic monetization for Android, connected to an accountable agentic control plane.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://apexsdk.net/">
-  <meta property="og:image" content="https://apexsdk.net/assets/demo_conversational_card.svg">
-  <meta name="theme-color" content="#121715">
-  <title>ApexAd SDK — Open programmatic monetization for Android</title>
+  <meta property="og:image" content="https://apexsdk.net/assets/demo_trip_assistant_live.png">
+  <meta property="og:image:alt" content="ApexAd SDK rendering a disclosed sponsored suggestion inside an Android assistant experience">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="ApexAd SDK">
+  <meta name="twitter:description" content="The Android edge for intelligent advertising.">
+  <meta name="twitter:image" content="https://apexsdk.net/assets/demo_trip_assistant_live.png">
+  <meta name="theme-color" content="#090f12">
+  <title>ApexAd SDK - The Android edge for intelligent advertising</title>
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/styles.css?v=20261017c">
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareSourceCode",
+      "name": "ApexAd SDK",
+      "codeRepository": "https://github.com/Madroid2/apex-ad-sdk-android",
+      "programmingLanguage": "Java",
+      "runtimePlatform": "Android API 21+",
+      "license": "https://www.apache.org/licenses/LICENSE-2.0",
+      "url": "https://apexsdk.net/",
+      "author": { "@type": "Person", "name": "Madhur Lalit" }
+    }
+  </script>
 </head>
-<body>
+<body class="home-page">
   <a class="skip-link" href="#main">Skip to content</a>
-  <header class="site-header">
+
+  <header class="site-header site-header-dark">
     <nav class="nav-shell" aria-label="Primary navigation">
       <a class="brand" href="/" aria-label="ApexAd SDK home">
-        <span class="brand-mark">A</span>
+        <span class="brand-mark" aria-hidden="true">A</span>
         <span>ApexAd SDK<small>Android · Open source</small></span>
       </a>
       <button class="mobile-toggle" type="button" data-menu aria-expanded="false" aria-label="Open navigation">Menu</button>
       <div class="nav-links" data-nav>
+        <a href="#platform">Platform</a>
+        <a href="#agents">Agents</a>
         <a href="#formats">Formats</a>
         <a href="#architecture">Architecture</a>
-        <a href="#trust">Trust</a>
         <button class="search-trigger" type="button" data-open-search>Search docs</button>
-        <a href="https://github.com/Madroid2/apex-ad-sdk-android">GitHub</a>
-        <a class="button" href="/docs/">Get started</a>
+        <a href="https://github.com/Madroid2/apex-ad-sdk-android" target="_blank" rel="noreferrer">GitHub</a>
+        <a class="button button-small button-light" href="/docs/">Start building</a>
       </div>
     </nav>
   </header>
 
   <main id="main">
-    <section class="hero">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-scene" aria-hidden="true">
+        <div class="scene-axis scene-axis-one"></div>
+        <div class="scene-axis scene-axis-two"></div>
+        <div class="scene-axis scene-axis-three"></div>
+
+        <div class="agent-node agent-generator" data-agent-node="generator">
+          <span class="node-code">GEN</span>
+          <strong>Creative agent</strong>
+          <small>Product context resolved</small>
+        </div>
+        <div class="agent-node agent-review" data-agent-node="review">
+          <span class="node-code">REV</span>
+          <strong>Review agent</strong>
+          <small>Policy evidence checked</small>
+        </div>
+        <div class="agent-node agent-copilot" data-agent-node="copilot">
+          <span class="node-code">COP</span>
+          <strong>Campaign Copilot</strong>
+          <small>Action requires approval</small>
+        </div>
+        <div class="agent-node auction-node" data-agent-node="auction">
+          <span class="node-code">RTB</span>
+          <strong>Auction path</strong>
+          <small>No model latency</small>
+        </div>
+
+        <div class="creative-preview" data-creative-preview>
+          <div class="creative-image"><span>PACEONE</span><b>Run lighter.</b></div>
+          <div class="creative-meta"><span>320x50</span><span class="creative-state">DRAFT</span></div>
+        </div>
+
+        <span class="data-packet packet-one"></span>
+        <span class="data-packet packet-two"></span>
+        <span class="data-packet packet-three"></span>
+      </div>
+
       <div class="hero-inner">
-        <div class="hero-copy">
-          <p class="eyebrow">Open programmatic monetization for Android</p>
-          <h1>ApexAd SDK</h1>
-          <p class="hero-lede">A modular ad SDK that connects standard display, Native and VAST inventory with in-app bidding, privacy-aware trust signals, Wallet outcomes and sponsored suggestions for AI surfaces.</p>
+        <div class="hero-copy reveal">
+          <p class="eyebrow eyebrow-on-dark"><span class="live-dot"></span>Open programmatic monetization for Android</p>
+          <h1 id="hero-title">ApexAd SDK</h1>
+          <p class="hero-positioning">The Android edge for intelligent advertising.</p>
+          <p class="hero-lede">Render every major mobile format, protect the auction hot path, and connect publishers to AI-assisted creative, review and campaign operations.</p>
           <div class="hero-actions">
-            <a class="button lime" href="/docs/">Read the integration guide</a>
-            <a class="button secondary" href="https://github.com/Madroid2/apex-ad-sdk-android">View source</a>
+            <a class="button button-accent" href="/docs/">Read the integration guide</a>
+            <a class="button button-ghost" href="https://github.com/Madroid2/apex-ad-sdk-android" target="_blank" rel="noreferrer">View source</a>
+            <a class="text-link text-link-light" href="https://madhur-lalit.com/#work" target="_blank" rel="noreferrer">Explore the full Apex Platform <span aria-hidden="true">↗</span></a>
           </div>
           <div class="install-line">
             <code id="hero-install">implementation("net.apexsdk:apex-sdk-core:0.1.0")</code>
             <button class="copy-button" type="button" data-copy="hero-install">Copy</button>
           </div>
-          <p class="release-note"><span class="status">Central release candidate</span> Coordinates become consumable after namespace verification and the first signed release.</p>
+          <p class="release-note"><span class="status">Central release candidate</span> Signed coordinates activate after the first Maven Central publication.</p>
         </div>
-        <div class="hero-signal">No raw assistant conversation is sent into the bidstream.</div>
-        <div class="hero-media" aria-label="Apex conversational sponsored suggestion running in an Android sample app">
-          <img src="/assets/demo_conversational_card.svg" alt="Android trip assistant showing a clearly disclosed Apex sample sponsored suggestion card">
+
+        <div class="agent-activity" aria-live="polite">
+          <div>
+            <span class="activity-label">Agent activity</span>
+            <strong data-agent-message>Resolving landing-page evidence</strong>
+          </div>
+          <button class="activity-toggle" type="button" data-agent-toggle aria-label="Pause agent animation" title="Pause agent animation"><span aria-hidden="true">Ⅱ</span></button>
         </div>
       </div>
     </section>
 
-    <section class="stats-band" aria-label="SDK overview">
-      <div class="stats-grid">
-        <div class="stat"><strong>API 21+</strong><span>Core Android compatibility</span></div>
-        <div class="stat"><strong>12</strong><span>Independently consumable modules</span></div>
-        <div class="stat"><strong>OpenRTB 2.6</strong><span>Standards-based auction contract</span></div>
-        <div class="stat"><strong>Apache 2.0</strong><span>Open-source SDK license</span></div>
+    <section class="signal-strip" aria-label="SDK capabilities">
+      <div class="signal-track">
+        <span>OpenRTB 2.6</span>
+        <span>VAST 4</span>
+        <span>MRAID 3</span>
+        <span>IAB Native 1.2</span>
+        <span>TCF + GPP</span>
+        <span>API 21+</span>
+        <span>Zero third-party runtime dependencies</span>
       </div>
     </section>
 
-    <section class="section" id="formats">
+    <section class="section platform-section" id="platform">
       <div class="section-inner">
-        <div class="section-heading">
-          <p class="eyebrow">One auction path, multiple surfaces</p>
-          <h2>Formats publishers already use, plus the surfaces they are building next.</h2>
+        <div class="section-heading split-heading reveal">
+          <div>
+            <p class="eyebrow">The complete system</p>
+            <h2>One path from intent to impression.</h2>
+          </div>
+          <p>The SDK is the on-device edge of a wider advertising system. Supply, demand and accountable model judgment stay connected without putting an LLM inside the auction.</p>
+        </div>
+
+        <div class="platform-explorer reveal" data-platform-explorer>
+          <div class="platform-tabs" role="tablist" aria-label="Apex Platform stages">
+            <button class="platform-tab is-active" type="button" role="tab" aria-selected="true" data-platform-tab="sdk"><span>01</span>Apex SDK</button>
+            <button class="platform-tab" type="button" role="tab" aria-selected="false" data-platform-tab="server"><span>02</span>Ad Server</button>
+            <button class="platform-tab" type="button" role="tab" aria-selected="false" data-platform-tab="demand"><span>03</span>Demand</button>
+            <button class="platform-tab" type="button" role="tab" aria-selected="false" data-platform-tab="intelligence"><span>04</span>Intelligence</button>
+          </div>
+
+          <div class="platform-stage" data-platform-panel="sdk">
+            <div class="platform-copy">
+              <span class="stage-number">01 · On-device edge</span>
+              <h3>The request starts in the app.</h3>
+              <p>A modular Java SDK builds privacy-aware OpenRTB requests, renders standard and emerging formats, measures attention signals and owns every ad lifecycle.</p>
+              <ul class="feature-ticks">
+                <li>Independent format modules</li>
+                <li>Publisher-owned rendering</li>
+                <li>Deterministic lifecycle state</li>
+              </ul>
+            </div>
+            <div class="platform-visual sdk-visual" aria-label="Apex SDK request and render flow">
+              <div class="phone-shell phone-shell-primary"><img src="/assets/demo_trip_assistant_live.png" alt="Conversational sponsored suggestion rendered by ApexAd SDK" loading="lazy"></div>
+              <div class="wire-stack" aria-hidden="true"><span>context</span><span>request</span><span>render</span><span>measure</span></div>
+            </div>
+          </div>
+
+          <div class="platform-stage" data-platform-panel="server" hidden>
+            <div class="platform-copy">
+              <span class="stage-number">02 · Auction core</span>
+              <h3>Every opportunity becomes a disciplined auction.</h3>
+              <p>The Go ad server applies privacy and quality gates, fans out to demand in parallel, respects the publisher timeout and records attributable outcomes.</p>
+              <ul class="feature-ticks">
+                <li>OpenRTB-compatible demand</li>
+                <li>Bid cache and house fallback</li>
+                <li>Signed event tracking</li>
+              </ul>
+            </div>
+            <div class="platform-visual auction-visual" aria-label="Parallel auction visualization">
+              <div class="request-rail"><b>REQUEST</b><span>privacy</span><span>quality</span><span>tmax</span></div>
+              <div class="bid-lanes"><span>House</span><span>Prebid</span><span>Apex Demand</span></div>
+              <div class="winner-rail"><b>WINNER</b><span>creative + signed trackers</span></div>
+            </div>
+          </div>
+
+          <div class="platform-stage" data-platform-panel="demand" hidden>
+            <div class="platform-copy">
+              <span class="stage-number">03 · Commercial control plane</span>
+              <h3>Campaigns, creative and policy meet supply.</h3>
+              <p>The private Apex demand platform connects self-serve campaign setup, creative production, policy review, budgets and bidder eligibility.</p>
+              <ul class="feature-ticks">
+                <li>Creative generation agent</li>
+                <li>Evidence-backed review</li>
+                <li>Human-approved campaign actions</li>
+              </ul>
+              <a class="text-link" href="https://madhur-lalit.com/#work" target="_blank" rel="noreferrer">View the public platform overview <span aria-hidden="true">↗</span></a>
+            </div>
+            <div class="platform-visual demand-visual" aria-label="Apex demand workflow">
+              <div class="demand-flow" aria-hidden="true">
+                <article class="demand-step demand-step-generate">
+                  <span>CREATIVE STUDIO</span>
+                  <strong>4 variants generated</strong>
+                  <small>Product evidence resolved</small>
+                </article>
+                <span class="demand-connector">01</span>
+                <article class="demand-step demand-step-review">
+                  <span>REVIEW AGENT</span>
+                  <strong>Policy gates passed</strong>
+                  <small>Evidence · score 0.94</small>
+                </article>
+                <span class="demand-connector">02</span>
+                <article class="demand-step demand-step-copilot">
+                  <span>CAMPAIGN COPILOT</span>
+                  <strong>Action awaits approval</strong>
+                  <small>Budget + targeting proposal</small>
+                </article>
+              </div>
+              <div class="demand-overlay"><span>Campaign eligible</span><strong>Approved creative entered bidder cache</strong></div>
+            </div>
+          </div>
+
+          <div class="platform-stage" data-platform-panel="intelligence" hidden>
+            <div class="platform-copy">
+              <span class="stage-number">04 · Learning layer</span>
+              <h3>Evidence improves the next decision.</h3>
+              <p>Attributable outcomes become leakage-safe datasets. Candidate models remain behind evaluation, approval and shadow-mode gates before live scoring.</p>
+              <ul class="feature-ticks">
+                <li>Attention and outcome signals</li>
+                <li>Replayable evaluations</li>
+                <li>Explicit model promotion</li>
+              </ul>
+            </div>
+            <div class="platform-visual intelligence-visual" aria-label="Model promotion gates">
+              <ol><li><span>01</span>Observe</li><li><span>02</span>Evaluate</li><li><span>03</span>Approve</li><li><span>04</span>Shadow</li><li><span>05</span>Score</li></ol>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section agents-section" id="agents">
+      <div class="section-inner">
+        <div class="section-heading split-heading reveal">
+          <div>
+            <p class="eyebrow eyebrow-on-dark">Agentic operations</p>
+            <h2>Models do the slow thinking. Delivery stays fast.</h2>
+          </div>
+          <p>Agents work in the control plane, where judgment has value and latency has room. Deterministic rules, evidence and human authority decide what can become executable.</p>
+        </div>
+
+        <div class="agent-ledger reveal">
+          <article class="agent-row">
+            <div class="agent-identity"><span>GEN</span><div><small>Agent 01</small><h3>Creative Generator</h3></div></div>
+            <p>Builds product-specific creative variants from supplied assets and validated landing-page evidence, with bounded model and image-generation cost.</p>
+            <div class="agent-proof"><span>Input</span><b>URL + assets + brief</b><span>Output</span><b>Draft creative set</b></div>
+          </article>
+          <article class="agent-row">
+            <div class="agent-identity"><span>REV</span><div><small>Agent 02</small><h3>Creative Review</h3></div></div>
+            <p>Combines deterministic policy checks with model judgment, versioned evidence and replay. Ambiguous or high-risk cases stay with a human reviewer.</p>
+            <div class="agent-proof"><span>Boundary</span><b>Human review band</b><span>Serving</span><b>Approved only</b></div>
+          </article>
+          <article class="agent-row">
+            <div class="agent-identity"><span>COP</span><div><small>Agent 03</small><h3>Campaign Copilot</h3></div></div>
+            <p>Explains performance evidence and proposes bounded campaign changes. The advertiser sees the reason and consequences before approving an executable action.</p>
+            <div class="agent-proof"><span>Action</span><b>Proposal first</b><span>Authority</span><b>Human approval</b></div>
+          </article>
+        </div>
+
+        <div class="guardrail-statement reveal">
+          <strong>0 LLM calls</strong>
+          <span>in the impression-serving path</span>
+          <div class="guardrail-flow" aria-label="Agent decision boundary"><span>Agent proposal</span><i></i><span>Deterministic gate</span><i></i><span>Human boundary</span><i></i><span>Eligible state</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section formats-section" id="formats">
+      <div class="section-inner">
+        <div class="section-heading reveal">
+          <p class="eyebrow">One SDK, every mobile surface</p>
+          <h2>Familiar formats. New intent-aware experiences.</h2>
           <p>Choose only the modules your application needs. Core request, consent, tracking and lifecycle behavior remains shared.</p>
         </div>
-        <div class="format-grid">
-          <article class="format-item"><span class="format-index">01 / DISPLAY</span><h3>Banner and MRECT</h3><p>320x50 and 300x250 inventory with MRAID behavior, viewability tracking and ordinary click fallback.</p><a href="/docs/formats.html#banner">Integration details</a></article>
-          <article class="format-item"><span class="format-index">02 / FULLSCREEN</span><h3>Interstitial</h3><p>Preload, readiness checks and a separate rendering activity designed around natural content transitions.</p><a href="/docs/formats.html#interstitial">Integration details</a></article>
-          <article class="format-item"><span class="format-index">03 / NATIVE</span><h3>IAB Native 1.2</h3><p>Publisher-rendered layouts, structured assets, viewable impressions and standard click handling.</p><a href="/docs/formats.html#native">Integration details</a></article>
-          <article class="format-item"><span class="format-index">04 / VIDEO</span><h3>VAST rewarded video</h3><p>Inline and Wrapper parsing, tracking milestones, skip behavior and reward callbacks.</p><a href="/docs/formats.html#video">Integration details</a></article>
-          <article class="format-item"><span class="format-index">05 / LIFECYCLE</span><h3>App Open</h3><p>Background-to-foreground detection, cache expiry and publisher-controlled frequency caps.</p><a href="/docs/formats.html#app-open">Integration details</a></article>
-          <article class="format-item"><span class="format-index">06 / AI SURFACES</span><h3>Conversational sponsored suggestions</h3><p>Clearly disclosed Native cards between assistant messages, without injecting ad copy into the answer.</p><a href="/docs/formats.html#conversational">Integration details</a></article>
+
+        <div class="format-showcase reveal">
+          <article class="format-feature format-conversation">
+            <div class="format-copy"><span>Emerging surface</span><h3>Conversational sponsored suggestions</h3><p>A disclosed, compact sponsored unit designed to sit between assistant messages without becoming part of the answer.</p><a href="/docs/formats.html#conversational">Explore conversational ads</a></div>
+            <div class="format-device"><img src="/assets/demo_trip_assistant_live.png" alt="Apex conversational sponsored suggestion in an Android assistant" loading="lazy"></div>
+          </article>
+          <article class="format-feature format-wallet">
+            <div class="format-copy"><span>Intent to action</span><h3>Native ads that complete a useful action</h3><p>Wallet offers add a measurable outcome while preserving the ordinary Native click as a graceful fallback.</p><a href="/docs/formats.html#wallet">Explore Wallet actions</a></div>
+            <div class="format-device"><img src="/assets/demo_wallet.webp" alt="Apex Native ad with a Save to Google Wallet action" loading="lazy"></div>
+          </article>
+        </div>
+
+        <div class="format-index" aria-label="Supported ad formats">
+          <a href="/docs/formats.html#banner"><span>01</span><strong>Banner + MRECT</strong><small>Display and MRAID</small></a>
+          <a href="/docs/formats.html#interstitial"><span>02</span><strong>Interstitial</strong><small>Display and video</small></a>
+          <a href="/docs/formats.html#native"><span>03</span><strong>Native</strong><small>IAB Native 1.2</small></a>
+          <a href="/docs/formats.html#video"><span>04</span><strong>VAST video</strong><small>Quartiles and reward</small></a>
+          <a href="/docs/formats.html#app-open"><span>05</span><strong>App Open</strong><small>Lifecycle aware</small></a>
+          <a href="/docs/formats.html#conversational"><span>06</span><strong>Conversational</strong><small>Assistant surfaces</small></a>
         </div>
       </div>
     </section>
 
-    <section class="section wash">
-      <div class="section-inner showcase">
-        <div class="phone-reel" aria-label="Apex ad formats in the Android demo app">
-          <img src="/assets/demo_wallet.webp" alt="Google Wallet call to action rendered in an Apex ad">
-          <img src="/assets/demo_native.webp" alt="Native ad rendered in the Apex Android demo app">
-        </div>
-        <div class="showcase-copy">
-          <p class="eyebrow">Intent becomes an outcome</p>
-          <h2>Keep ordinary inventory useful when enhanced actions are unavailable.</h2>
-          <p>Wallet and intent actions are capability-negotiated extensions to standard Native, MRECT and interstitial inventory. A slot that cannot execute the enhanced action still receives a normal renderable ad.</p>
-          <div class="feature-list">
-            <div class="feature-row"><strong>SDK capability</strong><span>Declared from modules actually linked into the host application.</span></div>
-            <div class="feature-row"><strong>Publisher policy</strong><span>Controls which actions are allowed for a placement.</span></div>
-            <div class="feature-row"><strong>Demand response</strong><span>May include an action only when the request and creative contract support it.</span></div>
-            <div class="feature-row"><strong>Fallback</strong><span>Preserves the ordinary creative click path instead of sitting out the auction.</span></div>
+    <section class="section architecture-section" id="architecture">
+      <div class="section-inner architecture-layout">
+        <div class="architecture-copy reveal">
+          <p class="eyebrow">Built for the hot path</p>
+          <h2>Small integration surface. Serious operating discipline.</h2>
+          <p>A dependency-light core owns request construction, privacy propagation and lifecycle state. Format modules add only the capability the host application chooses.</p>
+          <div class="architecture-facts">
+            <div><strong>API 21+</strong><span>Core Android compatibility</span></div>
+            <div><strong>12 modules</strong><span>Independently consumable</span></div>
+            <div><strong>Apache 2.0</strong><span>Open-source license</span></div>
+            <div><strong>Java 17</strong><span>Build toolchain</span></div>
           </div>
-          <p><a class="button" href="/docs/formats.html#wallet">Understand action negotiation</a></p>
+        </div>
+
+        <div class="code-console reveal" aria-label="ApexAd SDK integration example">
+          <div class="console-bar"><span></span><span></span><span></span><b>build.gradle.kts</b></div>
+          <pre><code><span class="token-comment">// Install only what this app renders</span>
+dependencies {
+    implementation(<span class="token-string">"net.apexsdk:apex-sdk-core:0.1.0"</span>)
+    implementation(<span class="token-string">"net.apexsdk:apex-sdk-native:0.1.0"</span>)
+    implementation(<span class="token-string">"net.apexsdk:apex-sdk-video:0.1.0"</span>)
+}
+
+<span class="token-comment">// Initialize once. Each ad owns its lifecycle.</span>
+ApexSdk.initialize(
+    context = applicationContext,
+    appId = <span class="token-string">"publisher-app-id"</span>
+)</code></pre>
+          <a href="/docs/#install">Continue to installation <span aria-hidden="true">→</span></a>
         </div>
       </div>
     </section>
 
-    <section class="section dark" id="architecture">
-      <div class="section-inner">
-        <div class="section-heading">
-          <p class="eyebrow">Designed for the auction path</p>
-          <h2>Deterministic on-device execution. No model call in rendering or bidding.</h2>
-          <p>AI-assisted creative generation and review happen upstream. The SDK receives approved markup and executes bounded format contracts.</p>
-        </div>
-        <div class="architecture-flow" aria-label="Apex request lifecycle">
-          <div class="flow-node"><small>01</small><h3>Placement</h3><p>App declares format, dimensions and executable capabilities.</p></div>
-          <div class="flow-node"><small>02</small><h3>OpenRTB request</h3><p>Consent, context and versioned signals are serialized.</p></div>
-          <div class="flow-node"><small>03</small><h3>Auction</h3><p>Ad Server evaluates eligible demand and returns one approved bid.</p></div>
-          <div class="flow-node"><small>04</small><h3>Render</h3><p>Format module parses bounded markup and owns lifecycle state.</p></div>
-          <div class="flow-node"><small>05</small><h3>Measure</h3><p>Impression, viewability, engagement and video milestones are reported.</p></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="trust">
-      <div class="section-inner trust-layout">
-        <div class="trust-copy">
+    <section class="section trust-section" id="trust">
+      <div class="section-inner trust-layout reveal">
+        <div>
           <p class="eyebrow">Privacy and supply trust</p>
           <h2>Signals are evidence, not permission.</h2>
-          <p>The optional trust module layers Play Integrity leases and hardware-backed request signatures onto server-side replay and publisher validation. It never turns a client heuristic into a guaranteed authenticity claim.</p>
-          <a class="button secondary" href="/docs/trust.html">Read the trust model</a>
         </div>
         <div class="trust-rules">
-          <div class="trust-rule"><b>01</b><div><strong>Consent first</strong><span>TCF and GPP values travel with the request; audience cohorts remain gated.</span></div></div>
-          <div class="trust-rule"><b>02</b><div><strong>Privacy-minimized context</strong><span>Structured taxonomy can describe an assistant surface without sending raw chat text.</span></div></div>
-          <div class="trust-rule"><b>03</b><div><strong>Graceful trust fallback</strong><span>Missing attestation degrades trust tier without crashing the publisher application.</span></div></div>
-          <div class="trust-rule"><b>04</b><div><strong>External activation gates</strong><span>Play and OM SDK claims remain pending until their live certification evidence exists.</span></div></div>
+          <div class="trust-rule"><b>01</b><div><strong>Consent travels with the request</strong><span>TCF and GPP values propagate from the host application's CMP.</span></div></div>
+          <div class="trust-rule"><b>02</b><div><strong>Conversation text stays out</strong><span>Assistant surfaces use structured taxonomy, not raw user messages.</span></div></div>
+          <div class="trust-rule"><b>03</b><div><strong>Capability veto stays on device</strong><span>The wire advertises only actions the installed SDK modules can execute.</span></div></div>
+          <div class="trust-rule"><b>04</b><div><strong>External claims remain explicit</strong><span>Certification and live-service claims activate only when evidence exists.</span></div></div>
+          <a class="text-link" href="/docs/trust.html">Read the trust model <span aria-hidden="true">→</span></a>
         </div>
       </div>
     </section>
 
-    <section class="cta-band">
-      <div class="cta-inner">
-        <h2>Start with core. Add only the formats and capabilities your app can use.</h2>
-        <a class="button" href="/docs/">Open documentation</a>
+    <section class="platform-cta">
+      <div class="platform-cta-grid">
+        <div>
+          <p class="eyebrow eyebrow-on-dark">Apex Platform</p>
+          <h2>SDK delivery is the edge. The platform closes the loop.</h2>
+        </div>
+        <div>
+          <p>See how the Android SDK, auction server, demand controls and agentic workflows operate as one production-shaped advertising system.</p>
+          <div class="cta-actions">
+            <a class="button button-accent" href="https://madhur-lalit.com/#work" target="_blank" rel="noreferrer">Explore the platform</a>
+            <a class="button button-ghost" href="/docs/">Read SDK documentation</a>
+          </div>
+        </div>
       </div>
     </section>
   </main>
 
   <footer class="site-footer">
     <div class="footer-inner">
-      <div><a class="brand" href="/"><span class="brand-mark">A</span><span>ApexAd SDK<small>apexsdk.net</small></span></a><p class="footer-note">Independent open-source Android SDK maintained by Madhur Lalit. Apache License 2.0. Standards references describe implemented protocol support, not certification unless explicitly stated.</p></div>
-      <div class="footer-links"><a href="/docs/">Documentation</a><a href="https://github.com/Madroid2/apex-ad-sdk-android">GitHub</a><a href="https://github.com/Madroid2/apex-ad-sdk-android/issues">Issues</a><a href="https://github.com/Madroid2/apex-ad-sdk-android/blob/main/LICENSE">License</a></div>
+      <div>
+        <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">A</span><span>ApexAd SDK<small>apexsdk.net</small></span></a>
+        <p class="footer-note">Independent open-source Android SDK maintained by Madhur Lalit. Apache License 2.0. Standards references describe implemented protocol support, not certification unless explicitly stated.</p>
+      </div>
+      <div class="footer-links"><a href="/docs/">Documentation</a><a href="https://github.com/Madroid2/apex-ad-sdk-android">GitHub</a><a href="https://github.com/Madroid2/apex-ad-sdk-android/issues">Issues</a><a href="https://github.com/Madroid2/apex-ad-sdk-android/blob/main/LICENSE">License</a><a href="https://madhur-lalit.com/#work">Apex Platform</a></div>
     </div>
   </footer>
 
@@ -160,6 +389,7 @@
     <div class="search-head"><input type="search" placeholder="Search Apex documentation" aria-label="Search documentation" data-search-input><button class="search-close" type="button" aria-label="Close search" data-close-search>×</button></div>
     <div class="search-results" data-search-results></div>
   </dialog>
-  <script src="/site.js" defer></script>
+
+  <script src="/site.js?v=20261017c" defer></script>
 </body>
 </html>
