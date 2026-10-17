@@ -10,6 +10,24 @@
 [![Zero 3P Runtime Deps](https://img.shields.io/badge/Runtime%20Deps-Zero-brightgreen)](#zero-third-party-runtime-dependencies)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue)](LICENSE)
 
+**Documentation:** [apexsdk.net](https://apexsdk.net) · **Source:** [GitHub](https://github.com/Madroid2/apex-ad-sdk-android)
+
+### Maven Central coordinates
+
+The public namespace is `net.apexsdk`. The first signed release is staged only after
+`apexsdk.net` ownership is verified in Maven Central Portal. Once `0.1.0` is visible in
+Central, add only the modules your application uses:
+
+```kotlin
+dependencies {
+    implementation("net.apexsdk:apex-sdk-core:0.1.0")
+    implementation("net.apexsdk:apex-sdk-banner:0.1.0")
+    implementation("net.apexsdk:apex-sdk-native:0.1.0")
+}
+```
+
+Release operators should follow the [Maven Central release runbook](docs/MAVEN_CENTRAL_RELEASE.md).
+
 ---
 
 ## Demo App

@@ -1,19 +1,25 @@
+import com.vanniktech.maven.publish.AndroidSingleVariantLibrary
+import com.vanniktech.maven.publish.MavenPublishBaseExtension
+
 plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.android.library) apply false
     alias(libs.plugins.kotlin.android) apply false
     alias(libs.plugins.kotlin.parcelize) apply false
+    // 0.34.x is the newest line compatible with this project's AGP 8.5.x baseline.
+    id("com.vanniktech.maven.publish") version "0.34.0" apply false
     jacoco
 }
 
-val apexGroupId = "com.apexads"
-val apexVersion = providers.gradleProperty("APEX_VERSION").orElse("1.0.0-SNAPSHOT")
+val apexGroupId = "net.apexsdk"
+val apexVersion = providers.gradleProperty("APEX_VERSION").orElse("0.1.0-SNAPSHOT")
 val githubPackagesUrl = uri("https://maven.pkg.github.com/Madroid2/apex-ad-sdk-android")
 val publishableArtifacts = mapOf(
     "sdk-core" to "apex-sdk-core",
     "sdk-banner" to "apex-sdk-banner",
     "sdk-interstitial" to "apex-sdk-interstitial",
     "sdk-native" to "apex-sdk-native",
+    "sdk-conversational" to "apex-sdk-conversational",
     "sdk-video" to "apex-sdk-video",
     "sdk-inappbidding" to "apex-sdk-inappbidding",
     "sdk-appopen" to "apex-sdk-appopen",
@@ -21,6 +27,20 @@ val publishableArtifacts = mapOf(
     "sdk-measurement" to "apex-sdk-measurement",
     "sdk-integrity" to "apex-sdk-integrity",
     "adapters-admob" to "apex-adapter-admob"
+)
+val publicationMetadata = mapOf(
+    "sdk-core" to ("ApexAd SDK Core" to "OpenRTB request, consent, network, lifecycle and tracking foundations for ApexAd Android integrations."),
+    "sdk-banner" to ("ApexAd SDK Banner" to "Banner and MRECT rendering, viewability and click handling for ApexAd Android integrations."),
+    "sdk-interstitial" to ("ApexAd SDK Interstitial" to "Fullscreen interstitial loading, readiness and rendering for ApexAd Android integrations."),
+    "sdk-native" to ("ApexAd SDK Native" to "IAB OpenRTB Native 1.2 assets, rendering contracts and tracking for ApexAd Android integrations."),
+    "sdk-conversational" to ("ApexAd SDK Conversational" to "Clearly disclosed sponsored suggestion cards for conversational Android surfaces."),
+    "sdk-video" to ("ApexAd SDK Video" to "VAST video parsing, playback, skip, quartile and reward handling for ApexAd Android integrations."),
+    "sdk-inappbidding" to ("ApexAd SDK In-App Bidding" to "In-app auction coordination and demand adapter contracts for ApexAd Android integrations."),
+    "sdk-appopen" to ("ApexAd SDK App Open" to "Foreground lifecycle, cache and frequency controls for app-open advertising."),
+    "sdk-wallet" to ("ApexAd SDK Wallet" to "Capability-negotiated Google Wallet advertising actions with ordinary creative fallback."),
+    "sdk-measurement" to ("ApexAd SDK Measurement" to "Measurement integration contracts and lifecycle signals for ApexAd Android formats."),
+    "sdk-integrity" to ("ApexAd SDK Integrity" to "Optional Play Integrity and request-signing signals for server-side supply validation."),
+    "adapters-admob" to ("ApexAd SDK AdMob Adapter" to "AdMob mediation adapter for ApexAd Android demand."),
 )
 
 val businessLogicExcludes = listOf(
@@ -91,18 +111,10 @@ subprojects {
 
     plugins.withId("com.android.library") {
         if (name in publishableArtifacts) {
-            apply(plugin = "maven-publish")
+            apply(plugin = "com.vanniktech.maven.publish")
         }
 
         extensions.configure<com.android.build.gradle.LibraryExtension>("android") {
-            if (name in publishableArtifacts) {
-                publishing {
-                    singleVariant("release") {
-                        withSourcesJar()
-                    }
-                }
-            }
-
             testOptions {
                 unitTests {
                     isIncludeAndroidResources = true
@@ -112,42 +124,50 @@ subprojects {
         }
 
         if (name in publishableArtifacts) {
-            extensions.configure<PublishingExtension>("publishing") {
-                publications {
-                    register<MavenPublication>("release") {
-                        groupId = apexGroupId
-                        artifactId = publishableArtifacts.getValue(project.name)
-                        version = apexVersion.get()
+            extensions.configure<MavenPublishBaseExtension>("mavenPublishing") {
+                configure(
+                    AndroidSingleVariantLibrary(
+                        variant = "release",
+                        sourcesJar = true,
+                        publishJavadocJar = true
+                    )
+                )
+                coordinates(apexGroupId, publishableArtifacts.getValue(project.name), apexVersion.get())
+                publishToMavenCentral()
 
-                        afterEvaluate {
-                            from(components["release"])
-                        }
-
-                        pom {
-                            name.set("Apex Ad SDK ${project.name}")
-                            description.set("Android library module for the Apex Ad SDK.")
-                            url.set("https://github.com/Madroid2/apex-ad-sdk-android")
-                            licenses {
-                                license {
-                                    name.set("Apache License 2.0")
-                                    url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
-                                }
-                            }
-                            developers {
-                                developer {
-                                    id.set("Madroid2")
-                                    name.set("Madroid2")
-                                }
-                            }
-                            scm {
-                                connection.set("scm:git:https://github.com/Madroid2/apex-ad-sdk-android.git")
-                                developerConnection.set("scm:git:https://github.com/Madroid2/apex-ad-sdk-android.git")
-                                url.set("https://github.com/Madroid2/apex-ad-sdk-android")
-                            }
-                        }
-                    }
+                if (!apexVersion.get().endsWith("-SNAPSHOT")) {
+                    signAllPublications()
                 }
 
+                pom {
+                    val metadata = publicationMetadata.getValue(project.name)
+                    name.set(metadata.first)
+                    description.set(metadata.second)
+                    inceptionYear.set("2026")
+                    url.set("https://apexsdk.net")
+                    licenses {
+                        license {
+                            name.set("The Apache License, Version 2.0")
+                            url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                            distribution.set("repo")
+                        }
+                    }
+                    developers {
+                        developer {
+                            id.set("Madroid2")
+                            name.set("Madhur Lalit")
+                            url.set("https://github.com/Madroid2")
+                        }
+                    }
+                    scm {
+                        connection.set("scm:git:git://github.com/Madroid2/apex-ad-sdk-android.git")
+                        developerConnection.set("scm:git:ssh://git@github.com/Madroid2/apex-ad-sdk-android.git")
+                        url.set("https://github.com/Madroid2/apex-ad-sdk-android")
+                    }
+                }
+            }
+
+            extensions.configure<PublishingExtension>("publishing") {
                 repositories {
                     maven {
                         name = "GitHubPackages"
