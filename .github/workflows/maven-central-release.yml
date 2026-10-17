@@ -18,6 +18,7 @@ concurrency:
 jobs:
   stage-release:
     name: Validate and stage ${{ inputs.version }}
+    if: github.actor == 'Madroid2'
     runs-on: ubuntu-latest
     timeout-minutes: 75
     environment: maven-central
