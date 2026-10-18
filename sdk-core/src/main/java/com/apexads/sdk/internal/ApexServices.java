@@ -127,7 +127,7 @@ public final class ApexServices {
         AdQualityReporter.install((surface, reason, score, requestId, bidId, creativeId) -> {
             String json = AdQualityReporter.toJson(surface, reason, score, requestId, bidId, creativeId);
             SdkExecutors.IO.execute(() -> {
-                if (!TrackingTransport.sendJson(endpoint, json)) {
+                if (!TrackingTransport.sendJson(endpoint, json, config.getAppToken())) {
                     AdLog.d("ApexAds: quality report delivery failed (best-effort)");
                 }
             });

@@ -43,8 +43,8 @@ android {
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            buildConfigField("String", "AD_SERVER_URL", "\"https://api.apexads.net/openrtb/v1/auction\"")
-            buildConfigField("String", "TRACKING_URL",  "\"https://api.apexads.net\"")
+            buildConfigField("String", "AD_SERVER_URL", "\"https://ads.apexsdk.net/openrtb/v1/auction\"")
+            buildConfigField("String", "TRACKING_URL",  "\"https://ads.apexsdk.net\"")
         }
         debug {
             val host = resolveDebugAdServerHost()

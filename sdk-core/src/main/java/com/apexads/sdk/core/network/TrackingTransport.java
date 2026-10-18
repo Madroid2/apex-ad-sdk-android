@@ -1,6 +1,7 @@
 package com.apexads.sdk.core.network;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -39,6 +40,17 @@ public final class TrackingTransport {
 
     /** POSTs a JSON body. Returns true on any 2xx response. */
     public static boolean sendJson(@NonNull String urlStr, @NonNull String json) {
+        return sendJson(urlStr, json, null);
+    }
+
+    /**
+     * POSTs a JSON body with the publisher credential used by auxiliary SDK
+     * reports. Tracking callback URLs remain independently HMAC-authenticated
+     * and continue to use the two-argument overload.
+     */
+    public static boolean sendJson(@NonNull String urlStr,
+                                   @NonNull String json,
+                                   @Nullable String appToken) {
         try {
             HttpURLConnection conn = (HttpURLConnection) new URL(urlStr).openConnection();
             conn.setConnectTimeout(TIMEOUT_MS);
@@ -46,8 +58,12 @@ public final class TrackingTransport {
             try {
                 conn.setRequestMethod("POST");
                 conn.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+                if (appToken != null && !appToken.trim().isEmpty()) {
+                    conn.setRequestProperty("X-ApexAds-Token", appToken);
+                }
                 conn.setDoOutput(true);
                 byte[] body = json.getBytes(StandardCharsets.UTF_8);
+                TrustRequestHeaders.apply(conn, "POST", urlStr, body);
                 conn.setFixedLengthStreamingMode(body.length);
                 try (OutputStream os = conn.getOutputStream()) {
                     os.write(body);
