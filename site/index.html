@@ -114,11 +114,24 @@
         </div>
 
         <div class="agent-activity" aria-live="polite">
-          <div>
-            <span class="activity-label">Agent activity</span>
-            <strong data-agent-message>Resolving landing-page evidence</strong>
+          <div class="activity-heading">
+            <span class="activity-label"><i aria-hidden="true"></i><span data-agent-run-state>Workflow running</span></span>
+            <span class="activity-step" data-agent-step>Step 1 of 4</span>
           </div>
-          <button class="activity-toggle" type="button" data-agent-toggle aria-label="Pause agent animation" title="Pause agent animation"><span aria-hidden="true">Ⅱ</span></button>
+          <div class="activity-detail">
+            <strong data-agent-name>Creative Generator</strong>
+            <span data-agent-message>Resolving verified product evidence</span>
+          </div>
+          <div class="activity-progress" aria-hidden="true">
+            <span class="is-active" data-agent-progress="generator"></span>
+            <span data-agent-progress="review"></span>
+            <span data-agent-progress="copilot"></span>
+            <span data-agent-progress="auction"></span>
+          </div>
+          <button class="activity-toggle" type="button" data-agent-toggle aria-pressed="false" aria-label="Pause agent workflow">
+            <span class="activity-toggle-icon" aria-hidden="true">Ⅱ</span>
+            <span data-agent-toggle-label>Pause workflow</span>
+          </button>
         </div>
       </div>
     </section>

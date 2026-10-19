@@ -142,15 +142,20 @@ platformTabs.forEach((tab, index) => {
 });
 
 const agentStages = [
-  { key: "generator", message: "Resolving landing-page evidence", state: "DRAFT", approved: false },
-  { key: "review", message: "Checking policy and brand evidence", state: "CHECKING", approved: false },
-  { key: "copilot", message: "Preparing an informed action proposal", state: "APPROVAL", approved: false },
-  { key: "auction", message: "Approved creative is bid-ready", state: "BID READY", approved: true }
+  { key: "generator", name: "Creative Generator", message: "Resolving verified product evidence", state: "DRAFT", approved: false },
+  { key: "review", name: "Creative Review Agent", message: "Applying policy and brand checks", state: "CHECKING", approved: false },
+  { key: "copilot", name: "Campaign Copilot", message: "Explaining an action for human approval", state: "APPROVAL", approved: false },
+  { key: "auction", name: "Auction Path", message: "Serving the approved creative without model latency", state: "BID READY", approved: true }
 ];
 
 const agentNodes = Array.from(document.querySelectorAll("[data-agent-node]"));
+const agentName = document.querySelector("[data-agent-name]");
 const agentMessage = document.querySelector("[data-agent-message]");
+const agentStep = document.querySelector("[data-agent-step]");
+const agentRunState = document.querySelector("[data-agent-run-state]");
+const agentProgress = Array.from(document.querySelectorAll("[data-agent-progress]"));
 const agentToggle = document.querySelector("[data-agent-toggle]");
+const agentToggleLabel = document.querySelector("[data-agent-toggle-label]");
 const creativePreview = document.querySelector("[data-creative-preview]");
 const creativeState = document.querySelector(".creative-state");
 let agentStageIndex = 0;
@@ -160,7 +165,13 @@ let agentPaused = false;
 function renderAgentStage() {
   const stage = agentStages[agentStageIndex];
   agentNodes.forEach((node) => node.classList.toggle("is-active", node.dataset.agentNode === stage.key));
+  agentProgress.forEach((item, index) => {
+    item.classList.toggle("is-active", index === agentStageIndex);
+    item.classList.toggle("is-complete", index < agentStageIndex);
+  });
+  if (agentName) agentName.textContent = stage.name;
   if (agentMessage) agentMessage.textContent = stage.message;
+  if (agentStep) agentStep.textContent = `Step ${agentStageIndex + 1} of ${agentStages.length}`;
   if (creativeState) creativeState.textContent = stage.state;
   creativePreview?.classList.toggle("is-approved", stage.approved);
 }
@@ -180,16 +191,23 @@ if (agentNodes.length) {
 
 agentToggle?.addEventListener("click", () => {
   agentPaused = !agentPaused;
+  const icon = agentToggle.querySelector(".activity-toggle-icon");
   if (agentPaused) {
     window.clearInterval(agentTimer);
-    agentToggle.querySelector("span").textContent = ">";
-    agentToggle.setAttribute("aria-label", "Play agent animation");
-    agentToggle.title = "Play agent animation";
+    if (icon) icon.textContent = "▶";
+    if (agentToggleLabel) agentToggleLabel.textContent = "Resume workflow";
+    if (agentRunState) agentRunState.textContent = "Workflow paused";
+    agentToggle.setAttribute("aria-label", "Resume agent workflow");
+    agentToggle.setAttribute("aria-pressed", "true");
+    document.querySelector(".agent-activity")?.classList.add("is-paused");
   } else {
     startAgentAnimation();
-    agentToggle.querySelector("span").textContent = "II";
-    agentToggle.setAttribute("aria-label", "Pause agent animation");
-    agentToggle.title = "Pause agent animation";
+    if (icon) icon.textContent = "Ⅱ";
+    if (agentToggleLabel) agentToggleLabel.textContent = "Pause workflow";
+    if (agentRunState) agentRunState.textContent = "Workflow running";
+    agentToggle.setAttribute("aria-label", "Pause agent workflow");
+    agentToggle.setAttribute("aria-pressed", "false");
+    document.querySelector(".agent-activity")?.classList.remove("is-paused");
   }
 });
 
