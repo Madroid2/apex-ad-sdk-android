@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="ApexAd SDK is a modular Android advertising SDK for OpenRTB, Native, VAST, MRAID, in-app bidding, Wallet actions and conversational sponsored suggestions.">
+  <meta name="description" content="ApexAd SDK is a modular Android advertising SDK connected to agentic creative, campaign and publisher operations across OpenRTB, Native, VAST, MRAID, Wallet and conversational ads.">
   <meta name="author" content="Madhur Lalit">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://apexsdk.net/">
@@ -20,7 +20,7 @@
   <meta name="theme-color" content="#090f12">
   <title>ApexAd SDK - The Android edge for intelligent advertising</title>
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/styles.css?v=20261017c">
+  <link rel="stylesheet" href="/styles.css?v=20261019a">
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -100,11 +100,11 @@
           <p class="eyebrow eyebrow-on-dark"><span class="live-dot"></span>Open programmatic monetization for Android</p>
           <h1 id="hero-title">ApexAd SDK</h1>
           <p class="hero-positioning">The Android edge for intelligent advertising.</p>
-          <p class="hero-lede">Render every major mobile format, protect the auction hot path, and connect publishers to AI-assisted creative, review and campaign operations.</p>
+          <p class="hero-lede">Render every major mobile format, protect the auction hot path, and connect advertisers and publishers to accountable AI-assisted creative, campaign and supply operations.</p>
           <div class="hero-actions">
             <a class="button button-accent" href="/docs/">Read the integration guide</a>
             <a class="button button-ghost" href="https://github.com/Madroid2/apex-ad-sdk-android" target="_blank" rel="noreferrer">View source</a>
-            <a class="text-link text-link-light" href="https://madhur-lalit.com/#work" target="_blank" rel="noreferrer">Explore the full Apex Platform <span aria-hidden="true">↗</span></a>
+            <a class="text-link text-link-light" href="https://platform.apexsdk.net" target="_blank" rel="noreferrer">Open the Apex Platform <span aria-hidden="true">↗</span></a>
           </div>
           <div class="install-line">
             <code id="hero-install">implementation("net.apexsdk:apex-sdk-core:0.1.0")</code>
@@ -248,33 +248,126 @@
         <div class="section-heading split-heading reveal">
           <div>
             <p class="eyebrow eyebrow-on-dark">Agentic operations</p>
-            <h2>Models do the slow thinking. Delivery stays fast.</h2>
+            <h2>A creative earns its way into bid traffic.</h2>
           </div>
-          <p>Agents work in the control plane, where judgment has value and latency has room. Deterministic rules, evidence and human authority decide what can become executable.</p>
+          <p>Apex makes every handoff visible. Agents assemble and assess the ad away from the auction, deterministic policy controls eligibility, and people retain authority where business judgment matters.</p>
         </div>
 
-        <div class="agent-ledger reveal">
-          <article class="agent-row">
-            <div class="agent-identity"><span>GEN</span><div><small>Agent 01</small><h3>Creative Generator</h3></div></div>
-            <p>Builds product-specific creative variants from supplied assets and validated landing-page evidence, with bounded model and image-generation cost.</p>
-            <div class="agent-proof"><span>Input</span><b>URL + assets + brief</b><span>Output</span><b>Draft creative set</b></div>
-          </article>
-          <article class="agent-row">
-            <div class="agent-identity"><span>REV</span><div><small>Agent 02</small><h3>Creative Review</h3></div></div>
-            <p>Combines deterministic policy checks with model judgment, versioned evidence and replay. Ambiguous or high-risk cases stay with a human reviewer.</p>
-            <div class="agent-proof"><span>Boundary</span><b>Human review band</b><span>Serving</span><b>Approved only</b></div>
-          </article>
-          <article class="agent-row">
-            <div class="agent-identity"><span>COP</span><div><small>Agent 03</small><h3>Campaign Copilot</h3></div></div>
-            <p>Explains performance evidence and proposes bounded campaign changes. The advertiser sees the reason and consequences before approving an executable action.</p>
-            <div class="agent-proof"><span>Action</span><b>Proposal first</b><span>Authority</span><b>Human approval</b></div>
-          </article>
+        <div class="agent-workbench reveal" data-agent-workbench>
+          <div class="workbench-header">
+            <div>
+              <span class="workbench-kicker">Control plane · outside auction latency</span>
+              <strong>Creative operations floor</strong>
+            </div>
+            <div class="workbench-status"><i></i><span data-workbench-status>Product evidence resolved</span></div>
+          </div>
+
+          <div class="journey-floor" aria-label="Creative journey from brief to bidding">
+            <article class="creative-job">
+              <span class="job-label">Incoming job</span>
+              <div class="job-visual"><small>PACEONE</small><strong>Everyday miles.<br>Better feel.</strong></div>
+              <div class="job-meta"><span>Landing page</span><b>Assets + brief</b></div>
+            </article>
+
+            <button class="agent-desk is-active" type="button" data-workbench-step="generate" aria-pressed="true">
+              <span class="desk-number">01</span>
+              <span class="desk-agent"><i>GEN</i><b>Creative Generator</b><small>Evidence-grounded assembly</small></span>
+              <span class="desk-monitor"><i></i><i></i><i></i><b>4 format variants</b></span>
+              <span class="desk-result">Draft set</span>
+            </button>
+
+            <button class="agent-desk" type="button" data-workbench-step="review" aria-pressed="false">
+              <span class="desk-number">02</span>
+              <span class="desk-agent"><i>REV</i><b>Creative Review</b><small>Policy + model judgment</small></span>
+              <span class="desk-monitor"><i></i><i></i><i></i><b>Evidence score 0.94</b></span>
+              <span class="desk-result">Decision record</span>
+            </button>
+
+            <button class="agent-desk" type="button" data-workbench-step="gate" aria-pressed="false">
+              <span class="desk-number">03</span>
+              <span class="desk-agent"><i>GATE</i><b>Eligibility Gate</b><small>Deterministic authority</small></span>
+              <span class="desk-monitor"><i></i><i></i><i></i><b>Policy v2026.10</b></span>
+              <span class="desk-result">Approved only</span>
+            </button>
+
+            <button class="bid-lane" type="button" data-workbench-step="auction" aria-pressed="false">
+              <span class="bid-pulse"></span>
+              <span class="bid-label">04 · Auction path</span>
+              <strong>Bid eligible</strong>
+              <small>OpenRTB response · signed trackers</small>
+              <span class="bid-speed">0 LLM calls</span>
+            </button>
+
+            <span class="journey-packet" aria-hidden="true"></span>
+          </div>
+
+          <div class="journey-explainer" aria-live="polite">
+            <div class="explainer-index" data-workbench-index>01</div>
+            <div class="explainer-copy">
+              <span data-workbench-eyebrow>Creative Generator</span>
+              <h3 data-workbench-title>Turn product truth into format-ready advertising.</h3>
+              <p data-workbench-copy>The agent resolves the landing page, validates product and brand evidence, then produces coherent Display, Native, Interstitial and VAST variants from one bounded brief.</p>
+            </div>
+            <dl class="explainer-proof">
+              <div><dt>Reads</dt><dd data-workbench-input>URL, assets, offer, audience</dd></div>
+              <div><dt>Produces</dt><dd data-workbench-output>Draft creative set + provenance</dd></div>
+              <div><dt>Authority</dt><dd data-workbench-authority>No serving permission</dd></div>
+            </dl>
+          </div>
         </div>
 
         <div class="guardrail-statement reveal">
           <strong>0 LLM calls</strong>
           <span>in the impression-serving path</span>
           <div class="guardrail-flow" aria-label="Agent decision boundary"><span>Agent proposal</span><i></i><span>Deterministic gate</span><i></i><span>Human boundary</span><i></i><span>Eligible state</span></div>
+        </div>
+
+        <div class="copilot-heading split-heading reveal">
+          <div>
+            <p class="eyebrow eyebrow-on-dark">Two operating copilots</p>
+            <h2>One for demand. One for supply.</h2>
+          </div>
+          <p>Both copilots explain evidence before proposing action. Neither silently crosses tenant, admin, policy-review or engineering boundaries.</p>
+        </div>
+
+        <div class="copilot-showcase reveal">
+          <article class="copilot-product campaign-product">
+            <div class="product-bar"><span><i>COP</i>Campaign Copilot</span><b>Advertiser workspace</b></div>
+            <div class="product-body">
+              <div class="copilot-prompt">Why is delivery constrained?</div>
+              <div class="copilot-answer">
+                <span class="answer-label">Evidence-grounded diagnosis</span>
+                <h3>Creative coverage is limiting eligible auctions.</h3>
+                <p>One active ad group has approved Banner inventory, but Native and Interstitial remain in review. The campaign recorded no eligible bid opportunities for those formats in the selected window.</p>
+                <div class="evidence-list"><span>Campaign state</span><span>Review coverage</span><span>Bid activity</span></div>
+              </div>
+              <div class="action-proposal">
+                <div><small>Proposed action</small><strong>Pause uncovered formats until review completes</strong></div>
+                <span>Advertiser approval required</span>
+              </div>
+            </div>
+            <footer><span>Diagnose · compare · report · propose</span><b>Cannot approve creatives</b></footer>
+          </article>
+
+          <article class="copilot-product supply-product">
+            <div class="product-bar"><span><i>SSP</i>Publisher Copilot</span><b>Publisher workspace</b></div>
+            <figure class="publisher-capture">
+              <img src="/assets/publisher_copilot_live.png" alt="Apex Publisher Copilot diagnosing an Android SDK memory issue and preparing a consented engineering escalation" loading="lazy">
+              <figcaption><span>Live portal workflow</span><strong>SDK diagnosis with redacted evidence</strong></figcaption>
+            </figure>
+            <div class="supply-capabilities">
+              <span>Placement planning</span><span>Integration checks</span><span>Delivery health</span><span>Runtime diagnosis</span>
+            </div>
+            <footer><span>Guide · diagnose · mitigate · escalate</span><b>Publisher confirms escalation</b></footer>
+          </article>
+        </div>
+
+        <div class="copilot-boundaries reveal" aria-label="Copilot operating boundaries">
+          <div><span>Campaign Copilot</span><strong>May execute an advertiser-approved, bounded campaign change.</strong></div>
+          <i></i>
+          <div><span>SSP Copilot</span><strong>May prepare a redacted case; the publisher submits it to engineering.</strong></div>
+          <i></i>
+          <div><span>Admin authority</span><strong>Creative approval, rejection and platform policy remain outside both copilots.</strong></div>
         </div>
       </div>
     </section>
@@ -367,7 +460,7 @@ ApexSdk.initialize(
         <div>
           <p>See how the Android SDK, auction server, demand controls and agentic workflows operate as one production-shaped advertising system.</p>
           <div class="cta-actions">
-            <a class="button button-accent" href="https://madhur-lalit.com/#work" target="_blank" rel="noreferrer">Explore the platform</a>
+            <a class="button button-accent" href="https://platform.apexsdk.net" target="_blank" rel="noreferrer">Open the platform</a>
             <a class="button button-ghost" href="/docs/">Read SDK documentation</a>
           </div>
         </div>
@@ -381,7 +474,7 @@ ApexSdk.initialize(
         <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">A</span><span>ApexAd SDK<small>apexsdk.net</small></span></a>
         <p class="footer-note">Independent open-source Android SDK maintained by Madhur Lalit. Apache License 2.0. Standards references describe implemented protocol support, not certification unless explicitly stated.</p>
       </div>
-      <div class="footer-links"><a href="/docs/">Documentation</a><a href="https://github.com/Madroid2/apex-ad-sdk-android">GitHub</a><a href="https://github.com/Madroid2/apex-ad-sdk-android/issues">Issues</a><a href="https://github.com/Madroid2/apex-ad-sdk-android/blob/main/LICENSE">License</a><a href="https://madhur-lalit.com/#work">Apex Platform</a></div>
+      <div class="footer-links"><a href="/docs/">Documentation</a><a href="https://github.com/Madroid2/apex-ad-sdk-android">GitHub</a><a href="https://github.com/Madroid2/apex-ad-sdk-android/issues">Issues</a><a href="https://github.com/Madroid2/apex-ad-sdk-android/blob/main/LICENSE">License</a><a href="https://platform.apexsdk.net">Apex Platform</a></div>
     </div>
   </footer>
 
@@ -390,6 +483,6 @@ ApexSdk.initialize(
     <div class="search-results" data-search-results></div>
   </dialog>
 
-  <script src="/site.js?v=20261017c" defer></script>
+  <script src="/site.js?v=20261019a" defer></script>
 </body>
 </html>

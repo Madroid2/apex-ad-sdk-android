@@ -193,6 +193,103 @@ agentToggle?.addEventListener("click", () => {
   }
 });
 
+const workbench = document.querySelector("[data-agent-workbench]");
+const workbenchButtons = Array.from(document.querySelectorAll("[data-workbench-step]"));
+const workbenchStages = {
+  generate: {
+    index: "01",
+    position: "28%",
+    status: "Four format variants assembled",
+    eyebrow: "Creative Generator",
+    title: "Turn product truth into format-ready advertising.",
+    copy: "The agent resolves the landing page, validates product and brand evidence, then produces coherent Display, Native, Interstitial and VAST variants from one bounded brief.",
+    input: "URL, assets, offer, audience",
+    output: "Draft creative set + provenance",
+    authority: "No serving permission"
+  },
+  review: {
+    index: "02",
+    position: "48%",
+    status: "Policy evidence scored and recorded",
+    eyebrow: "Creative Review Agent",
+    title: "Separate obvious decisions from genuine judgment calls.",
+    copy: "Deterministic checks run before and after model assessment. The agent records policy evidence, brand and domain consistency, confidence, and the exact policy version used for replay.",
+    input: "Creative, destination, policy",
+    output: "Approve, reject, or review band",
+    authority: "Cannot override admin review"
+  },
+  gate: {
+    index: "03",
+    position: "68%",
+    status: "Eligibility gate evaluating final state",
+    eyebrow: "Deterministic Eligibility Gate",
+    title: "Only an authorized decision can change serving state.",
+    copy: "Hard policy failures stay rejected. High-confidence safe cases can follow configured automation, while ambiguous, sensitive, or conflicting evidence enters the admin queue for a human decision.",
+    input: "Decision + evidence + actor",
+    output: "Versioned eligibility state",
+    authority: "Rules and human roles prevail"
+  },
+  auction: {
+    index: "04",
+    position: "89%",
+    status: "Approved creative available to bidder",
+    eyebrow: "Auction-Eligible Creative",
+    title: "The finished ad joins bidding without bringing the model with it.",
+    copy: "The bidder reads a pre-approved, cached creative and returns standard OpenRTB markup with signed trackers. Generation, reasoning and review remain entirely outside the impression-serving path.",
+    input: "Eligible campaign + slot context",
+    output: "OpenRTB bid response",
+    authority: "Deterministic auction only"
+  }
+};
+
+let workbenchIndex = 0;
+let workbenchTimer = null;
+
+function selectWorkbenchStage(key) {
+  const stage = workbenchStages[key];
+  if (!workbench || !stage) return;
+  workbenchButtons.forEach((button, index) => {
+    const active = button.dataset.workbenchStep === key;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
+    if (active) workbenchIndex = index;
+  });
+  workbench.querySelector(".journey-floor")?.style.setProperty("--journey-position", stage.position);
+  const values = {
+    "[data-workbench-status]": stage.status,
+    "[data-workbench-index]": stage.index,
+    "[data-workbench-eyebrow]": stage.eyebrow,
+    "[data-workbench-title]": stage.title,
+    "[data-workbench-copy]": stage.copy,
+    "[data-workbench-input]": stage.input,
+    "[data-workbench-output]": stage.output,
+    "[data-workbench-authority]": stage.authority
+  };
+  Object.entries(values).forEach(([selector, value]) => {
+    const node = workbench.querySelector(selector);
+    if (node) node.textContent = value;
+  });
+}
+
+function startWorkbenchAnimation() {
+  window.clearInterval(workbenchTimer);
+  workbenchTimer = window.setInterval(() => {
+    workbenchIndex = (workbenchIndex + 1) % workbenchButtons.length;
+    selectWorkbenchStage(workbenchButtons[workbenchIndex].dataset.workbenchStep);
+  }, 3600);
+}
+
+workbenchButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    selectWorkbenchStage(button.dataset.workbenchStep);
+    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) startWorkbenchAnimation();
+  });
+});
+
+if (workbenchButtons.length && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  startWorkbenchAnimation();
+}
+
 const revealItems = document.querySelectorAll(".reveal");
 if ("IntersectionObserver" in window && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
   const revealObserver = new IntersectionObserver((entries, observer) => {
