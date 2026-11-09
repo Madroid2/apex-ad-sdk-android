@@ -31,6 +31,10 @@ kotlin/
 .DS_Store
 **/.DS_Store
 
+# Website source and deployment are maintained in a separate private repository.
+/site/
+/.github/workflows/pages.yml
+
 # Logs
 *.log
 

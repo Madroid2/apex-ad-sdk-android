@@ -1,5 +1,11 @@
 # Repository Agent Instructions
 
+This repository is for the open-source Android SDK. Website source and hosting
+are maintained separately in a private repository. Do not add a `site/` directory
+or a GitHub Pages deployment workflow here. Run `node scripts/check-source-boundary.mjs`
+before committing. After a history rewrite, do not merge an old local branch back
+into this repository. Rebase or re-clone to avoid restoring removed website history.
+
 Before changing deployment configuration or declaring the Apex trust layer production-
 ready, read and complete `docs/PRODUCTION_TRUST_ACTIVATION.md`.
 
